@@ -15,7 +15,7 @@
 
 ## Templates
 
-- No templates added yet.
+- ChatGPT Project Initialization (Templates/CHATGPT_PROJECT_INITIALIZATION.md)
 
 ## Examples
 

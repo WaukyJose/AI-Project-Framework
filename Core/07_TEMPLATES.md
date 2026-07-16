@@ -299,3 +299,12 @@ A template is acceptable when:
 - It does not create unnecessary folders or files.
 - It preserves human approval and repository truth.
 - Existing projects can continue even when the template evolves.
+
+## Standard Templates
+
+The framework maintains reusable templates including:
+
+- PROJECT_STARTER_TEMPLATE.md
+- CHATGPT_PROJECT_INITIALIZATION.md
+
+These templates should be reused across projects instead of being rewritten.
