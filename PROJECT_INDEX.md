@@ -24,6 +24,8 @@
 - [Incident Response](Core/14_INCIDENT_RESPONSE.md) - Defines procedures for diagnosing, documenting, and recovering from production incidents.
 - [Security](Core/15_SECURITY.md) - Defines security principles, access control, secrets management, and hardening practices.
 - [Backup and Recovery](Core/16_BACKUP_AND_RECOVERY.md) - Defines backup strategies, disaster recovery, and business continuity.
+- [Framework Evolution](Core/17_FRAMEWORK_EVOLUTION.md) - Defines how the AI Project Framework evolves through validated experience, reusable patterns, continuous improvement, and lessons learned from real-world AI projects.
+- [Architecture Decision Records](Core/18_ARCHITECTURAL_DECISION_RECORDS.md) - Defines the framework standard for documenting architectural decisions, engineering rationale, decision lifecycle, and Architecture Decision Records (ADRs) across all framework projects.
 
 ## Templates
 

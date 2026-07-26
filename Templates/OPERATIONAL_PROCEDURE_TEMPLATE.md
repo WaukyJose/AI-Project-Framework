@@ -1,92 +1,115 @@
-# Operational Procedure Template
+# Templates
 
 ## Purpose
 
-Briefly describe why this procedure exists and when it should be performed.
+This document describes the reusable templates provided by the AI Project Framework.
+
+Templates promote consistency across projects by providing standardized structures for documentation, operational procedures, project initialization, and future development artifacts.
+
+Whenever a reusable pattern is discovered during a project, it should first be evaluated for inclusion as a framework template before being duplicated elsewhere.
 
 ---
 
-## Prerequisites
+# Current Templates
 
-List any required conditions before executing the procedure.
+## 1. ChatGPT Project Initialization
 
-Example:
+**Location**
 
-- Administrator access
-- Active virtual environment
-- Internet connectivity
-- Backup completed (if applicable)
-
----
-
-## Commands
-
-Provide the exact commands to execute.
-
-Example:
-
-```bash
-sudo systemctl restart gunicorn
-sudo systemctl status gunicorn
+```
+Templates/CHATGPT_PROJECT_INITIALIZATION.md
 ```
 
+**Purpose**
+
+Provides a standardized prompt for initializing a new ChatGPT Project with the appropriate project context, objectives, conventions, and workflow.
+
+**Typical Use Cases**
+
+- New AI projects
+- Existing project migration
+- Long-term project continuation
+- Team onboarding
+
 ---
 
-## Expected Output
+## 2. Operational Procedure Template
 
-Describe the expected successful result.
+**Location**
 
-Example:
-
-```text
-Active: active (running)
+```
+Templates/OPERATIONAL_PROCEDURE_TEMPLATE.md
 ```
 
----
+**Purpose**
 
-## Verification
+Provides a standard format for documenting operational procedures across all AI projects.
 
-Explain how to verify that the procedure completed successfully.
+Rather than describing procedures conceptually, every operational task should document the exact commands, expected results, verification steps, and troubleshooting guidance.
 
-Examples:
+**Typical Use Cases**
 
-- Open the application.
-- Check the service status.
-- Verify HTTPS.
-- Confirm database connectivity.
-- Test application functionality.
-
----
-
-## Troubleshooting
-
-Describe common problems and their solutions.
-
-Example:
-
-| Problem             | Possible Cause      | Solution          |
-| ------------------- | ------------------- | ----------------- |
-| Service won't start | Configuration error | Check logs        |
-| SSL failure         | Certificate expired | Renew certificate |
-| 502 Bad Gateway     | Gunicorn stopped    | Restart Gunicorn  |
+- Deployment
+- Operations Runbooks
+- Infrastructure Maintenance
+- Incident Response
+- Monitoring
+- Backup & Recovery
+- Security Procedures
+- System Administration
 
 ---
 
-## Related Documents
+# Template Design Principles
 
-List related documentation.
+Every framework template should be:
 
-Example:
+- Reusable
+- Project-independent
+- Easy to customize
+- Version controlled
+- Continuously improved through real-world use
 
-- Deployment Guide
-- Operations Runbook
-- Incident Log
-- Monitoring Guide
+Templates should capture proven engineering practices rather than theoretical recommendations.
 
 ---
 
-## Revision History
+# Future Templates
 
-| Version | Date       | Description     |
-| ------- | ---------- | --------------- |
-| 1.0     | YYYY-MM-DD | Initial version |
+The framework is expected to grow with additional reusable templates such as:
+
+## Documentation
+
+- Project Document Template
+- README Template
+- Changelog Template
+- Incident Report Template
+
+## AI Development
+
+- Prompt Template
+- Agent Template
+- RAG Template
+- Evaluation Template
+
+## Research
+
+- Experiment Template
+- Dataset Template
+- Literature Review Template
+
+## Operations
+
+- Deployment Checklist
+- Monitoring Checklist
+- Security Audit Template
+
+Future templates should be created only when a reusable need has been validated through one or more real projects.
+
+---
+
+# Related Documents
+
+- Core/06_PROJECT_BOOTSTRAP.md
+- Templates/
+- Projects/
