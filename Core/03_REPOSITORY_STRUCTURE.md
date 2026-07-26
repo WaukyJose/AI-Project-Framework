@@ -6,6 +6,8 @@ This document defines the standard repository architecture for projects created 
 
 The repository is the single source of truth. It stores durable project knowledge, makes the project understandable without relying on chat history, and supports human approval, AI assistance, Git history, and future maintenance.
 
+Repository documentation should distinguish between stable architectural documentation and living operational documentation. Architecture documents describe the system and its design. Operational documents describe the current engineering state and guide the continuation of active work.
+
 The structure should remain vendor-independent. Tools may assist the project, but they should not define the project.
 
 ## Repository Design Principles
@@ -14,6 +16,7 @@ The structure should remain vendor-independent. Tools may assist the project, bu
 - Keep structure simple until complexity is justified.
 - Every folder must have a clear purpose.
 - Navigation must be explicit through `PROJECT_INDEX.md`.
+- Stable architecture and living operational state should be documented separately.
 - Active work, reusable materials, examples, outputs, and archived materials should remain separate.
 - Development tools may operate on the repository, but they do not define the repository.
 
@@ -30,7 +33,18 @@ ProjectName/
 ├── Outputs/
 ├── Archive/
 ├── PROJECT_INDEX.md
-└── README.md
+├── README.md
+├── PROJECT_HANDOFF.md
+├── PROJECT_BRIEF.md
+├── PROJECT_ROADMAP.md
+├── SYSTEM_ARCHITECTURE.md
+├── MOBILE_ARCHITECTURE.md
+├── AI_ARCHITECTURE.md
+├── DATA_MODEL.md
+├── ARCHITECTURE_DECISIONS.md
+├── DEPLOYMENT_GUIDE.md
+├── OPERATIONS_RUNBOOK.md
+└── CHANGELOG.md
 ```
 
 Not every project must use every folder immediately. Mandatory files and folders should exist from the beginning. Optional folders should be added when the project needs them.
@@ -50,11 +64,70 @@ It should explain:
 - How to understand or enter the project.
 - What the current project status is when useful.
 
+### `PROJECT_HANDOFF.md`
+
+The primary continuity document for the current engineering state.
+
+Its purpose is to:
+
+- Record the current engineering status.
+- Enable seamless transition between development sessions.
+- Support collaboration between human developers and AI agents.
+- Identify exactly where implementation work should continue.
+
+`PROJECT_HANDOFF.md` is a concise, living operational document that should be updated frequently as meaningful implementation work is completed. It should reference architecture documents rather than duplicate their stable system descriptions.
+
+Typical contents include:
+
+- Current phase and milestone.
+- Active and recently completed work.
+- The next priority.
+- Known blockers.
+- Stable components.
+- A short technical debt summary.
+- Notes for the next development session.
+
 ### `PROJECT_INDEX.md`
 
 The primary navigation file for the repository.
 
 It should list important active documents, templates, examples, outputs, and archived materials when relevant. It must be updated when important files are added, moved, renamed, or retired.
+
+## Standard Project Documents
+
+Every framework-managed project should include the following top-level project documents:
+
+```text
+README.md
+PROJECT_HANDOFF.md
+PROJECT_BRIEF.md
+PROJECT_ROADMAP.md
+SYSTEM_ARCHITECTURE.md
+MOBILE_ARCHITECTURE.md
+AI_ARCHITECTURE.md
+DATA_MODEL.md
+ARCHITECTURE_DECISIONS.md
+DEPLOYMENT_GUIDE.md
+OPERATIONS_RUNBOOK.md
+CHANGELOG.md
+```
+
+Documents that do not apply to the current implementation should remain concise and state why they are not applicable. This preserves a predictable repository standard without requiring speculative content.
+
+## Document Roles and Lifecycles
+
+Project documents serve different purposes and should not duplicate one another.
+
+| Document | Primary Purpose | Update Frequency |
+| --- | --- | --- |
+| `README.md` | Project entry point | Rare |
+| `PROJECT_HANDOFF.md` | Current engineering state and continuity | Frequent |
+| `PROJECT_BRIEF.md` | Project definition and scope | Rare |
+| `PROJECT_ROADMAP.md` | Long-term planning and milestones | Occasional |
+| `SYSTEM_ARCHITECTURE.md` | Stable system design | Rare |
+| `CHANGELOG.md` | Historical record of delivered changes | Per release |
+
+Architecture documents explain how the system is designed. `PROJECT_HANDOFF.md` explains what is happening now. `CHANGELOG.md` records what was delivered. These documents should reference one another when useful, but their responsibilities should remain distinct.
 
 ## Mandatory Folders
 
@@ -149,6 +222,8 @@ Root files should be limited to files that help someone understand, enter, confi
 Examples include:
 
 - `README.md`
+- `PROJECT_HANDOFF.md`
+- Standard project definition, planning, architecture, operations, and history documents.
 - `PROJECT_INDEX.md`
 - License file, if needed.
 - Configuration files required by tools.
@@ -183,9 +258,22 @@ AI workspaces, chats, and assistant tools provide context and assistance, but th
 
 - Chat history is temporary context.
 - Durable decisions belong in repository documents.
+- Current implementation state belongs in `PROJECT_HANDOFF.md`.
 - AI should read the repository before proposing structural changes.
 - AI should not create or modify files without approval.
 - AI-generated content becomes project material only after it is written into the approved repository.
+
+### Repository Reading Order for AI Agents
+
+AI agents should use the repository in approximately this order:
+
+1. Read `README.md` to understand the project entry point.
+2. Read `PROJECT_HANDOFF.md` to identify the current engineering state and next priority.
+3. Read `PROJECT_BRIEF.md` to confirm the project definition and scope.
+4. Read the architecture and operational documents relevant to the active task.
+5. Inspect the implementation before proposing or performing work.
+
+This sequence provides current operational context without treating temporary conversation history as project truth.
 
 ## Relationship to Development Tools
 
@@ -205,7 +293,18 @@ ProjectName/
 ├── Core/
 ├── Archive/
 ├── PROJECT_INDEX.md
-└── README.md
+├── README.md
+├── PROJECT_HANDOFF.md
+├── PROJECT_BRIEF.md
+├── PROJECT_ROADMAP.md
+├── SYSTEM_ARCHITECTURE.md
+├── MOBILE_ARCHITECTURE.md
+├── AI_ARCHITECTURE.md
+├── DATA_MODEL.md
+├── ARCHITECTURE_DECISIONS.md
+├── DEPLOYMENT_GUIDE.md
+├── OPERATIONS_RUNBOOK.md
+└── CHANGELOG.md
 ```
 
 Optional folders should be added as the lifecycle requires them.
@@ -214,8 +313,9 @@ Optional folders should be added as the lifecycle requires them.
 
 A repository structure is acceptable when:
 
-- A human can understand the project from `README.md` and `PROJECT_INDEX.md`.
-- A future AI assistant can identify the active project materials.
+- A human can understand the project from `README.md`, `PROJECT_INDEX.md`, and the standard project documents.
+- A future human or AI agent can identify the current engineering state from `PROJECT_HANDOFF.md`.
+- Architecture documentation describes stable system design without duplicating operational status.
 - Every top-level folder has a clear purpose.
 - The repository reflects the current project truth.
 - Git can trace all meaningful changes.

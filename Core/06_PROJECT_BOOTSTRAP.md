@@ -4,7 +4,7 @@
 
 This document defines the standard procedure for creating a new AI Project Framework project from scratch.
 
-Bootstrap means turning a project idea into a working repository with a clear source of truth, a local Git repository, an optional remote mirror, an AI workspace connected to repository context, required first documents, and a repeatable workflow for future sessions.
+Bootstrap means turning a project idea into a working repository with a clear source of truth, a local Git repository, an optional remote mirror, an AI workspace connected to repository context, required first documents, an operational handoff record, and a repeatable workflow for future sessions.
 
 ## Design Principles
 
@@ -13,6 +13,7 @@ Bootstrap means turning a project idea into a working repository with a clear so
 - Use one authoritative repository.
 - Human approves structure before files are created.
 - Git history begins early.
+- Operational continuity begins with the first implementation session.
 - AI workspace supports the repository; it does not replace it.
 - Vendor-specific tools may be used, but the procedure remains portable.
 
@@ -46,7 +47,7 @@ The standard bootstrap sequence is:
 4. Create the local project folder.
 5. Initialize Git.
 6. Create the initial repository structure.
-7. Write required first documents.
+7. Initialize required project documents from the standard templates.
 8. Create or connect the remote repository if needed.
 9. Connect the AI workspace if used.
 10. Verify the structure.
@@ -125,7 +126,18 @@ ProjectName/
 ├── Core/
 ├── Archive/
 ├── PROJECT_INDEX.md
-└── README.md
+├── README.md
+├── PROJECT_HANDOFF.md
+├── PROJECT_BRIEF.md
+├── PROJECT_ROADMAP.md
+├── SYSTEM_ARCHITECTURE.md
+├── MOBILE_ARCHITECTURE.md
+├── AI_ARCHITECTURE.md
+├── DATA_MODEL.md
+├── ARCHITECTURE_DECISIONS.md
+├── DEPLOYMENT_GUIDE.md
+├── OPERATIONS_RUNBOOK.md
+└── CHANGELOG.md
 ```
 
 Recommended optional folders may be added only when justified:
@@ -149,18 +161,19 @@ Rules:
 
 ## Step 5: Create Required First Documents
 
-Required first documents:
+Initialize the standard project documents in a logical order:
 
-- `README.md`
-- `PROJECT_INDEX.md`
-- `Core/00_PROJECT_GOVERNANCE.md`
+1. Create `README.md` as the project entry point.
+2. Copy `Templates/PROJECT_HANDOFF_TEMPLATE.md` from the AI Project Framework into the new project root and rename the copy to `PROJECT_HANDOFF.md`.
+3. Create `PROJECT_BRIEF.md` to define the project and its scope.
+4. Create `PROJECT_ROADMAP.md` to identify milestones and long-term direction.
+5. Create the architecture, data, deployment, operations, decision, and history documents required by the repository standard.
+6. Create `PROJECT_INDEX.md` and list the active project documents.
+7. Create `Core/00_PROJECT_GOVERNANCE.md`.
 
-Optional first documents, depending on project maturity:
+The official handoff template remains in the framework repository. The project copy becomes the living `PROJECT_HANDOFF.md` for that project and should be initialized with the known project state before implementation begins.
 
-- `Core/01_PROJECT_OVERVIEW.md`
-- `Core/02_PROJECT_WORKFLOW.md`
-- Project plan or milestone document.
-- Project-specific requirements document.
+Documents that do not yet apply should state that clearly rather than contain speculative material. Optional supporting documents and folders may be added when the project requires them.
 
 For a framework-created project, the first documents should establish:
 
@@ -169,6 +182,13 @@ For a framework-created project, the first documents should establish:
 - How changes are approved.
 - Which lifecycle stage the project is in.
 - What the next milestone is.
+- Where implementation work should begin or continue.
+
+### Why the Handoff Document Starts on Day 1
+
+Creating `PROJECT_HANDOFF.md` during bootstrap gives every project an operational engineering record from the beginning. Development continuity exists from the first implementation session, and human contributors and AI agents share the same current operational context.
+
+The document evolves throughout the project lifecycle. It records current state and immediate continuity while referencing stable architecture documents for system design.
 
 ## Step 6: Create GitHub Repository or Remote Mirror
 
@@ -213,6 +233,12 @@ Verification checklist:
 - Project folder exists in the intended location.
 - Git is initialized in the correct folder.
 - `README.md` exists.
+- `PROJECT_HANDOFF.md` exists in the project root.
+- `PROJECT_HANDOFF.md` was created from `Templates/PROJECT_HANDOFF_TEMPLATE.md`.
+- `PROJECT_HANDOFF.md` reflects the initial project state and is ready for immediate use.
+- `PROJECT_BRIEF.md` exists.
+- `PROJECT_ROADMAP.md` exists.
+- Required architecture and operational documents exist.
 - `PROJECT_INDEX.md` exists.
 - `Core/` exists.
 - `Archive/` exists.
@@ -246,17 +272,19 @@ Initialize AI Project Framework structure
 
 The default daily or session flow is:
 
-1. Read `PROJECT_INDEX.md`.
-2. Confirm active milestone.
-3. Inspect relevant files.
-4. Discuss changes.
-5. Propose scoped update.
-6. Human approves.
-7. AI writes approved changes.
-8. AI reports changed files.
-9. Human verifies with Git status.
-10. Human commits.
-11. Human pushes when ready.
+1. Read `README.md`.
+2. Read `PROJECT_HANDOFF.md`.
+3. Confirm the project definition and active milestone.
+4. Inspect relevant architecture documents and implementation files.
+5. Discuss changes.
+6. Propose scoped update.
+7. Human approves.
+8. AI writes approved changes.
+9. Update `PROJECT_HANDOFF.md` after meaningful implementation work.
+10. AI reports changed files.
+11. Human verifies with Git status.
+12. Human commits.
+13. Human pushes when ready.
 
 ## Common Mistakes to Avoid
 
@@ -268,6 +296,7 @@ The default daily or session flow is:
 - Creating templates before defining rules.
 - Letting tool conventions override framework structure.
 - Forgetting to update `PROJECT_INDEX.md`.
+- Allowing `PROJECT_HANDOFF.md` to become stale.
 - Treating AI memory as documentation.
 - Committing unreviewed AI-generated changes.
 
@@ -279,6 +308,7 @@ A project is successfully bootstrapped when:
 - Git is initialized and tracking the project.
 - The initial structure is minimal and understandable.
 - Required first documents exist.
+- `PROJECT_HANDOFF.md` originated from the official template and is ready for immediate use.
 - `PROJECT_INDEX.md` is accurate.
 - Optional folders are justified.
 - AI workspace points to the correct repository if used.

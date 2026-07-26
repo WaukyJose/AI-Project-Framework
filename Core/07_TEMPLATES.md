@@ -6,6 +6,8 @@ This document defines the template system used by the AI Project Framework.
 
 Templates standardize reusable project structures, help bootstrap projects faster, and provide consistent starting points for documents, workflows, prompts, and repositories.
 
+The template system also ensures that required operational documents begin from an approved framework structure and then evolve independently within each project.
+
 Templates must remain adaptable to project type and human decisions. They support consistency but do not replace governance, approval, or review.
 
 Templates are vendor-independent.
@@ -118,6 +120,7 @@ Document templates are reusable structures for common project documents.
 Examples include:
 
 - Project overview.
+- Project handoff.
 - Milestone plan.
 - Decision record.
 - Research note.
@@ -182,7 +185,7 @@ Examples include:
 Rules:
 
 - Repository templates must follow `Core/03_REPOSITORY_STRUCTURE.md`.
-- Repository templates must include `README.md`, `PROJECT_INDEX.md`, `Core/`, and `Archive/`.
+- Repository templates must include the required top-level project documents, including `PROJECT_HANDOFF.md`, as well as `PROJECT_INDEX.md`, `Core/`, and `Archive/`.
 - Optional folders must be justified.
 - Every additional folder must be earned.
 
@@ -198,6 +201,7 @@ Examples:
 
 ```text
 PROJECT_STARTER_TEMPLATE.md
+PROJECT_HANDOFF_TEMPLATE.md
 README_TEMPLATE.md
 MILESTONE_PLAN_TEMPLATE.md
 QUALITY_AUDIT_TEMPLATE.md
@@ -265,6 +269,7 @@ Templates support bootstrap by:
 - Reducing repeated setup work.
 - Helping select project-type structures.
 - Providing first-document patterns.
+- Creating the initial `PROJECT_HANDOFF.md` from the approved framework template.
 - Supporting verification and first commit preparation.
 
 Templates must not:
@@ -273,6 +278,32 @@ Templates must not:
 - Create optional folders without justification.
 - Bypass human approval.
 - Assume the remote platform or AI workspace.
+
+### Project Handoff Template Lifecycle
+
+The project handoff template follows this instantiation lifecycle:
+
+```text
+Templates/PROJECT_HANDOFF_TEMPLATE.md
+↓
+Project Bootstrap
+↓
+PROJECT_HANDOFF.md
+↓
+Updated throughout development
+↓
+Archived with the completed project
+```
+
+Every new framework-managed project receives a copy of `Templates/PROJECT_HANDOFF_TEMPLATE.md` during bootstrap. The copy is renamed `PROJECT_HANDOFF.md` and becomes the project's primary operational document.
+
+Each project maintains its own independent handoff document. Projects update the instantiated `PROJECT_HANDOFF.md`; they do not modify the framework template to record project-specific state.
+
+### Relationship to Other Project Documents
+
+`PROJECT_HANDOFF_TEMPLATE.md` complements project planning templates by connecting plans to the current engineering state. It does not replace architecture documentation, which describes stable system design.
+
+The instantiated handoff document also complements `CHANGELOG.md`. `PROJECT_HANDOFF.md` records current work and continuity, while the changelog preserves the historical record of delivered changes.
 
 ## Relationship with Project Types
 
@@ -306,5 +337,33 @@ The framework maintains reusable templates including:
 
 - PROJECT_STARTER_TEMPLATE.md
 - CHATGPT_PROJECT_INITIALIZATION.md
+- PROJECT_HANDOFF_TEMPLATE.md
 
 These templates should be reused across projects instead of being rewritten.
+
+### `PROJECT_HANDOFF_TEMPLATE.md`
+
+**Location**
+
+```text
+Templates/PROJECT_HANDOFF_TEMPLATE.md
+```
+
+**Purpose**
+
+Provides the standard operational handoff document used by every framework-managed project.
+
+It provides a concise structure for recording:
+
+- Current engineering status.
+- Active work.
+- Next priorities.
+- Blockers.
+- Technical debt.
+- Development continuity.
+
+**Usage**
+
+During project bootstrap, the template is copied into the new project root and renamed `PROJECT_HANDOFF.md`. The project copy is ready for initial project context and is updated throughout development.
+
+The framework template remains reusable and project-independent.
