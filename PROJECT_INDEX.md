@@ -14,6 +14,7 @@
 - [Templates](Core/07_TEMPLATES.md) - Defines the template system used to standardize reusable project structures, documents, prompts, workflows, and repositories.
 - [Quality Standards](Core/08_QUALITY_STANDARDS.md) - Defines measurable quality standards and audit criteria for completing framework milestones.
 - [Automation](Core/09_AUTOMATION.md) - Defines how automation supports framework projects while preserving human oversight, repository truth, and Git traceability.
+- [Documentation Standard](Core/DOCUMENTATION_STANDARD.md) - Defines the documentation philosophy and category standards for architecture, audits, procedures, and reports.
 
 ### AI Systems Engineering
 

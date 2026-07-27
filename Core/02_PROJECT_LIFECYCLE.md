@@ -186,6 +186,17 @@ Produce the project's actual outputs, whether they are software, research, writi
 
 The approved milestone output is complete, repository changes are verified, and the human has enough information to review and commit.
 
+### Implementation Phase Completion
+
+Every completed implementation phase must end with:
+
+1. Validation.
+2. Documentation update.
+3. Git commit.
+4. Git push when the phase is approved.
+
+An implementation phase is not complete until its changes have been validated, the repository documentation reflects the current state, and the accepted work has been recorded in Git. Unapproved work must not be pushed as a completed phase.
+
 ## Stage 6: Review
 
 ### Purpose
@@ -305,6 +316,7 @@ Project status is clear: active, maintained, evolving, or archived.
 - AI may propose transitions but should not assume them.
 - Human approval is required before structural changes.
 - Repository artifacts must be updated when project state changes.
+- Every implementation phase must satisfy the implementation phase completion sequence before it is closed.
 - Projects may move backward when scope changes.
 - A stage is not complete until the repository reflects the current truth.
 
