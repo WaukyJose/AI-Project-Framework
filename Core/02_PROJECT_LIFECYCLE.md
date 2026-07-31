@@ -197,6 +197,44 @@ Every completed implementation phase must end with:
 
 An implementation phase is not complete until its changes have been validated, the repository documentation reflects the current state, and the accepted work has been recorded in Git. Unapproved work must not be pushed as a completed phase.
 
+### Incremental Modernization
+
+Major technical changes must advance through a sequence of validated checkpoints rather than as one uninterrupted activity. Each checkpoint should deliver a bounded change that can be implemented, validated, documented, verified, committed, and reviewed before modernization continues.
+
+This principle applies to:
+
+- Framework upgrades.
+- Programming language upgrades.
+- Database migrations.
+- Infrastructure modernization.
+- Dependency upgrades.
+- SDK migrations.
+- Authentication changes.
+- Payment provider migrations.
+- Large architectural changes.
+- Any high-risk technical modernization.
+
+The recommended checkpoint workflow is:
+
+1. Implementation.
+2. Validation.
+3. Documentation update.
+4. Repository verification.
+5. Git commit.
+6. Engineering review.
+7. Next checkpoint.
+
+A modernization checkpoint must not proceed to the next checkpoint until:
+
+- The checkpoint implementation is complete.
+- Validation succeeds.
+- Relevant automated tests pass.
+- Documentation reflects the current state.
+- Repository integrity is verified.
+- A dedicated Git commit records the checkpoint.
+
+Validation establishes the checkpoint; Git records the validated state but does not replace validation. Once these conditions are met and the checkpoint is accepted through engineering review, it becomes the new stable baseline. Future modernization work must begin from that validated baseline. If a checkpoint fails validation or review, the project remains at the previous stable baseline until the issues are resolved.
+
 ## Stage 6: Review
 
 ### Purpose

@@ -78,6 +78,16 @@ Security fixes, mitigations, or validated security improvements.
 
 ---
 
+# Operational Documentation History
+
+## Deployment Procedure v1.0 — 2026-07-29
+
+### Changed
+
+- Validated Deployment Procedure v1.0 against the live OpenVoz production environment. Operational commands, restart procedure, validation steps, and rollback workflow were verified using production evidence.
+
+---
+
 # Future Releases
 
 Use the following template for each future release. Remove categories that do not apply.
