@@ -3,14 +3,18 @@ import { StyleSheet, Text, View } from 'react-native';
 import { ProgressCard } from '../ui/cards';
 
 interface SpeakingSessionCardProps {
+  recorderStatus: string;
   remoteSessionId: string | null;
+  remoteSessionStatus: string;
   status: string;
   timeRemainingLabel: string;
   timerStatus: string;
 }
 
 export function SpeakingSessionCard({
+  recorderStatus,
   remoteSessionId,
+  remoteSessionStatus,
   status,
   timeRemainingLabel,
   timerStatus,
@@ -26,9 +30,11 @@ export function SpeakingSessionCard({
       <View style={styles.card}>
         <Text style={styles.title}>Session Lifecycle</Text>
         <Text style={styles.copy}>Status: {status}</Text>
+        <Text style={styles.copy}>Recorder: {recorderStatus}</Text>
         <Text style={styles.copy}>
           Remote session: {remoteSessionId ? remoteSessionId : 'Not connected yet'}
         </Text>
+        <Text style={styles.copy}>Remote state: {remoteSessionStatus}</Text>
       </View>
     </View>
   );

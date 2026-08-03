@@ -1,5 +1,6 @@
 import { apiClient } from './api-client';
 import {
+  SpeakingAssessmentStatus,
   SpeakingAssessmentResponse,
   SpeakingAudioUploadResponse,
   SpeakingSessionCreateResponse,
@@ -29,6 +30,28 @@ function extractString(
   return null;
 }
 
+function normalizeAssessmentStatus(value: string | null): SpeakingAssessmentStatus {
+  switch (value?.toLowerCase()) {
+    case 'complete':
+    case 'completed':
+    case 'done':
+    case 'ready':
+      return 'complete';
+    case 'failed':
+    case 'error':
+      return 'failed';
+    case 'processing':
+    case 'running':
+    case 'in_progress':
+      return 'processing';
+    case 'pending':
+    case 'queued':
+    case 'requested':
+    default:
+      return 'pending';
+  }
+}
+
 export const speakingApi = {
   async createSession(): Promise<SpeakingSessionCreateResponse> {
     const raw = await apiClient.request('/speaking/sessions/', {
@@ -42,10 +65,12 @@ export const speakingApi = {
   },
   async getAssessment(sessionId: string): Promise<SpeakingAssessmentResponse> {
     const raw = await apiClient.request(`${getSessionPath(sessionId)}assessment/`);
+    const statusValue = extractString(raw, ['status', 'state', 'assessment_status']);
 
     return {
       assessmentId: extractString(raw, ['assessment_id', 'id']),
       raw,
+      status: normalizeAssessmentStatus(statusValue),
     };
   },
   historyPath: '/speaking/history/',

@@ -7,6 +7,7 @@ interface SpeakingRecordingCardProps {
   clipLabel: string | null;
   isPlaying: boolean;
   isRecording: boolean;
+  recorderStatus: string;
   onDiscard: () => void;
   onStartRecording: () => void;
   onStopPlayback: () => void;
@@ -21,6 +22,7 @@ export function SpeakingRecordingCard({
   clipLabel,
   isPlaying,
   isRecording,
+  recorderStatus,
   onDiscard,
   onStartRecording,
   onStopPlayback,
@@ -33,6 +35,7 @@ export function SpeakingRecordingCard({
     <View style={styles.card}>
       <Text style={styles.title}>Recording Controls</Text>
       <Text style={styles.copy}>{capabilityMessage}</Text>
+      <Text style={styles.meta}>Recorder state: {recorderStatus}</Text>
       {clipLabel ? <Text style={styles.meta}>Current clip: {clipLabel}</Text> : null}
 
       <View style={styles.actions}>

@@ -8,6 +8,7 @@ interface SpeakingIntegrationCardProps {
   evaluationLabel: string;
   isEvaluating: boolean;
   isUploading: boolean;
+  remoteSessionId: string | null;
   onRequestEvaluation: () => void;
   onUploadRecording: () => void;
 }
@@ -18,6 +19,7 @@ export function SpeakingIntegrationCard({
   evaluationLabel,
   isEvaluating,
   isUploading,
+  remoteSessionId,
   onRequestEvaluation,
   onUploadRecording,
 }: SpeakingIntegrationCardProps) {
@@ -27,6 +29,9 @@ export function SpeakingIntegrationCard({
       <Text style={styles.copy}>
         Upload and evaluation requests extend the existing API service layer and keep backend
         authority over durable speaking evidence.
+      </Text>
+      <Text style={styles.meta}>
+        Remote session: {remoteSessionId ? 'connected' : 'not connected'}
       </Text>
       <Text style={styles.meta}>Evaluation status: {evaluationLabel}</Text>
 

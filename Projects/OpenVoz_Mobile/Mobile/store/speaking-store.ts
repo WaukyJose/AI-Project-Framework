@@ -8,6 +8,7 @@ import {
   SpeakingAudioClip,
   SpeakingCapabilityState,
   SpeakingDraftSession,
+  SpeakingAssessmentStatus,
   SpeakingPartId,
   SpeakingRecorderState,
   SpeakingTimerStatus,
@@ -77,6 +78,15 @@ function getErrorMessage(error: unknown) {
 
 function getRecorderSnapshot() {
   return speakingRecorder.getState();
+}
+
+function createAssessmentSummary(status: SpeakingAssessmentStatus, result: unknown = null) {
+  return {
+    assessmentId: null,
+    requestedAt: new Date().toISOString(),
+    result,
+    status,
+  } satisfies SpeakingAssessmentSummary;
 }
 
 async function buildAudioUploadFormData(clip: SpeakingAudioClip, partId: SpeakingPartId) {
@@ -171,6 +181,7 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
     }
 
     set({
+      assessment: createAssessmentSummary('pending'),
       errorMessage: null,
       isEvaluating: true,
       session: {
@@ -194,29 +205,30 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
 
       const assessmentResult = await speakingApi.getAssessment(session.remoteSessionId);
 
+      if (assessmentResult.status === 'failed') {
+        throw new Error(
+          'The backend reported that the assessment could not be completed.'
+        );
+      }
+
       set({
         assessment: {
           assessmentId: assessmentResult.assessmentId,
           requestedAt: new Date().toISOString(),
           result: assessmentResult.raw,
-          status: 'complete',
+          status: assessmentResult.status,
         },
         errorMessage: null,
         isEvaluating: false,
         session: {
           ...session,
-          status: 'evaluated',
+          status: assessmentResult.status === 'complete' ? 'evaluated' : 'evaluating',
           updatedAt: new Date().toISOString(),
         },
       });
     } catch (error) {
       set({
-        assessment: {
-          assessmentId: null,
-          requestedAt: new Date().toISOString(),
-          result: null,
-          status: 'failed',
-        },
+        assessment: createAssessmentSummary('failed'),
         errorMessage: getErrorMessage(error),
         isEvaluating: false,
         session: {
@@ -411,6 +423,7 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
       await speakingApi.uploadAudio(remoteSessionId, formData);
 
       set({
+        assessment: null,
         errorMessage: null,
         isUploading: false,
         session: {

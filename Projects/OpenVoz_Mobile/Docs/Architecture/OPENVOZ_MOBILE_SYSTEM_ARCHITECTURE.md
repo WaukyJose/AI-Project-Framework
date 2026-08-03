@@ -76,6 +76,30 @@ Within this context:
 
 This boundary preserves the same trust model already present in the web-based OpenVoz system while extending the access surface to mobile devices.
 
+## Functional Authority
+
+OpenVoz Mobile is the mobile client of the OpenVoz platform.
+
+The existing OpenVoz Django web application is the functional authority for:
+
+- business rules
+- speaking workflows
+- assessment behavior
+- session lifecycle
+- API contracts
+
+OpenVoz Mobile should maintain functional parity with the Django application unless a documented mobile-specific constraint or an approved user-experience improvement justifies a deviation.
+
+Within that boundary, OpenVoz Mobile remains responsible for:
+
+- native capabilities
+- platform adaptation
+- mobile user experience
+- offline behavior where applicable
+- device integration
+
+This preserves the backend-owned functional model while allowing the mobile client to express that model appropriately on phone and tablet devices.
+
 ## High-Level Architecture
 
 OpenVoz Mobile should be organized into five conceptual layers.

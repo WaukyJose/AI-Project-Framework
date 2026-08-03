@@ -6,7 +6,7 @@ Sprint 4 — Shared Speaking Infrastructure
 
 ## Status
 
-Active
+Completed
 
 ## Objective
 
@@ -48,6 +48,12 @@ This sprint is complete when:
 - Existing project architecture is respected.
 - Existing API services are extended rather than duplicated.
 - Documentation reflects architectural changes.
+
+## Completion Notes
+
+Completed on 2026-08-03.
+
+Sprint 4 closed after Sprint 4.2 hardened the shared speaking lifecycle, clarified reusable upload and evaluation state handling, and preserved the existing generic workspace without introducing Part 1 logic.
 
 ## AI Working Rules
 

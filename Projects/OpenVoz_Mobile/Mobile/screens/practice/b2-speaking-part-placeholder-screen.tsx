@@ -37,6 +37,7 @@ export function B2SpeakingPartScreen({ partId }: { partId: string }) {
   const partDescription = useSpeakingStore((state) => state.partDescription);
   const partTitle = useSpeakingStore((state) => state.partTitle);
   const pauseTimer = useSpeakingStore((state) => state.pauseTimer);
+  const recorderStatus = useSpeakingStore((state) => state.recorderStatus);
   const requestEvaluation = useSpeakingStore((state) => state.requestEvaluation);
   const resetError = useSpeakingStore((state) => state.resetError);
   const resetTimer = useSpeakingStore((state) => state.resetTimer);
@@ -59,6 +60,15 @@ export function B2SpeakingPartScreen({ partId }: { partId: string }) {
 
   const evaluationLabel = assessment?.status ?? 'idle';
   const clipLabel = clip ? `${clip.name} (${Math.round(clip.sizeBytes / 1024)} KB)` : null;
+  const canRequestEvaluation =
+    Boolean(session?.remoteSessionId) && !isUploading && !isEvaluating && session?.status !== 'error';
+  const canUpload = Boolean(clip) && !isRecording && !isUploading;
+  const summaryTitle =
+    assessment?.status === 'complete'
+      ? 'Latest evaluation result'
+      : assessment?.status === 'failed'
+        ? 'Latest evaluation attempt'
+        : 'Latest evaluation status';
 
   return (
     <ScreenContainer>
@@ -75,7 +85,9 @@ export function B2SpeakingPartScreen({ partId }: { partId: string }) {
         />
 
         <SpeakingSessionCard
+          recorderStatus={recorderStatus}
           remoteSessionId={session?.remoteSessionId ?? null}
+          remoteSessionStatus={session?.remoteSessionStatus ?? 'not-created'}
           status={session?.status ?? 'draft not started'}
           timeRemainingLabel={formatCountdown(secondsRemaining)}
           timerStatus={timerStatus}
@@ -99,6 +111,7 @@ export function B2SpeakingPartScreen({ partId }: { partId: string }) {
           clipLabel={clipLabel}
           isPlaying={isPlaying}
           isRecording={isRecording}
+          recorderStatus={recorderStatus}
           onDiscard={discardRecording}
           onStartRecording={startRecording}
           onStopPlayback={stopPlayback}
@@ -109,22 +122,28 @@ export function B2SpeakingPartScreen({ partId }: { partId: string }) {
         />
 
         <SpeakingIntegrationCard
-          canRequestEvaluation={Boolean(session?.remoteSessionId) && !isUploading}
-          canUpload={Boolean(clip) && !isRecording}
+          canRequestEvaluation={canRequestEvaluation}
+          canUpload={canUpload}
           evaluationLabel={evaluationLabel}
           isEvaluating={isEvaluating}
           isUploading={isUploading}
+          remoteSessionId={session?.remoteSessionId ?? null}
           onRequestEvaluation={requestEvaluation}
           onUploadRecording={uploadRecording}
         />
 
         {assessment ? (
           <View style={styles.summaryCard}>
-            <Text style={styles.summaryTitle}>Latest evaluation request</Text>
+            <Text style={styles.summaryTitle}>{summaryTitle}</Text>
             <Text style={styles.summaryText}>Status: {assessment.status}</Text>
             <Text style={styles.summaryText}>
               Assessment ID: {assessment.assessmentId ? assessment.assessmentId : 'Not returned'}
             </Text>
+            {assessment.status === 'pending' || assessment.status === 'processing' ? (
+              <Text style={styles.summaryText}>
+                The backend has accepted the request, but a final assessment result is not yet confirmed.
+              </Text>
+            ) : null}
           </View>
         ) : null}
 

@@ -13,6 +13,13 @@ export type SpeakingSessionStatus =
   | 'evaluated'
   | 'error';
 
+export type SpeakingAssessmentStatus =
+  | 'idle'
+  | 'pending'
+  | 'processing'
+  | 'complete'
+  | 'failed';
+
 export type SpeakingTimerStatus = 'completed' | 'idle' | 'paused' | 'running';
 
 export type RecordingCapabilityStatus = 'blocked' | 'ready' | 'unsupported';
@@ -61,7 +68,7 @@ export interface SpeakingAssessmentSummary {
   assessmentId: string | null;
   requestedAt: string;
   result: unknown;
-  status: 'complete' | 'failed' | 'pending';
+  status: SpeakingAssessmentStatus;
 }
 
 export interface SpeakingSessionCreateResponse {
@@ -77,4 +84,5 @@ export interface SpeakingAudioUploadResponse {
 export interface SpeakingAssessmentResponse {
   assessmentId: string | null;
   raw: unknown;
+  status: SpeakingAssessmentStatus;
 }
