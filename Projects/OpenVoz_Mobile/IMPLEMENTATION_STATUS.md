@@ -12,11 +12,13 @@ If another document contains older or conflicting implementation-status language
 
 - Sprint 1 - Backend Connectivity
 - Sprint 2 - Authentication
+- Sprint 5.0.1 - Mobile Token Authentication
 - Sprint 3 - Application Shell
 - Sprint 4 - Shared Speaking Infrastructure
 
 ## Latest Completed Checkpoints
 
+- Sprint 5.0.1 - Mobile Token Authentication
 - Sprint 4.1 - Audio Foundation
 - Sprint 4.2 - Shared Speaking Infrastructure Hardening
 

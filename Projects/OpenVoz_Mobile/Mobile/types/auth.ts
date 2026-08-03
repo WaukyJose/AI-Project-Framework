@@ -6,10 +6,9 @@ export interface AuthUser {
 }
 
 export interface AuthSession {
-  csrfToken: string | null;
   environmentName: ApiEnvironmentName;
   expiresAt: string | null;
-  sessionCookie: string | null;
+  token: string;
   user: AuthUser;
 }
 

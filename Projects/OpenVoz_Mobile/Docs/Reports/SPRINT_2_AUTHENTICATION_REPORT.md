@@ -18,14 +18,24 @@ The sprint reuses the existing OpenVoz authentication boundary and adds the clie
 
 ## Authentication Flow
 
-The implemented flow follows the existing server-owned OpenVoz model:
+The implemented Sprint 2 flow was the original transitional version of the existing server-owned OpenVoz model:
 
-1. The mobile client requests the existing Django login page.
-2. The client extracts the CSRF token required for form submission.
-3. The client submits credentials back to the same server-owned login endpoint.
-4. The backend remains authoritative for session acceptance or rejection.
-5. The mobile client stores only session continuity metadata required for later requests and restart recovery.
-6. On application launch, the client attempts to restore the stored session before routing the user.
+1. The mobile client requested the existing Django login page.
+2. The client extracted the CSRF token required for form submission.
+3. The client submitted credentials back to the same server-owned login endpoint.
+4. The backend remained authoritative for session acceptance or rejection.
+5. The mobile client stored only session continuity metadata required for later requests and restart recovery.
+6. On application launch, the client attempted to restore the stored session before routing the user.
+
+## Historical Status
+
+This report now describes the superseded Sprint 2 baseline only.
+
+As of Monday, August 3, 2026:
+
+- the backend exposes `POST /api/v1/auth/login/`, `POST /api/v1/auth/logout/`, and `GET /api/v1/auth/validate/`;
+- the mobile client no longer depends on HTML parsing or CSRF scraping for authentication;
+- backend session validation is explicit rather than heuristic.
 
 ## Architecture Decisions
 
@@ -50,14 +60,11 @@ The implemented flow follows the existing server-owned OpenVoz model:
 
 ## Known Limitations
 
-- As of Monday, August 3, 2026, the live OpenVoz deployment exposes a Django form login at `/usersvoicechat/login/` rather than a dedicated mobile JSON authentication contract.
-- The live production endpoint does not yet expose an authoritative API session-validation endpoint for mobile startup checks.
-- The current implementation therefore validates stored sessions conservatively and treats the backend as the authority whenever uncertainty exists.
 - Password recovery remains routed to the existing backend-owned workflow and is not yet opened inside the app shell.
+- Registration and authenticated profile retrieval still require separate documented mobile API contracts.
 
 ## Future Work
 
-- Introduce dedicated mobile authentication endpoints once the backend contract is formalized.
-- Replace heuristic session validation with an explicit authenticated validation endpoint.
 - Add authenticated user profile retrieval once a reusable API contract exists.
 - Add protected route groups for dashboard, speaking, assessment, and history features.
+- Extend the documented mobile auth family only where durable backend requirements exist beyond login, logout, and validation.

@@ -2,66 +2,46 @@
 
 ## Sprint
 
-Sprint 5.1 — Cambridge B2 First Speaking Part 1
+Sprint 5.0.1 — Mobile Token Authentication
 
 ## Status
 
-Blocked for review
+Completed
 
 ## Objective
 
-Implement Cambridge B2 First Speaking Part 1 in OpenVoz Mobile using the approved conversation contract and verified Django Part 1 behavior.
-
-Sprint 5.1 can proceed only when the conversation contract and the verified Django Part 1 authority are jointly sufficient to define the mobile workflow without invention.
+Replace the mobile Django session-cookie dependency with a mobile
+authentication token while preserving the existing browser authentication flow.
 
 ## In Scope
 
-- Apply the approved mobile conversation API specification to Sprint 5 implementation planning
-- preserve functional parity with the Django Part 1 authority
-- extend Sprint 4 shared speaking infrastructure into a turn-based workflow
-- keep session lifecycle, completion behavior, and assessment retrieval aligned with the approved contract
+- dedicated JSON authentication endpoints for mobile;
+- token-based mobile login, logout, and validation;
+- secure storage of the mobile token only;
+- removal of cookie-based mobile session persistence logic;
+- documentation updates for the new authentication model.
 
 ## Out of Scope
 
-- ad hoc API invention during implementation
-- backend transport redesign outside the approved specification
-- changes to Cambridge assessment rules
-- UI redesign unrelated to mobile adaptation
-- guessing unverified Django Part 1 interaction details
+- browser authentication redesign;
+- speaking workflow changes;
+- permission redesign;
+- user-management redesign;
+- Cambridge Part 1 transport changes.
 
 ## Definition of Done
 
-Sprint 5.0 is complete when:
+Sprint 5.0.1 is complete when:
 
-- implementation follows `Docs/Architecture/MOBILE_CONVERSATION_API_SPECIFICATION.md`
-- mobile Part 1 uses the approved conversation session and turn model
-- backend authority over transcript, timing, completion, and assessment is preserved
-- documentation remains synchronized with any durable contract refinement
-
-Sprint 5.1 is currently blocked because:
-
-- `Docs/Architecture/PART_1_FUNCTIONAL_SPECIFICATION.md` does not verify the exact Part 1 turn, upload, completion, and assessment transport behavior
-- older architecture documents still describe superseded per-part transport endpoints that conflict with the generic conversation boundary
-
-## Prerequisites
-
-- `Docs/Architecture/MOBILE_CONVERSATION_API_SPECIFICATION.md`
-- `Docs/Architecture/OPENVOZ_MOBILE_API_SPECIFICATION.md`
-- verified Django Part 1 implementation in the functional authority repository
-- `Docs/Architecture/PART_1_FUNCTIONAL_SPECIFICATION.md`
-
-## AI Working Rules
-
-Before implementing:
-
-1. Read `AI_CONTEXT.md`.
-2. Read `Docs/Architecture/MOBILE_CONVERSATION_API_SPECIFICATION.md`.
-3. Verify existing implementation.
-4. Extend existing modules whenever possible.
-5. Do not invent APIs outside the approved specification.
+- browser authentication remains unchanged;
+- mobile authentication uses the implemented token API;
+- the mobile client stores only the token;
+- mobile session restoration uses token validation;
+- obsolete cookie-emulation code is removed;
+- documentation is synchronized with the implemented token architecture.
 
 ## Deliverables
 
-- Sprint 5 implementation aligned to the approved conversation API contract
-- updated mobile documentation where durable architecture changes occur
-- stop and wait for review if verified Part 1 authority remains incomplete or inconsistent
+- token-based mobile authentication implementation across both repositories;
+- updated architecture and implementation-status documents;
+- `SPRINT_5_0_1_MOBILE_TOKEN_AUTHENTICATION_REPORT.md`.

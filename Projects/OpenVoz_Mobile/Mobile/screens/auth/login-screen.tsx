@@ -36,7 +36,13 @@ export function LoginScreen() {
   const [fieldErrors, setFieldErrors] = useState<{ password?: string; username?: string }>({});
   const passwordResetUrl = authService.getPasswordResetUrl();
 
+  function handlePasswordChange(nextPassword: string) {
+    console.log('PASSWORD_DEBUG_AFTER_ON_CHANGE=', JSON.stringify(nextPassword));
+    setPassword(nextPassword);
+  }
+
   async function handleSubmit() {
+    console.log('PASSWORD_DEBUG_BEFORE_LOGIN_CALL=', JSON.stringify(password));
     const errors = validateForm(username, password);
     setFieldErrors(errors);
 
@@ -84,7 +90,7 @@ export function LoginScreen() {
           <Text style={styles.label}>Password</Text>
           <TextInput
             editable={!isLoading}
-            onChangeText={setPassword}
+            onChangeText={handlePasswordChange}
             placeholder="Enter your password"
             secureTextEntry
             style={[styles.input, fieldErrors.password ? styles.inputError : null]}

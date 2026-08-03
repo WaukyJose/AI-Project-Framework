@@ -50,6 +50,14 @@ export interface BackendDiagnostics {
   versionStatusCode: number | null;
 }
 
+type AuthTokenProvider = () => Promise<string | null> | string | null;
+
+let authTokenProvider: AuthTokenProvider | null = null;
+
+export function registerAuthTokenProvider(provider: AuthTokenProvider) {
+  authTokenProvider = provider;
+}
+
 export class ApiError extends Error {
   readonly code: ApiErrorCode;
   readonly details?: unknown;
@@ -117,6 +125,22 @@ function buildHeaders(responseType: ResponseType, headers?: Record<string, strin
   };
 }
 
+async function withAuthHeader(headers: Record<string, string>) {
+  if (!authTokenProvider || headers.Authorization) {
+    return headers;
+  }
+
+  const token = await authTokenProvider();
+  if (!token) {
+    return headers;
+  }
+
+  return {
+    ...headers,
+    Authorization: `Bearer ${token}`,
+  };
+}
+
 function serializeBody(body: ApiClientRequestOptions['body']) {
   if (
     !body ||
@@ -127,7 +151,21 @@ function serializeBody(body: ApiClientRequestOptions['body']) {
     return body ?? null;
   }
 
+  if ('password' in body && typeof body.password === 'string') {
+    console.log('PASSWORD_DEBUG_BEFORE_JSON_SERIALIZE=', JSON.stringify(body.password));
+  }
+
   return JSON.stringify(body);
+}
+
+function buildRequestUrl(path: string, baseUrl: string) {
+  if (path.startsWith('http')) {
+    return path;
+  }
+
+  const normalizedBaseUrl = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
+  const normalizedPath = path.replace(/^\/+/, '');
+  return new URL(normalizedPath, normalizedBaseUrl).toString();
 }
 
 function classifyFetchFailure(error: unknown, url: string) {
@@ -213,9 +251,9 @@ export class ApiClient {
       options.environmentName ?? getCurrentApiEnvironmentName()
     );
     const baseUrl = options.responseType === 'text' ? environment.siteUrl : environment.apiBaseUrl;
-    const fullUrl = path.startsWith('http') ? path : new URL(path, `${baseUrl}/`).toString();
+    const fullUrl = buildRequestUrl(path, baseUrl);
     const responseType = options.responseType ?? 'json';
-    const headers = buildHeaders(responseType, options.headers);
+    let headers = buildHeaders(responseType, options.headers);
 
     if (
       options.body &&
@@ -226,6 +264,7 @@ export class ApiClient {
       headers['Content-Type'] = 'application/json';
     }
 
+    headers = await withAuthHeader(headers);
     const body = serializeBody(options.body);
     const context = await this.runRequestInterceptors({
       fullUrl,

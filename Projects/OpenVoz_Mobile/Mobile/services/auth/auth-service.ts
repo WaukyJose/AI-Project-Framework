@@ -1,49 +1,24 @@
-import { AuthSession, AuthUser, LoginCredentials, LoginResult } from '../../types/auth';
-import {
-  ApiEnvironmentName,
-  getApiEnvironment,
-  getCurrentApiEnvironmentName,
-} from '../../utils/env';
+import { AuthSession, LoginCredentials, LoginResult } from '../../types/auth';
+import { getApiEnvironment, getCurrentApiEnvironmentName } from '../../utils/env';
 import { logger } from '../../utils/logger';
-import { ApiError, apiClient } from '../api';
+import { ApiError, registerAuthTokenProvider } from '../api';
+import { authApi } from '../api/auth-api';
 import { authStorage } from './auth-storage';
-import { createSessionCookieHeader, isSessionExpired, sanitizeAuthSession } from './auth-session';
+import { isSessionExpired, sanitizeAuthSession } from './auth-session';
 
-const LOGIN_PATH = '/usersvoicechat/login/';
+const LOGIN_PATH = '/auth/login/';
 const PASSWORD_RESET_PATH = '/members/accounts/password_reset/';
 
-function extractCsrfToken(document: string) {
-  const match = document.match(/name="csrfmiddlewaretoken"\s+value="([^"]+)"/i);
-  return match?.[1] ?? null;
-}
-
-function extractCookieValue(setCookieHeader: string | null, cookieName: string) {
-  if (!setCookieHeader) {
-    return null;
-  }
-
-  const cookieSegments = setCookieHeader.split(/,(?=[^;,]+=)/);
-
-  for (const segment of cookieSegments) {
-    const match = segment.match(new RegExp(`${cookieName}=([^;]+)`));
-
-    if (match) {
-      return match[1];
-    }
-  }
-
-  return null;
-}
-
-function buildCookieHeader(values: (string | null)[]) {
-  return values.filter((value): value is string => Boolean(value)).join('; ');
-}
-
-function buildUser(identifier: string): AuthUser {
-  return {
-    displayName: null,
-    identifier: identifier.trim(),
-  };
+interface MobileAuthResponse {
+  authenticated: boolean;
+  token?: string;
+  user: {
+    display_name: string | null;
+    email: string | null;
+    id: number;
+    identifier: string;
+    is_staff: boolean;
+  } | null;
 }
 
 function computeSessionExpiry(rememberMe: boolean) {
@@ -52,59 +27,42 @@ function computeSessionExpiry(rememberMe: boolean) {
   return expiry.toISOString();
 }
 
-function classifyLoginFailure(responseBody: string, url: string) {
-  if (responseBody.includes('csrfmiddlewaretoken')) {
-    return new ApiError('Invalid credentials', {
-      code: 'authentication_expired',
-      details: {
-        reason: 'invalid_credentials',
-      },
-      status: 401,
-      url,
-    });
-  }
-
-  return new ApiError('Authentication failed', {
-    code: 'server_unavailable',
-    details: {
-      reason: 'unexpected_login_response',
-    },
-    status: 500,
-    url,
-  });
+function buildDebugUrl(environmentName: AuthSession['environmentName'], path: string) {
+  const baseUrl = getApiEnvironment(environmentName).apiBaseUrl;
+  const normalizedBaseUrl = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
+  const normalizedPath = path.replace(/^\/+/, '');
+  return new URL(normalizedPath, normalizedBaseUrl).toString();
 }
 
-async function fetchLoginBootstrap(environmentName: ApiEnvironmentName) {
-  const response = await apiClient.request<Response>(LOGIN_PATH, {
-    credentials: 'include',
-    environmentName,
-    headers: {
-      Accept: 'text/html,application/xhtml+xml',
-    },
-    responseType: 'response',
-    timeoutMs: 10000,
-  });
-  const document = await response.text();
-  const csrfToken = extractCsrfToken(document);
-  const cookieHeader = response.headers.get('set-cookie');
-  const csrfCookie = extractCookieValue(cookieHeader, 'csrftoken');
-
-  if (!csrfToken) {
-    throw new ApiError('Login bootstrap failed', {
+function buildSession(
+  payload: MobileAuthResponse,
+  token: string,
+  environmentName: AuthSession['environmentName'],
+  rememberMe: boolean
+): AuthSession {
+  if (!payload.user) {
+    throw new ApiError('Authentication response did not include a user', {
       code: 'invalid_json',
-      details: {
-        reason: 'missing_csrf_token',
-      },
-      status: response.status,
-      url: response.url,
+      details: payload,
+      url: LOGIN_PATH,
     });
   }
 
   return {
-    csrfCookie,
-    csrfToken,
+    environmentName,
+    expiresAt: computeSessionExpiry(rememberMe),
+    token,
+    user: {
+      displayName: payload.user.display_name,
+      identifier: payload.user.identifier,
+    },
   };
 }
+
+registerAuthTokenProvider(async () => {
+  const session = await authStorage.readSession();
+  return session?.token ?? null;
+});
 
 export const authService = {
   async currentUser() {
@@ -113,8 +71,10 @@ export const authService = {
   },
 
   getPasswordResetUrl(environmentName = getCurrentApiEnvironmentName()) {
-    const environment = getApiEnvironment(environmentName);
-    return new URL(PASSWORD_RESET_PATH, `${environment.siteUrl}/`).toString();
+    return new URL(
+      PASSWORD_RESET_PATH,
+      `${getApiEnvironment(environmentName).siteUrl}/`
+    ).toString();
   },
 
   async isAuthenticated() {
@@ -124,7 +84,7 @@ export const authService = {
       return false;
     }
 
-    return Boolean(session.sessionCookie || session.csrfToken);
+    return Boolean(session.token);
   },
 
   async login(
@@ -133,7 +93,7 @@ export const authService = {
       environmentName = getCurrentApiEnvironmentName(),
       rememberMe = true,
     }: {
-      environmentName?: ApiEnvironmentName;
+      environmentName?: AuthSession['environmentName'];
       rememberMe?: boolean;
     } = {}
   ): Promise<LoginResult> {
@@ -150,51 +110,88 @@ export const authService = {
       });
     }
 
-    const bootstrap = await fetchLoginBootstrap(environmentName);
-    const cookieHeader = buildCookieHeader([
-      bootstrap.csrfCookie ? `csrftoken=${bootstrap.csrfCookie}` : null,
-    ]);
-    const payload = new URLSearchParams({
-      csrfmiddlewaretoken: bootstrap.csrfToken,
-      password: credentials.password,
-      username: identifier,
-    });
-
-    if (rememberMe) {
-      payload.append('remember_me', 'on');
-    }
-
-    const response = await apiClient.request<Response>(LOGIN_PATH, {
-      body: payload,
-      credentials: 'include',
-      environmentName,
+    logger.info('auth.login.debug.request', {
+      body: {
+        passwordLength: credentials.password.length,
+        passwordJson: JSON.stringify(credentials.password),
+        username: identifier,
+      },
       headers: {
-        Cookie: cookieHeader,
-        Referer: new URL(LOGIN_PATH, `${getApiEnvironment(environmentName).siteUrl}/`).toString(),
-        'X-CSRFToken': bootstrap.csrfToken,
+        'Content-Type': 'application/json; charset=UTF-8',
       },
       method: 'POST',
-      redirect: 'manual',
-      responseType: 'response',
-      timeoutMs: 12000,
+      url: buildDebugUrl(environmentName, LOGIN_PATH),
     });
-    const responseBody = await response.text();
-    const setCookieHeader = response.headers.get('set-cookie');
-    const sessionId = extractCookieValue(setCookieHeader, 'sessionid');
-    const refreshedCsrfToken =
-      extractCookieValue(setCookieHeader, 'csrftoken') ?? extractCsrfToken(responseBody);
 
-    if (!sessionId && responseBody.includes('<title>Login</title>')) {
-      throw classifyLoginFailure(responseBody, response.url);
+    let response: Response;
+
+    try {
+      response = await authApi.login(
+        {
+          password: credentials.password,
+          username: identifier,
+        }
+      );
+    } catch (error) {
+      logger.error('auth.login.debug.exception', {
+        body: {
+          passwordLength: credentials.password.length,
+          username: identifier,
+        },
+        error,
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        method: 'POST',
+        url: buildDebugUrl(environmentName, LOGIN_PATH),
+      });
+      if (error instanceof ApiError && error.status === 401) {
+        throw new ApiError('Invalid credentials', {
+          code: 'authentication_expired',
+          details: {
+            reason: 'invalid_credentials',
+          },
+          status: 401,
+          url: LOGIN_PATH,
+        });
+      }
+
+      throw error;
     }
 
-    const session: AuthSession = {
-      csrfToken: refreshedCsrfToken ?? bootstrap.csrfCookie ?? bootstrap.csrfToken,
-      environmentName,
-      expiresAt: computeSessionExpiry(rememberMe),
-      sessionCookie: sessionId ? `sessionid=${sessionId}` : null,
-      user: buildUser(identifier),
-    };
+    const debugResponse = response.clone();
+    let debugBody: unknown = null;
+    const contentType = response.headers.get('content-type') ?? '';
+    try {
+      debugBody = contentType.includes('application/json')
+        ? await debugResponse.json()
+        : await debugResponse.text();
+    } catch (error) {
+      debugBody = {
+        parseError: error instanceof Error ? error.message : 'Unknown response parse error',
+      };
+    }
+
+    logger.info('auth.login.debug.response', {
+      body: debugBody,
+      headers: Object.fromEntries(response.headers.entries()),
+      status: response.status,
+      url: response.url,
+    });
+
+    const payload = (await response.json()) as MobileAuthResponse;
+    const token = payload.token?.trim();
+
+    if (!payload.authenticated || !payload.user || !token) {
+      throw new ApiError('Authentication failed', {
+        code: 'server_unavailable',
+        details: payload,
+        status: response.status,
+        url: response.url,
+      });
+    }
+
+    const session = buildSession(payload, token, environmentName, rememberMe);
 
     await authStorage.writeSession(session);
     logger.info('auth.login.success', sanitizeAuthSession(session));
@@ -210,6 +207,17 @@ export const authService = {
 
     if (session) {
       logger.info('auth.logout', sanitizeAuthSession(session));
+
+      try {
+        await authApi.logout({
+          Authorization: `Bearer ${session.token}`,
+        });
+      } catch (error) {
+        logger.warn('auth.logout.backend_failed', {
+          error,
+          session: sanitizeAuthSession(session),
+        });
+      }
     }
 
     await authStorage.clearSession();
@@ -232,34 +240,41 @@ export const authService = {
       return null;
     }
 
-    if (!session.sessionCookie && !session.csrfToken) {
+    if (!session.token) {
       await authStorage.clearSession();
       return null;
     }
 
     try {
-      const response = await apiClient.request<Response>(LOGIN_PATH, {
-        credentials: 'include',
-        environmentName: session.environmentName,
-        headers: {
-          Cookie: createSessionCookieHeader(session),
-        },
-        responseType: 'response',
-        timeoutMs: 8000,
+      const response = await authApi.validate({
+        Authorization: `Bearer ${session.token}`,
       });
-      const responseBody = await response.text();
+      const payload = (await response.json()) as MobileAuthResponse;
 
-      if (responseBody.includes('<title>Login</title>') && !session.sessionCookie) {
-        logger.warn('auth.session.requires_reauthentication', sanitizeAuthSession(session));
+      if (!payload.authenticated || !payload.user || !payload.token) {
         await authStorage.clearSession();
         return null;
       }
 
-      return session;
+      const refreshedSession: AuthSession = {
+        ...session,
+        token: payload.token,
+        user: {
+          displayName: payload.user.display_name,
+          identifier: payload.user.identifier,
+        },
+      };
+      await authStorage.writeSession(refreshedSession);
+      return refreshedSession;
     } catch (error) {
       if (error instanceof ApiError && error.code === 'network_unavailable') {
         logger.warn('auth.session.restore_offline', sanitizeAuthSession(session));
         return session;
+      }
+
+      if (error instanceof ApiError && error.code === 'authentication_expired') {
+        await authStorage.clearSession();
+        return null;
       }
 
       throw error;

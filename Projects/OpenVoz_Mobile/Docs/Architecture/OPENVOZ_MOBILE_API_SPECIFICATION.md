@@ -48,17 +48,17 @@ Within this context:
 
 OpenVoz Mobile should reuse the existing OpenVoz authentication system rather than introducing a separate mobile identity model.
 
-As of Monday, August 3, 2026, the implemented Sprint 2 mobile client authenticates against the existing Django login surface at `https://www.openvoz.com/usersvoicechat/login/`. This is a client integration with the current server-owned authentication flow, not a replacement for the long-term mobile API contract described below.
+As of Monday, August 3, 2026, the OpenVoz backend exposes a dedicated mobile JSON authentication contract that reuses Django's existing authentication backend while leaving the web login flow unchanged.
 
 | Endpoint | Purpose | Current Status | Notes |
 | --- | --- | --- | --- |
-| `POST /api/v1/auth/login/` | Authenticate a user and start a mobile session | Requires Extension | Sprint 2 currently reuses the server-rendered Django login flow because a dedicated mobile JSON contract is not yet exposed. |
-| `POST /api/v1/auth/logout/` | End the current authenticated session | Requires Extension | Client logout is implemented locally in Sprint 2 while the backend logout contract remains to be formalized. |
+| `POST /api/v1/auth/login/` | Authenticate a user and start a mobile session | Implemented | Uses Django `authenticate()` and `login()` plus Django REST Framework token authentication for mobile token issuance. |
+| `POST /api/v1/auth/logout/` | End the current authenticated session | Implemented | Invalidates the mobile token and calls Django `logout()` without changing the browser auth contract. |
 | `POST /api/v1/auth/register/` | Create a new user account when self-registration is permitted | Future | Registration behavior may already exist in the web experience, but it is not documented as a reusable mobile API contract. |
 | `POST /api/v1/auth/password-reset/request/` | Initiate password reset workflow | Future | Should reuse the existing account-recovery model rather than define a separate mobile flow. |
 | `POST /api/v1/auth/password-reset/confirm/` | Complete password reset workflow | Future | Depends on the existing OpenVoz account-recovery implementation being exposed through an API. |
-| `POST /api/v1/auth/refresh/` | Refresh session or token state for mobile continuity | Future | Required only if the existing authentication model needs a mobile-safe refresh contract. |
-| `GET /api/v1/auth/validate/` | Confirm that the current session remains valid | Requires Extension | Still needed to replace the temporary session-restoration heuristics used by the Sprint 2 client. |
+| `POST /api/v1/auth/refresh/` | Refresh session or token state for mobile continuity | Future | Required only if the token lifecycle later needs an explicit rotation or renewal contract. |
+| `GET /api/v1/auth/validate/` | Confirm that the current session remains valid | Implemented | Validates the Bearer token and returns backend-authenticated user context for session restoration and protected-route entry checks. |
 
 ### Authentication Classification Notes
 
@@ -253,7 +253,7 @@ The implemented baseline includes:
 - session restoration during application launch
 - centralized authentication state in `store/auth-store.ts`
 
-This implementation is intentionally transitional. It reuses the current server-owned login flow while preserving the need for explicit mobile authentication endpoints and a durable session-validation contract.
+This implementation is no longer transitional at the authentication boundary. The mobile client now authenticates through explicit token-based JSON endpoints under `/api/v1/auth/` and no longer depends on HTML login page parsing, CSRF token scraping, or Django session-cookie persistence.
 
 ## Implemented Shared Speaking Baseline
 
@@ -278,13 +278,13 @@ This means the sprint implementation now covers the reusable client-side speakin
 
 | Service | Endpoint | Purpose | Current Status | Notes |
 | --- | --- | --- | --- | --- |
-| Authentication | `POST /api/v1/auth/login/` | Authenticate user | Requires Extension | Sprint 2 currently reuses `/usersvoicechat/login/` until a mobile JSON contract exists |
-| Authentication | `POST /api/v1/auth/logout/` | End session | Requires Extension | Client state clears locally; backend logout contract still needs to be formalized |
+| Authentication | `POST /api/v1/auth/login/` | Authenticate user | Implemented | Dedicated JSON API backed by Django authentication and DRF token issuance |
+| Authentication | `POST /api/v1/auth/logout/` | End session | Implemented | Dedicated JSON API backed by token invalidation |
 | Authentication | `POST /api/v1/auth/register/` | Register user | Future | Depends on approved self-registration support |
 | Authentication | `POST /api/v1/auth/password-reset/request/` | Start password reset | Future | Reuse existing account recovery where present |
 | Authentication | `POST /api/v1/auth/password-reset/confirm/` | Complete password reset | Future | Mobile API contract not yet documented |
 | Authentication | `POST /api/v1/auth/refresh/` | Refresh session state | Future | Needed only if mobile session model requires it |
-| Authentication | `GET /api/v1/auth/validate/` | Validate current session | Requires Extension | Needed to replace startup validation heuristics in the current client |
+| Authentication | `GET /api/v1/auth/validate/` | Validate current session | Implemented | Used by the mobile client to restore validated backend token state |
 | User | `GET /api/v1/users/me/` | Retrieve profile | Requires Extension | Profile data contract for mobile |
 | User | `PATCH /api/v1/users/me/` | Update profile | Future | Limited editable profile fields only |
 | User | `GET /api/v1/users/me/progress/` | Retrieve progress | Planned | Learner progress summary |
