@@ -8,6 +8,8 @@ Its purpose is to describe how the future OpenVoz mobile application should comm
 
 This is an API specification document. It defines long-term communication responsibilities, endpoint categories, and service boundaries. It does not define implementation code, Django views, serializers, payload schemas, or mobile networking libraries.
 
+This document is the authority for the general mobile API catalogue only. Speaking conversation transport is owned separately by `Projects/OpenVoz_Mobile/Docs/Architecture/MOBILE_CONVERSATION_API_SPECIFICATION.md`.
+
 ## API Design Principles
 
 - **API-first.** Mobile communication should occur through explicit backend service contracts rather than through direct coupling to web-specific behavior.
@@ -79,30 +81,22 @@ User-oriented APIs should expose learner data that the mobile client needs witho
 
 ## Speaking APIs
 
-OpenVoz Mobile requires a complete speaking workflow boundary that supports session continuity, speaking-part progression, audio handling, and later assessment retrieval.
+Speaking conversation transport is intentionally excluded from this document.
 
-| Endpoint | Purpose | Current Status | Notes |
-| --- | --- | --- | --- |
-| `POST /api/v1/speaking/sessions/` | Start a new speaking session or conversation attempt | Requires Extension | Aligns with existing server ownership of conversation identity. |
-| `GET /api/v1/speaking/sessions/{session_id}/` | Retrieve current session state | Requires Extension | Needed for recovery after interruption or reconnection. |
-| `POST /api/v1/speaking/sessions/{session_id}/part-1/turns/` | Submit Part 1 speaking turns | Requires Extension | Must preserve server-side transcript authority and lifecycle rules. |
-| `POST /api/v1/speaking/sessions/{session_id}/part-2/turns/` | Submit Part 2 speaking turns | Requires Extension | Same boundary as other speaking parts. |
-| `POST /api/v1/speaking/sessions/{session_id}/follow-up/turns/` | Submit follow-up interaction turns where applicable | Planned | Should exist only if follow-up is treated as a separate workflow boundary. |
-| `POST /api/v1/speaking/sessions/{session_id}/part-3/turns/` | Submit Part 3 speaking turns | Requires Extension | Needed for Cambridge-aligned mobile delivery. |
-| `POST /api/v1/speaking/sessions/{session_id}/part-4/turns/` | Submit Part 4 speaking turns | Requires Extension | Needed for Cambridge-aligned mobile delivery. |
-| `POST /api/v1/speaking/sessions/{session_id}/complete/` | Mark a speaking session complete when server rules are satisfied | Requires Extension | Completion remains server-controlled. |
-| `POST /api/v1/speaking/sessions/{session_id}/audio/` | Upload audio associated with a speaking session | Missing | Mobile requires an explicit audio-upload boundary not currently documented in OpenVoz. |
-| `POST /api/v1/speaking/sessions/{session_id}/audio-metadata/` | Submit metadata about recorded audio segments | Planned | Needed only if backend workflows require structured recording metadata. |
-| `GET /api/v1/speaking/history/` | Retrieve prior speaking sessions | Planned | Supports learner review and continuity. |
-| `GET /api/v1/speaking/history/{session_id}/` | Retrieve details of one prior speaking session | Planned | Should return workflow history without redefining assessment logic. |
-| `POST /api/v1/speaking/sessions/{session_id}/assessment/submit/` | Request assessment after session completion | Missing | Required as an explicit mobile-visible contract unless assessment is triggered automatically by session completion. |
-| `GET /api/v1/speaking/sessions/{session_id}/assessment/` | Retrieve assessment status or result for a session | Missing | Required for learner-facing assessment retrieval. |
+The authoritative source for:
 
-### Speaking Classification Notes
+- speaking session creation
+- session retrieval
+- session start
+- turn submission
+- completion transport
+- speaking assessment retrieval transport
+- conversation request and response schemas
+- session and turn state machines
 
-- **Requires Extension** applies where OpenVoz already supports speaking workflows in the web system, but mobile-safe API contracts are not yet documented.
-- **Missing** applies where the mobile use case clearly needs a contract and no such backend API boundary is documented in the current repository.
-- **Planned** applies where the capability is a reasonable mobile extension but may depend on later product decisions about workflow scope.
+is `Projects/OpenVoz_Mobile/Docs/Architecture/MOBILE_CONVERSATION_API_SPECIFICATION.md`.
+
+This document retains only the broader mobile API catalogue outside the speaking transport contract. Non-transport speaking history endpoints remain catalogued in the endpoint inventory below.
 
 ## Assessment APIs
 
@@ -298,20 +292,9 @@ This means the sprint implementation now covers the reusable client-side speakin
 | User | `PATCH /api/v1/users/me/preferences/` | Update preferences | Planned | User-configurable preferences |
 | User | `GET /api/v1/users/me/subscription/` | Retrieve subscription status | Requires Extension | Subscription system exists |
 | User | `GET /api/v1/users/me/usage/` | Retrieve usage statistics | Planned | Entitlement and engagement visibility |
-| Speaking | `POST /api/v1/speaking/sessions/` | Start speaking session | Requires Extension | Server-owned conversation identity |
-| Speaking | `GET /api/v1/speaking/sessions/{session_id}/` | Retrieve session state | Requires Extension | Recovery and continuity |
-| Speaking | `POST /api/v1/speaking/sessions/{session_id}/part-1/turns/` | Submit Part 1 turns | Requires Extension | Preserve transcript authority |
-| Speaking | `POST /api/v1/speaking/sessions/{session_id}/part-2/turns/` | Submit Part 2 turns | Requires Extension | Preserve transcript authority |
-| Speaking | `POST /api/v1/speaking/sessions/{session_id}/follow-up/turns/` | Submit follow-up turns | Planned | Separate only if product workflow requires it |
-| Speaking | `POST /api/v1/speaking/sessions/{session_id}/part-3/turns/` | Submit Part 3 turns | Requires Extension | Cambridge-aligned mobile support |
-| Speaking | `POST /api/v1/speaking/sessions/{session_id}/part-4/turns/` | Submit Part 4 turns | Requires Extension | Cambridge-aligned mobile support |
-| Speaking | `POST /api/v1/speaking/sessions/{session_id}/complete/` | Complete speaking session | Requires Extension | Server-controlled completion |
-| Speaking | `POST /api/v1/speaking/sessions/{session_id}/audio/` | Upload audio | Missing | Explicit mobile audio boundary required |
-| Speaking | `POST /api/v1/speaking/sessions/{session_id}/audio-metadata/` | Submit audio metadata | Planned | Optional structured recording metadata |
+| Speaking | Conversation session, turn, completion, and assessment transport | See authoritative conversation contract | Authority lives in `MOBILE_CONVERSATION_API_SPECIFICATION.md` | This inventory does not duplicate speaking transport endpoints. |
 | Speaking | `GET /api/v1/speaking/history/` | Retrieve speaking history | Planned | Learner review |
 | Speaking | `GET /api/v1/speaking/history/{session_id}/` | Retrieve speaking session detail | Planned | One historical session |
-| Speaking | `POST /api/v1/speaking/sessions/{session_id}/assessment/submit/` | Request assessment | Missing | Explicit contract unless auto-triggered |
-| Speaking | `GET /api/v1/speaking/sessions/{session_id}/assessment/` | Retrieve session assessment | Missing | Required for learner-facing retrieval |
 | Assessment | `POST /api/v1/assessments/requests/` | Request assessment processing | Planned | May be redundant if session completion triggers assessment |
 | Assessment | `GET /api/v1/assessments/{assessment_id}/` | Retrieve assessment result | Missing | Stable assessment report contract |
 | Assessment | `GET /api/v1/assessments/{assessment_id}/feedback/` | Retrieve coaching feedback | Planned | May be embedded in main report |

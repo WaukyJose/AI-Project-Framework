@@ -23,3 +23,7 @@ If another document contains older or conflicting implementation-status language
 ## Planned
 
 - Sprint 5 - Cambridge Speaking Part 1
+
+## Blocked
+
+- Sprint 5.1 - Cambridge B2 First Speaking Part 1 implementation blocked pending verified Django Part 1 transport and workflow authority, and synchronization of older mobile API documents with `Docs/Architecture/MOBILE_CONVERSATION_API_SPECIFICATION.md`

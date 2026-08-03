@@ -8,6 +8,8 @@ Its purpose is to establish the complete user journey, navigation philosophy, in
 
 This is a UX architecture specification. It defines experience structure and behavioral expectations. It does not define visual styling, interface component implementation, code structure, or framework-specific navigation code.
 
+This document is the authority for UX journeys, navigation, screens, and interaction behavior. It does not define API contracts. API ownership remains with the relevant authoritative architecture documents, especially `Projects/OpenVoz_Mobile/Docs/Architecture/MOBILE_CONVERSATION_API_SPECIFICATION.md` for speaking conversation transport and `Projects/OpenVoz_Mobile/Docs/Architecture/OPENVOZ_MOBILE_API_SPECIFICATION.md` for the general mobile API catalogue.
+
 ## UX Design Principles
 
 - **Simplicity.** Each workflow should present the minimum information and action set needed to move the learner forward.
@@ -101,12 +103,9 @@ Dashboard
 
 This journey introduces the product, establishes authentication, validates account state, and lands the user on the dashboard.
 
-Relevant APIs:
+Relevant API authority:
 
-- `POST /api/v1/auth/login/`
-- `POST /api/v1/auth/register/`
-- `GET /api/v1/auth/validate/`
-- `GET /api/v1/users/me/`
+- Authentication and account APIs are defined in `Projects/OpenVoz_Mobile/Docs/Architecture/OPENVOZ_MOBILE_API_SPECIFICATION.md`.
 
 ### Journey 2 - Returning Daily Use
 
@@ -124,12 +123,9 @@ Resume Practice or Review Progress
 
 This journey should minimize friction for returning users and restore the most relevant next action.
 
-Relevant APIs:
+Relevant API authority:
 
-- `GET /api/v1/auth/validate/`
-- `GET /api/v1/users/me/`
-- `GET /api/v1/users/me/progress/`
-- `GET /api/v1/speaking/history/`
+- General mobile APIs for authentication, profile, progress, and history are defined in `Projects/OpenVoz_Mobile/Docs/Architecture/OPENVOZ_MOBILE_API_SPECIFICATION.md`.
 
 ### Journey 3 - Start a Speaking Session
 
@@ -151,17 +147,10 @@ Assessment Loading
 
 This journey moves the user from intent into an active speaking session and then into assessment processing.
 
-Relevant APIs:
+Relevant API authority:
 
-- `GET /api/v1/content/exams/metadata/`
-- `GET /api/v1/content/tasks/`
-- `POST /api/v1/speaking/sessions/`
-- `POST /api/v1/speaking/sessions/{session_id}/part-1/turns/`
-- `POST /api/v1/speaking/sessions/{session_id}/part-2/turns/`
-- `POST /api/v1/speaking/sessions/{session_id}/part-3/turns/`
-- `POST /api/v1/speaking/sessions/{session_id}/part-4/turns/`
-- `POST /api/v1/speaking/sessions/{session_id}/audio/`
-- `POST /api/v1/speaking/sessions/{session_id}/complete/`
+- speaking conversation transport is defined in `Projects/OpenVoz_Mobile/Docs/Architecture/MOBILE_CONVERSATION_API_SPECIFICATION.md`
+- supporting content APIs are defined in `Projects/OpenVoz_Mobile/Docs/Architecture/OPENVOZ_MOBILE_API_SPECIFICATION.md`
 
 ### Journey 4 - Review Assessment
 
@@ -179,12 +168,10 @@ History or Next Practice
 
 This journey presents the result of a completed speaking attempt and guides the learner toward the next action.
 
-Relevant APIs:
+Relevant API authority:
 
-- `GET /api/v1/speaking/sessions/{session_id}/assessment/`
-- `GET /api/v1/assessments/{assessment_id}/`
-- `GET /api/v1/assessments/{assessment_id}/feedback/`
-- `GET /api/v1/assessments/{assessment_id}/scores/`
+- speaking assessment retrieval transport is defined in `Projects/OpenVoz_Mobile/Docs/Architecture/MOBILE_CONVERSATION_API_SPECIFICATION.md`
+- broader assessment APIs are defined in `Projects/OpenVoz_Mobile/Docs/Architecture/OPENVOZ_MOBILE_API_SPECIFICATION.md`
 
 ### Journey 5 - Review History and Progress
 
@@ -202,12 +189,9 @@ Return to Dashboard or Start New Session
 
 This journey helps the user inspect prior work and understand continuity over time.
 
-Relevant APIs:
+Relevant API authority:
 
-- `GET /api/v1/speaking/history/`
-- `GET /api/v1/speaking/history/{session_id}/`
-- `GET /api/v1/assessments/history/`
-- `GET /api/v1/users/me/progress/`
+- history, assessment history, and progress APIs are defined in `Projects/OpenVoz_Mobile/Docs/Architecture/OPENVOZ_MOBILE_API_SPECIFICATION.md`
 
 ### Journey 6 - Manage Account and Subscription
 
@@ -223,14 +207,9 @@ Save or Return
 
 This journey covers account-level maintenance without distracting from learning workflows.
 
-Relevant APIs:
+Relevant API authority:
 
-- `GET /api/v1/users/me/`
-- `PATCH /api/v1/users/me/`
-- `GET /api/v1/users/me/preferences/`
-- `PATCH /api/v1/users/me/preferences/`
-- `GET /api/v1/users/me/subscription/`
-- `GET /api/v1/users/me/usage/`
+- account, preferences, subscription, and usage APIs are defined in `Projects/OpenVoz_Mobile/Docs/Architecture/OPENVOZ_MOBILE_API_SPECIFICATION.md`
 
 ## Information Architecture
 
@@ -365,14 +344,14 @@ Every screen below belongs to at least one documented user journey.
 | --- | --- | --- | --- | --- | --- | --- |
 | Splash | Initialize application and validate entry conditions | Wait, continue | App launch, deep link | Welcome, Dashboard, Login | Session validation | Existing Backend Supported |
 | Welcome / Entry | Explain product entry options | Login, Register, Learn More | Splash | Login, Registration | None | Future |
-| Login | Authenticate user | Sign in, password recovery | Welcome, session-expired state | Dashboard, Password Recovery | `POST /api/v1/auth/login/` | Requires API Extension |
-| Registration | Create account when permitted | Register, return to login | Welcome | Dashboard, Login | `POST /api/v1/auth/register/` | Future |
+| Login | Authenticate user | Sign in, password recovery | Welcome, session-expired state | Dashboard, Password Recovery | Authentication APIs | Requires API Extension |
+| Registration | Create account when permitted | Register, return to login | Welcome | Dashboard, Login | Authentication APIs | Future |
 | Password Recovery | Recover account access | Request reset, return | Login, Welcome | Login | Password reset APIs | Future |
 | Dashboard | Present next actions and overview | Start speaking, open practice, review progress | Splash, Login, completed tasks | All primary areas | Profile, progress, history summaries | Requires API Extension |
 | Practice Home | Show available practice activities | Start practice, open task | Dashboard | Practice Task Detail, Dashboard | Content APIs | Future |
 | Practice Task Detail | Explain one practice task | Start, save for later, back | Practice Home | Practice Results, Practice Home | Content APIs | Future |
 | Practice Results | Show result of a practice activity | Continue, retry, dashboard | Practice Task Detail | Dashboard, Practice Home | Practice result APIs | Future |
-| Exam Selection | Choose exam family, level, or task set | Select exam, continue | Dashboard, Speaking Introduction | Task Preparation, Dashboard | `GET /api/v1/content/exams/metadata/` | Planned |
+| Exam Selection | Choose exam family, level, or task set | Select exam, continue | Dashboard, Speaking Introduction | Task Preparation, Dashboard | Content APIs | Planned |
 | Speaking Introduction | Explain speaking workflow and readiness | Continue, cancel | Dashboard | Exam Selection, Dashboard | Content/task metadata | Planned |
 | Task Preparation | Present task instructions and prompts | Start task, back | Exam Selection | Permission Check, Exam Selection | Content/task APIs | Planned |
 | Permission Check | Confirm microphone readiness | Grant permission, retry, cancel | Task Preparation | Part 1, Help, Dashboard | Device permission state | Existing Backend Supported |
@@ -382,16 +361,16 @@ Every screen below belongs to at least one documented user journey.
 | Part 3 Speaking | Execute Part 3 interaction | Record, submit, continue | Part 2 or Follow-up | Part 4 | Speaking session and turn APIs | Requires API Extension |
 | Part 4 Speaking | Execute Part 4 interaction | Record, submit, finish | Part 3 | Session Completion | Speaking session and turn APIs | Requires API Extension |
 | Speaking Exit Confirmation | Prevent accidental workflow loss | Stay, exit | Any active speaking part | Prior speaking part, Dashboard | Local session state | Existing Backend Supported |
-| Session Completion | Confirm speaking attempt submission | Submit complete session, return | Part 4 | Assessment Loading, Dashboard | `POST /api/v1/speaking/sessions/{session_id}/complete/` | Requires API Extension |
+| Session Completion | Confirm speaking attempt submission | Submit complete session, return | Part 4 | Assessment Loading, Dashboard | Conversation completion transport | Requires API Extension |
 | Assessment Loading | Represent assessment processing state | Wait, background, refresh | Session Completion | Assessment Summary, Dashboard | Assessment submission/retrieval APIs | Missing |
 | Assessment Summary | Present overall result | Review feedback, view history, continue learning | Assessment Loading, History | Criterion Detail, Feedback Detail, Dashboard | Assessment result API | Missing |
 | Criterion Detail | Show criterion-level result detail | Next criterion, back | Assessment Summary | Assessment Summary, Feedback Detail | Assessment score API | Planned |
 | Feedback Detail | Show coaching and next-step guidance | Start new practice, view history, back | Assessment Summary | Dashboard, History, Assessment Summary | Assessment feedback API | Planned |
-| Speaking History List | List prior speaking attempts | Open session detail, filter, start new | Dashboard, Assessment Summary | Speaking Session Detail, Dashboard | `GET /api/v1/speaking/history/` | Planned |
+| Speaking History List | List prior speaking attempts | Open session detail, filter, start new | Dashboard, Assessment Summary | Speaking Session Detail, Dashboard | Speaking history APIs | Planned |
 | Speaking Session Detail | Show one speaking attempt | View assessment, retry, back | Speaking History List | Assessment Detail, Speaking History List | Speaking history detail API | Planned |
-| Assessment History List | List prior assessments | Open assessment detail, filter | Dashboard, History | Assessment Detail, Dashboard | `GET /api/v1/assessments/history/` | Planned |
+| Assessment History List | List prior assessments | Open assessment detail, filter | Dashboard, History | Assessment Detail, Dashboard | Assessment history APIs | Planned |
 | Assessment Detail | Present one prior assessment | Review feedback, back | Assessment History List, Speaking Session Detail | Assessment History List, Speaking Session Detail | Assessment result APIs | Missing |
-| Progress | Show learner progress and trends | Review history, continue learning | Dashboard | History, Dashboard | `GET /api/v1/users/me/progress/` | Planned |
+| Progress | Show learner progress and trends | Review history, continue learning | Dashboard | History, Dashboard | Progress APIs | Planned |
 | Subscription | Show plan status and usage | Manage plan, return | Dashboard, gating prompt | Dashboard, external billing flow | Subscription and usage APIs | Requires API Extension |
 | Help | Provide support and recovery guidance | View permissions help, retry actions, contact support | Dashboard, error states, permission denial | Prior context, Dashboard | Help content and error context | Future |
 | Profile | Show and edit account profile | Edit profile, return | Dashboard | Dashboard | Profile APIs | Requires API Extension |

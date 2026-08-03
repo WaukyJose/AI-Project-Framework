@@ -8,6 +8,8 @@ Its role is to serve as the functional implementation contract for Sprint 5 of O
 
 This document is descriptive, not prescriptive. It records verified current behavior only.
 
+This document is the authority for verified Part 1 behavior only. It does not define mobile conversation endpoint contracts, request schemas, response schemas, or transport behavior. Those belong to `Projects/OpenVoz_Mobile/Docs/Architecture/MOBILE_CONVERSATION_API_SPECIFICATION.md`.
+
 Where behavior could not be verified from the repository, project artifacts, or the publicly accessible OpenVoz web application as inspected on **Monday, August 3, 2026**, the section states:
 
 `Not verified.`
@@ -190,9 +192,9 @@ Not verified:
 
 ## Backend Interaction
 
-This section documents verified backend interaction only.
+This section records only whether Part 1 backend interaction behavior has been verified. The authoritative mobile conversation transport contract, including speaking session endpoints, turn submission, completion transport, and assessment transport, is defined in `Projects/OpenVoz_Mobile/Docs/Architecture/MOBILE_CONVERSATION_API_SPECIFICATION.md`.
 
-### Verified Endpoints
+### Verified Page Delivery
 
 #### 1. Part 1 Page Delivery
 
@@ -212,18 +214,17 @@ This section documents verified backend interaction only.
 - Verified response behavior: server returns an HTML page titled `B2 Speaking Part 2`
 - Verified state transition: adjacent later-stage speaking page is reachable
 
-### Not Verified Backend Interactions
+### Unverified Transport And Workflow Details
 
 Not verified:
 
-- The exact request used to submit a Part 1 user turn.
-- The exact request used to upload audio for Part 1.
-- The exact request used to fetch examiner prompts or follow-up prompts.
-- The exact request used to mark Part 1 complete.
-- The exact request used to trigger assessment or feedback generation.
-- Any request payload for turn submission, audio upload, or completion.
-- Any response payload for turn submission, audio upload, completion, or feedback.
+- The exact Django transport used to submit a Part 1 user turn.
+- The exact Django transport used to fetch examiner prompts or follow-up prompts.
+- The exact Django transport used to mark Part 1 complete.
+- The exact Django transport used to trigger assessment or feedback generation.
 - Whether Part 1 uses AJAX, HTML form submission, WebSocket, fetch/XHR, or another mechanism.
+
+The approved mobile transport authority for these concerns is `Projects/OpenVoz_Mobile/Docs/Architecture/MOBILE_CONVERSATION_API_SPECIFICATION.md`.
 
 ## Session Lifecycle
 
@@ -310,7 +311,7 @@ Not verified:
 - Whether the user receives Part 1-only feedback.
 - Whether assessment is synchronous or asynchronous.
 - What assessment output is shown to the user.
-- Which backend endpoint performs assessment.
+- Which Django mechanism performs assessment internally.
 
 ## Error Handling
 

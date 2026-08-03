@@ -46,6 +46,18 @@ It does not replace:
 - **Reuse before duplication.** Existing OpenVoz services, data ownership rules, and architectural decisions should be reused unless a new mobile requirement justifies a separate approved design.
 - **Server authority.** Identity, conversation lifecycle, transcript authority, and assessment records remain server-controlled.
 
+## Documentation Authority Rule
+
+Each architectural topic has exactly one authoritative document. Other documents must reference that authority rather than duplicate it.
+
+Within the OpenVoz Mobile architecture set:
+
+- conversation API contract authority belongs to `Projects/OpenVoz_Mobile/Docs/Architecture/MOBILE_CONVERSATION_API_SPECIFICATION.md`
+- Part 1 functional behavior authority belongs to `Projects/OpenVoz_Mobile/Docs/Architecture/PART_1_FUNCTIONAL_SPECIFICATION.md`
+- system responsibility and ownership authority belongs to this document
+- UX journey and screen authority belongs to `Projects/OpenVoz_Mobile/Docs/Architecture/OPENVOZ_MOBILE_UX_MASTER_PLAN.md`
+- the general non-speaking mobile API catalogue belongs to `Projects/OpenVoz_Mobile/Docs/Architecture/OPENVOZ_MOBILE_API_SPECIFICATION.md`
+
 ## System Context
 
 OpenVoz Mobile is a client of the existing OpenVoz ecosystem.

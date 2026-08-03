@@ -2,17 +2,17 @@
 
 ## Sprint
 
-Sprint 5.0 — Mobile Conversation API Specification Adoption
+Sprint 5.1 — Cambridge B2 First Speaking Part 1
 
 ## Status
 
-Planned
+Blocked for review
 
 ## Objective
 
-Implement the approved `Docs/Architecture/MOBILE_CONVERSATION_API_SPECIFICATION.md`.
+Implement Cambridge B2 First Speaking Part 1 in OpenVoz Mobile using the approved conversation contract and verified Django Part 1 behavior.
 
-Sprint 5.0 begins only after the conversation contract is treated as the durable interface between OpenVoz Django and OpenVoz Mobile.
+Sprint 5.1 can proceed only when the conversation contract and the verified Django Part 1 authority are jointly sufficient to define the mobile workflow without invention.
 
 ## In Scope
 
@@ -27,6 +27,7 @@ Sprint 5.0 begins only after the conversation contract is treated as the durable
 - backend transport redesign outside the approved specification
 - changes to Cambridge assessment rules
 - UI redesign unrelated to mobile adaptation
+- guessing unverified Django Part 1 interaction details
 
 ## Definition of Done
 
@@ -37,11 +38,17 @@ Sprint 5.0 is complete when:
 - backend authority over transcript, timing, completion, and assessment is preserved
 - documentation remains synchronized with any durable contract refinement
 
+Sprint 5.1 is currently blocked because:
+
+- `Docs/Architecture/PART_1_FUNCTIONAL_SPECIFICATION.md` does not verify the exact Part 1 turn, upload, completion, and assessment transport behavior
+- older architecture documents still describe superseded per-part transport endpoints that conflict with the generic conversation boundary
+
 ## Prerequisites
 
 - `Docs/Architecture/MOBILE_CONVERSATION_API_SPECIFICATION.md`
 - `Docs/Architecture/OPENVOZ_MOBILE_API_SPECIFICATION.md`
 - verified Django Part 1 implementation in the functional authority repository
+- `Docs/Architecture/PART_1_FUNCTIONAL_SPECIFICATION.md`
 
 ## AI Working Rules
 
@@ -57,3 +64,4 @@ Before implementing:
 
 - Sprint 5 implementation aligned to the approved conversation API contract
 - updated mobile documentation where durable architecture changes occur
+- stop and wait for review if verified Part 1 authority remains incomplete or inconsistent
