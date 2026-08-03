@@ -17,6 +17,7 @@ If another document contains older or conflicting implementation-status language
 ## In Progress
 
 - Sprint 4 - Shared Speaking Infrastructure
+- Sprint 4.1 - Audio Foundation
 
 ## Planned
 

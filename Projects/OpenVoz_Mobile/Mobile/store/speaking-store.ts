@@ -9,6 +9,7 @@ import {
   SpeakingCapabilityState,
   SpeakingDraftSession,
   SpeakingPartId,
+  SpeakingRecorderState,
   SpeakingTimerStatus,
 } from '../types/speaking';
 
@@ -29,6 +30,7 @@ interface SpeakingStoreState {
   partId: SpeakingPartId;
   partTitle: string;
   pauseTimer: () => void;
+  recorderStatus: SpeakingRecorderState['lifecycleStatus'];
   requestEvaluation: () => Promise<void>;
   resetError: () => void;
   resetTimer: () => void;
@@ -55,6 +57,7 @@ function createDraftSession(partId: SpeakingPartId): SpeakingDraftSession {
     localSessionId: `local-${Date.now()}`,
     partId,
     remoteSessionId: null,
+    remoteSessionStatus: 'not-created',
     status: 'draft',
     updatedAt: now,
   };
@@ -70,6 +73,10 @@ function getErrorMessage(error: unknown) {
   }
 
   return 'An unexpected speaking error occurred.';
+}
+
+function getRecorderSnapshot() {
+  return speakingRecorder.getState();
 }
 
 async function buildAudioUploadFormData(clip: SpeakingAudioClip, partId: SpeakingPartId) {
@@ -94,15 +101,18 @@ async function buildAudioUploadFormData(clip: SpeakingAudioClip, partId: Speakin
 
 export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
   assessment: null,
-  capability: speakingRecorder.getCapability(),
+  capability: getRecorderSnapshot().capability,
   clip: null,
   discardRecording() {
     speakingRecorder.discardRecording();
+    const recorder = getRecorderSnapshot();
     set((state) => ({
+      capability: recorder.capability,
       clip: null,
       errorMessage: null,
       isPlaying: false,
       isRecording: false,
+      recorderStatus: recorder.lifecycleStatus,
       session: state.session
         ? {
             ...state.session,
@@ -116,10 +126,11 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
   initializePart(partId) {
     const part = getSpeakingPartDefinition(partId);
     speakingRecorder.stopPlayback();
+    const recorder = getRecorderSnapshot();
 
     set({
       assessment: null,
-      capability: speakingRecorder.getCapability(),
+      capability: recorder.capability,
       clip: null,
       errorMessage: null,
       isEvaluating: false,
@@ -129,6 +140,7 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
       partDescription: part.description,
       partId,
       partTitle: part.title,
+      recorderStatus: recorder.lifecycleStatus,
       secondsRemaining: DEFAULT_DURATION_SECONDS,
       session: null,
       timerDurationSeconds: DEFAULT_DURATION_SECONDS,
@@ -147,6 +159,7 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
       timerStatus: state.timerStatus === 'running' ? 'paused' : state.timerStatus,
     }));
   },
+  recorderStatus: getRecorderSnapshot().lifecycleStatus,
   async requestEvaluation() {
     const { session } = get();
 
@@ -162,27 +175,30 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
       isEvaluating: true,
       session: {
         ...session,
-        status: 'evaluating',
+        status: 'assessment-requested',
         updatedAt: new Date().toISOString(),
       },
     });
 
     try {
-      const submissionResult = await speakingApi.requestAssessment(session.remoteSessionId);
+      await speakingApi.requestAssessment(session.remoteSessionId);
+      set((state) => ({
+        session: state.session
+          ? {
+              ...state.session,
+              status: 'evaluating',
+              updatedAt: new Date().toISOString(),
+            }
+          : state.session,
+      }));
+
       const assessmentResult = await speakingApi.getAssessment(session.remoteSessionId);
-      const assessmentId =
-        typeof assessmentResult === 'object' &&
-        assessmentResult !== null &&
-        'assessment_id' in assessmentResult &&
-        typeof assessmentResult.assessment_id === 'string'
-          ? assessmentResult.assessment_id
-          : null;
 
       set({
         assessment: {
-          assessmentId,
+          assessmentId: assessmentResult.assessmentId,
           requestedAt: new Date().toISOString(),
-          result: assessmentResult ?? submissionResult,
+          result: assessmentResult.raw,
           status: 'complete',
         },
         errorMessage: null,
@@ -238,13 +254,15 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
       get().startSession();
     }
 
-    try {
+      try {
       const capability = await speakingRecorder.startRecording();
+      const recorder = getRecorderSnapshot();
       set((state) => ({
         capability,
         errorMessage: null,
         isPlaying: false,
         isRecording: true,
+        recorderStatus: recorder.lifecycleStatus,
         session: state.session
           ? {
               ...state.session,
@@ -254,10 +272,12 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
           : createDraftSession(state.partId),
       }));
     } catch (error) {
+      const recorder = getRecorderSnapshot();
       set({
-        capability: speakingRecorder.getCapability(),
+        capability: recorder.capability,
         errorMessage: getErrorMessage(error),
         isRecording: false,
+        recorderStatus: recorder.lifecycleStatus,
       });
     }
   },
@@ -275,18 +295,22 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
   },
   stopPlayback() {
     speakingRecorder.stopPlayback();
+    const recorder = getRecorderSnapshot();
     set({
       isPlaying: false,
+      recorderStatus: recorder.lifecycleStatus,
     });
   },
   async stopRecording() {
     try {
       const clip = await speakingRecorder.stopRecording();
+      const recorder = getRecorderSnapshot();
 
       set((state) => ({
         clip: clip ?? null,
         errorMessage: null,
         isRecording: false,
+        recorderStatus: recorder.lifecycleStatus,
         session: state.session
           ? {
               ...state.session,
@@ -296,9 +320,11 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
           : state.session,
       }));
     } catch (error) {
+      const recorder = getRecorderSnapshot();
       set((state) => ({
         errorMessage: getErrorMessage(error),
         isRecording: false,
+        recorderStatus: recorder.lifecycleStatus,
         session: state.session
           ? {
               ...state.session,
@@ -328,14 +354,18 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
   async togglePlayback() {
     try {
       const isPlaying = await speakingRecorder.togglePlayback();
+      const recorder = getRecorderSnapshot();
       set({
         errorMessage: null,
         isPlaying,
+        recorderStatus: recorder.lifecycleStatus,
       });
     } catch (error) {
+      const recorder = getRecorderSnapshot();
       set({
         errorMessage: getErrorMessage(error),
         isPlaying: false,
+        recorderStatus: recorder.lifecycleStatus,
       });
     }
   },
@@ -363,16 +393,12 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
 
     try {
       let remoteSessionId = activeSession.remoteSessionId;
+      let remoteSessionStatus = activeSession.remoteSessionStatus;
 
       if (!remoteSessionId) {
         const sessionResponse = await speakingApi.createSession();
-        remoteSessionId =
-          typeof sessionResponse === 'object' &&
-          sessionResponse !== null &&
-          'id' in sessionResponse &&
-          typeof sessionResponse.id === 'string'
-            ? sessionResponse.id
-            : null;
+        remoteSessionId = sessionResponse.id;
+        remoteSessionStatus = remoteSessionId ? 'created' : 'unknown';
       }
 
       if (!remoteSessionId) {
@@ -390,6 +416,7 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
         session: {
           ...activeSession,
           remoteSessionId,
+          remoteSessionStatus,
           status: 'uploaded',
           updatedAt: new Date().toISOString(),
         },

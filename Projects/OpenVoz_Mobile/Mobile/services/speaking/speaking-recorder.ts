@@ -1,6 +1,10 @@
 import { Platform } from 'react-native';
 
-import { SpeakingAudioClip, SpeakingCapabilityState } from '../../types/speaking';
+import {
+  SpeakingAudioClip,
+  SpeakingCapabilityState,
+  SpeakingRecorderState,
+} from '../../types/speaking';
 
 const DEFAULT_CAPABILITY: SpeakingCapabilityState = {
   playbackSupported: false,
@@ -52,6 +56,7 @@ function getSupportedMimeType() {
 
 class SpeakingRecorderService {
   private currentClip: SpeakingAudioClip | null = null;
+  private lifecycleStatus: SpeakingRecorderState['lifecycleStatus'] = 'idle';
   private mediaRecorder: MediaRecorder | null = null;
   private playbackAudio: BrowserAudio | null = null;
   private recordingStartedAt: number | null = null;
@@ -76,28 +81,36 @@ class SpeakingRecorderService {
     };
   }
 
+  getState(): SpeakingRecorderState {
+    return {
+      capability: this.getCapability(),
+      clip: this.currentClip,
+      lifecycleStatus: this.lifecycleStatus,
+    };
+  }
+
   async startRecording() {
     const capability = this.getCapability();
 
     if (capability.recordingStatus !== 'ready') {
+      this.lifecycleStatus = 'error';
       throw new Error(capability.recordingMessage);
     }
 
+    this.lifecycleStatus = 'preparing';
     this.releaseCurrentClip();
     const browser = getBrowserGlobals();
-    const stream = await browser.navigator!.mediaDevices!.getUserMedia({
-      audio: true,
-    });
+    const stream = await browser.navigator!.mediaDevices!.getUserMedia({ audio: true });
     const mimeType = getSupportedMimeType() ?? 'audio/webm';
-    const recorder = new browser.MediaRecorder!(stream, {
-      mimeType,
-    });
+    const recorder = new browser.MediaRecorder!(stream, { mimeType });
 
     this.stream = stream;
     this.mediaRecorder = recorder;
     this.recordingStartedAt = Date.now();
+    this.lifecycleStatus = 'ready';
 
     recorder.start();
+    this.lifecycleStatus = 'recording';
 
     return capability;
   }
@@ -119,6 +132,7 @@ class SpeakingRecorderService {
       };
 
       recorder.onerror = (event) => {
+        this.lifecycleStatus = 'error';
         reject(event.error ?? new Error('Recording failed'));
       };
 
@@ -140,6 +154,7 @@ class SpeakingRecorderService {
 
         this.recordingStartedAt = null;
         this.mediaRecorder = null;
+        this.lifecycleStatus = 'recorded';
         this.stopStream();
         resolve(this.currentClip);
       };
@@ -152,12 +167,14 @@ class SpeakingRecorderService {
 
   async togglePlayback() {
     if (!this.currentClip?.objectUrl) {
+      this.lifecycleStatus = 'error';
       throw new Error('No recording is available for playback.');
     }
 
     const browser = getBrowserGlobals();
 
     if (!browser.Audio) {
+      this.lifecycleStatus = 'error';
       throw new Error('Playback is not available on this platform.');
     }
 
@@ -167,15 +184,18 @@ class SpeakingRecorderService {
 
     try {
       await this.playbackAudio.play();
+      this.lifecycleStatus = 'playing';
       return true;
     } catch {
       this.playbackAudio.pause();
+      this.lifecycleStatus = 'recorded';
       return false;
     }
   }
 
   stopPlayback() {
     this.playbackAudio?.pause();
+    this.lifecycleStatus = this.currentClip ? 'recorded' : 'idle';
   }
 
   discardRecording() {
@@ -183,6 +203,7 @@ class SpeakingRecorderService {
     this.releaseCurrentClip();
     this.recordingStartedAt = null;
     this.mediaRecorder = null;
+    this.lifecycleStatus = 'idle';
     this.stopStream();
   }
 
