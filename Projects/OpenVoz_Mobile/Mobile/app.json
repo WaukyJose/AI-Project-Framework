@@ -1,0 +1,55 @@
+{
+  "expo": {
+    "name": "OpenVoz Mobile",
+    "slug": "openvoz-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "scheme": "openvoz-mobile",
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": ["expo-router", "expo-secure-store"],
+    "extra": {
+      "openVozApi": {
+        "defaultEnvironment": "production",
+        "environments": {
+          "development": {
+            "label": "Development",
+            "siteUrl": "http://127.0.0.1:8000",
+            "apiBaseUrl": "http://127.0.0.1:8000/api/v1",
+            "connectivityPath": "/usersvoicechat/login/",
+            "versionPath": "/api/version/"
+          },
+          "staging": {
+            "label": "Staging",
+            "siteUrl": "https://staging.openvoz.com",
+            "apiBaseUrl": "https://staging.openvoz.com/api/v1",
+            "connectivityPath": "/usersvoicechat/login/",
+            "versionPath": "/api/version/"
+          },
+          "production": {
+            "label": "Production",
+            "siteUrl": "https://www.openvoz.com",
+            "apiBaseUrl": "https://www.openvoz.com/api/v1",
+            "connectivityPath": "/usersvoicechat/login/",
+            "versionPath": "/api/version/"
+          }
+        }
+      }
+    }
+  }
+}

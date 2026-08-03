@@ -32,6 +32,13 @@
 
 - ChatGPT Project Initialization (Templates/CHATGPT_PROJECT_INITIALIZATION.md)
 
+## Projects
+
+- [Projects Overview](Projects/README.md) - Directory of framework-managed projects.
+- [OpenVoz Mobile](Projects/OpenVoz_Mobile/README.md) - OpenVoz mobile application project within the AI Project Framework.
+- [OpenVoz](Projects/OpenVoz/README.md) - Reference production AI speaking platform.
+- [Reading Strategy Coach](Projects/ReadingStrategyCoach/README.md) - Mobile reading-learning application in planning.
+
 ## Examples
 
 - No examples added yet.
