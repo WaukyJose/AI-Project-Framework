@@ -2,71 +2,58 @@
 
 ## Sprint
 
-Sprint 4 — Shared Speaking Infrastructure
+Sprint 5.0 — Mobile Conversation API Specification Adoption
 
 ## Status
 
-Completed
+Planned
 
 ## Objective
 
-Implement the reusable infrastructure required by all Cambridge Speaking exam modules.
+Implement the approved `Docs/Architecture/MOBILE_CONVERSATION_API_SPECIFICATION.md`.
 
-This sprint establishes the common speaking framework that future speaking parts will build upon.
+Sprint 5.0 begins only after the conversation contract is treated as the durable interface between OpenVoz Django and OpenVoz Mobile.
 
 ## In Scope
 
-- Speaking session lifecycle
-- Countdown timer
-- Audio recording
-- Recording controls
-- Playback
-- Upload integration
-- Evaluation integration
-- Loading states
-- Error handling
-- Reusable speaking components
-- Shared TypeScript types
+- Apply the approved mobile conversation API specification to Sprint 5 implementation planning
+- preserve functional parity with the Django Part 1 authority
+- extend Sprint 4 shared speaking infrastructure into a turn-based workflow
+- keep session lifecycle, completion behavior, and assessment retrieval aligned with the approved contract
 
 ## Out of Scope
 
-- Speaking Part 1
-- Speaking Part 2
-- Speaking Part 3
-- Speaking Part 4
-- Scoring algorithms
-- UI polish
-- Animations
-- Performance optimization beyond normal development
+- ad hoc API invention during implementation
+- backend transport redesign outside the approved specification
+- changes to Cambridge assessment rules
+- UI redesign unrelated to mobile adaptation
 
 ## Definition of Done
 
-This sprint is complete when:
+Sprint 5.0 is complete when:
 
-- Shared speaking infrastructure is functional.
-- Components are reusable.
-- Existing project architecture is respected.
-- Existing API services are extended rather than duplicated.
-- Documentation reflects architectural changes.
+- implementation follows `Docs/Architecture/MOBILE_CONVERSATION_API_SPECIFICATION.md`
+- mobile Part 1 uses the approved conversation session and turn model
+- backend authority over transcript, timing, completion, and assessment is preserved
+- documentation remains synchronized with any durable contract refinement
 
-## Completion Notes
+## Prerequisites
 
-Completed on 2026-08-03.
-
-Sprint 4 closed after Sprint 4.2 hardened the shared speaking lifecycle, clarified reusable upload and evaluation state handling, and preserved the existing generic workspace without introducing Part 1 logic.
+- `Docs/Architecture/MOBILE_CONVERSATION_API_SPECIFICATION.md`
+- `Docs/Architecture/OPENVOZ_MOBILE_API_SPECIFICATION.md`
+- verified Django Part 1 implementation in the functional authority repository
 
 ## AI Working Rules
 
 Before implementing:
 
 1. Read `AI_CONTEXT.md`.
-2. Verify existing implementation.
-3. Extend existing modules whenever possible.
-4. Do not invent APIs.
-5. Follow the documented architecture.
+2. Read `Docs/Architecture/MOBILE_CONVERSATION_API_SPECIFICATION.md`.
+3. Verify existing implementation.
+4. Extend existing modules whenever possible.
+5. Do not invent APIs outside the approved specification.
 
 ## Deliverables
 
-- Reusable speaking infrastructure
-- Updated architecture where necessary
-- Updated documentation if architecture changes
+- Sprint 5 implementation aligned to the approved conversation API contract
+- updated mobile documentation where durable architecture changes occur
