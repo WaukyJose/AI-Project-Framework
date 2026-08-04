@@ -151,10 +151,6 @@ function serializeBody(body: ApiClientRequestOptions['body']) {
     return body ?? null;
   }
 
-  if ('password' in body && typeof body.password === 'string') {
-    console.log('PASSWORD_DEBUG_BEFORE_JSON_SERIALIZE=', JSON.stringify(body.password));
-  }
-
   return JSON.stringify(body);
 }
 

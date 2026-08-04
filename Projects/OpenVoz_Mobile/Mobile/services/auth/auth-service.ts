@@ -27,13 +27,6 @@ function computeSessionExpiry(rememberMe: boolean) {
   return expiry.toISOString();
 }
 
-function buildDebugUrl(environmentName: AuthSession['environmentName'], path: string) {
-  const baseUrl = getApiEnvironment(environmentName).apiBaseUrl;
-  const normalizedBaseUrl = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
-  const normalizedPath = path.replace(/^\/+/, '');
-  return new URL(normalizedPath, normalizedBaseUrl).toString();
-}
-
 function buildSession(
   payload: MobileAuthResponse,
   token: string,
@@ -110,19 +103,6 @@ export const authService = {
       });
     }
 
-    logger.info('auth.login.debug.request', {
-      body: {
-        passwordLength: credentials.password.length,
-        passwordJson: JSON.stringify(credentials.password),
-        username: identifier,
-      },
-      headers: {
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      method: 'POST',
-      url: buildDebugUrl(environmentName, LOGIN_PATH),
-    });
-
     let response: Response;
 
     try {
@@ -133,18 +113,6 @@ export const authService = {
         }
       );
     } catch (error) {
-      logger.error('auth.login.debug.exception', {
-        body: {
-          passwordLength: credentials.password.length,
-          username: identifier,
-        },
-        error,
-        headers: {
-          'Content-Type': 'application/json; charset=UTF-8',
-        },
-        method: 'POST',
-        url: buildDebugUrl(environmentName, LOGIN_PATH),
-      });
       if (error instanceof ApiError && error.status === 401) {
         throw new ApiError('Invalid credentials', {
           code: 'authentication_expired',
@@ -158,26 +126,6 @@ export const authService = {
 
       throw error;
     }
-
-    const debugResponse = response.clone();
-    let debugBody: unknown = null;
-    const contentType = response.headers.get('content-type') ?? '';
-    try {
-      debugBody = contentType.includes('application/json')
-        ? await debugResponse.json()
-        : await debugResponse.text();
-    } catch (error) {
-      debugBody = {
-        parseError: error instanceof Error ? error.message : 'Unknown response parse error',
-      };
-    }
-
-    logger.info('auth.login.debug.response', {
-      body: debugBody,
-      headers: Object.fromEntries(response.headers.entries()),
-      status: response.status,
-      url: response.url,
-    });
 
     const payload = (await response.json()) as MobileAuthResponse;
     const token = payload.token?.trim();
