@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { ScrollView } from 'react-native';
 
 import { AppHeader } from '../../components/ui/app-header';
@@ -12,6 +13,11 @@ import { shellStyles } from '../shared/shell-styles';
 export function ProfileScreen() {
   const logout = useAuthStore((state) => state.logout);
   const user = useAuthStore((state) => state.user);
+
+  async function handleLogout() {
+    await logout();
+    router.replace('/(auth)/login');
+  }
 
   return (
     <ScreenContainer>
@@ -42,7 +48,7 @@ export function ProfileScreen() {
           trailingLabel="Planned"
         />
 
-        <SecondaryButton label="Log Out" onPress={() => void logout()} />
+        <SecondaryButton label="Log Out" onPress={() => void handleLogout()} />
       </ScrollView>
     </ScreenContainer>
   );

@@ -1,7 +1,9 @@
+import { router } from 'expo-router';
 import { ScrollView } from 'react-native';
 
 import { AppHeader } from '../../components/ui/app-header';
 import { Badge } from '../../components/ui/badge';
+import { SecondaryButton } from '../../components/ui/buttons';
 import { ProgressCard, StatCard } from '../../components/ui/cards';
 import { ResponsiveGrid } from '../../components/ui/grid';
 import { ListItem } from '../../components/ui/listing';
@@ -11,7 +13,13 @@ import { useAuthStore } from '../../store/auth-store';
 import { shellStyles } from '../shared/shell-styles';
 
 export function DashboardScreen() {
+  const logout = useAuthStore((state) => state.logout);
   const user = useAuthStore((state) => state.user);
+
+  async function handleLogout() {
+    await logout();
+    router.replace('/(auth)/login');
+  }
 
   return (
     <ScreenContainer>
@@ -70,6 +78,8 @@ export function DashboardScreen() {
           title="Build a daily practice rhythm"
           trailingLabel="Placeholder"
         />
+
+        <SecondaryButton label="Log Out" onPress={() => void handleLogout()} />
       </ScrollView>
     </ScreenContainer>
   );
