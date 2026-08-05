@@ -7,5 +7,33 @@
 			"path": "../OpenVoz"
 		}
 	],
-	"settings": {}
+	"settings": {
+    "editor.dropIntoEditor.preferences": [],
+
+    "files.exclude": {
+      "**/__pycache__": true,
+      "**/*.pyc": true,
+      "**/.pytest_cache": true,
+      "**/.mypy_cache": true,
+      "**/*.mo": true
+    },
+
+    "search.exclude": {
+      "**/__pycache__": true,
+      "**/*.pyc": true,
+      "**/.pytest_cache": true,
+      "**/.mypy_cache": true,
+      "**/node_modules": true,
+      "**/*.mo": true,
+      "**/*.gz": true
+    },
+
+    "files.watcherExclude": {
+      "**/__pycache__/**": true,
+      "**/.pytest_cache/**": true,
+      "**/.mypy_cache/**": true,
+      "**/.git/**": true,
+      "**/node_modules/**": true
+    }
+  }
 }
