@@ -9,12 +9,26 @@ import { ResponsiveGrid } from '../../components/ui/grid';
 import { ListItem } from '../../components/ui/listing';
 import { ScreenContainer } from '../../components/ui/screen-container';
 import { SectionHeader } from '../../components/ui/section-header';
+import { useDashboardData } from '../../hooks/use-dashboard-data';
 import { useAuthStore } from '../../store/auth-store';
 import { shellStyles } from '../shared/shell-styles';
 
 export function DashboardScreen() {
   const logout = useAuthStore((state) => state.logout);
-  const user = useAuthStore((state) => state.user);
+  const { data } = useDashboardData();
+  const user = data?.user;
+  const subscription = data?.subscription;
+  const stats = data?.dashboard.stats;
+  const badgeLabel = user?.username ?? 'OpenVoz';
+  const welcomeTitle = user?.fullName ? `Welcome back, ${user.fullName}` : 'Welcome back';
+  const subscriptionLabel = subscription?.hasSubscription
+    ? subscription.plan.name ?? 'Active'
+    : 'Inactive';
+  const subscriptionStatusCaption = subscription?.hasSubscription
+    ? subscription.validUntil
+      ? `Valid until ${new Date(subscription.validUntil).toLocaleDateString()}`
+      : 'Active subscription'
+    : 'No active subscription';
 
   async function handleLogout() {
     await logout();
@@ -27,14 +41,14 @@ export function DashboardScreen() {
         <AppHeader
           eyebrow="Dashboard"
           subtitle="The authenticated shell now mirrors the documented OpenVoz structure and prepares the user for future speaking and assessment workflows."
-          title="Welcome back"
-          trailing={<Badge label={user?.identifier ?? 'OpenVoz'} />}
+          title={welcomeTitle}
+          trailing={<Badge label={badgeLabel} />}
         />
 
         <ResponsiveGrid>
-          <StatCard label="Daily goal" value="15 min" />
-          <StatCard label="Practice sessions" value="01 ready" />
-          <StatCard label="Subscription" value="Active" />
+          <StatCard label="Questions answered" value={String(stats?.questionsAnswered ?? 0)} />
+          <StatCard label="Accuracy" value={`${stats?.accuracy ?? 0}%`} />
+          <StatCard label="Subscription" value={subscriptionLabel} />
         </ResponsiveGrid>
 
         <SectionHeader title="Continue Learning" />
@@ -53,21 +67,25 @@ export function DashboardScreen() {
             title="Current Program"
           />
           <ProgressCard
-            accentValue="0 sessions"
+            accentValue={`${stats?.studyMinutes ?? 0} min`}
             caption="Practice Statistics"
-            description="Practice metrics will appear here once speaking and learning activities begin generating backend data."
+            description={`Correct answers: ${stats?.correctAnswers ?? 0}. Current streak: ${stats?.streak ?? 0}.`}
             title="Practice Statistics"
           />
           <ProgressCard
-            accentValue="No activity yet"
+            accentValue={`${data?.dashboard.recentActivity.length ?? 0} items`}
             caption="Recent Activity"
-            description="Recent attempts, reviews, and completed tasks will surface here later."
+            description={
+              (data?.dashboard.recentActivity.length ?? 0) > 0
+                ? 'Recent attempts and completions are available from the aggregated dashboard feed.'
+                : 'No recent activity is available yet.'
+            }
             title="Recent Activity"
           />
           <ProgressCard
-            accentValue="Active"
+            accentValue={subscription?.status === 'active' ? 'Active' : 'Inactive'}
             caption="Subscription Status"
-            description="Entitlement-aware subscription information will reuse the existing backend subscription system."
+            description={subscriptionStatusCaption}
             title="Subscription"
           />
         </ResponsiveGrid>

@@ -7,12 +7,23 @@ import { SecondaryButton } from '../../components/ui/buttons';
 import { ListItem } from '../../components/ui/listing';
 import { ScreenContainer } from '../../components/ui/screen-container';
 import { SectionHeader } from '../../components/ui/section-header';
+import { useSubscriptionStatus } from '../../hooks/use-subscription-status';
 import { useAuthStore } from '../../store/auth-store';
 import { shellStyles } from '../shared/shell-styles';
 
 export function ProfileScreen() {
   const logout = useAuthStore((state) => state.logout);
   const user = useAuthStore((state) => state.user);
+  const { data: subscription } = useSubscriptionStatus();
+  const profileLabel = user?.fullName ?? user?.username ?? 'OpenVoz Learner';
+  const emailCaption = user?.email ?? 'Authenticated through the existing OpenVoz backend.';
+  const subscriptionCaption = subscription?.hasSubscription
+    ? subscription.validUntil
+      ? `Active until ${new Date(subscription.validUntil).toLocaleDateString()}`
+      : 'Active subscription'
+    : 'No active subscription was found for this account.';
+  const subscriptionLabel = subscription?.plan.name ?? 'No subscription';
+  const subscriptionStatus = subscription?.status === 'active' ? 'Active' : 'Inactive';
 
   async function handleLogout() {
     await logout();
@@ -26,21 +37,21 @@ export function ProfileScreen() {
           eyebrow="Profile"
           subtitle="Account, subscription, and session actions remain grouped here to match the documented UX architecture."
           title="Profile"
-          trailing={<Avatar label={user?.identifier ?? 'OpenVoz Learner'} size={52} />}
+          trailing={<Avatar label={profileLabel} size={52} />}
         />
 
         <SectionHeader title="User Information" />
         <ListItem
-          caption="Authenticated through the existing OpenVoz backend."
-          title={user?.identifier ?? 'Authenticated learner'}
+          caption={emailCaption}
+          title={profileLabel}
           trailingLabel="Active"
         />
 
         <SectionHeader title="Account" />
         <ListItem
-          caption="Subscription status and usage details will connect to backend services in a later sprint."
-          title="Subscription"
-          trailingLabel="Placeholder"
+          caption={subscriptionCaption}
+          title={subscriptionLabel}
+          trailingLabel={subscriptionStatus}
         />
         <ListItem
           caption="Profile editing remains out of scope until user APIs are formalized."

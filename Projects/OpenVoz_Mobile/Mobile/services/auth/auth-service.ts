@@ -1,8 +1,9 @@
-import { AuthSession, LoginCredentials, LoginResult } from '../../types/auth';
+import { AuthSession, AuthUser, LoginCredentials, LoginResult } from '../../types/auth';
 import { getApiEnvironment, getCurrentApiEnvironmentName } from '../../utils/env';
 import { logger } from '../../utils/logger';
 import { ApiError, registerAuthTokenProvider } from '../api';
 import { authApi } from '../api/auth-api';
+import { profileService } from '../profile/profile-service';
 import { authStorage } from './auth-storage';
 import { isSessionExpired, sanitizeAuthSession } from './auth-session';
 
@@ -28,27 +29,16 @@ function computeSessionExpiry(rememberMe: boolean) {
 }
 
 function buildSession(
-  payload: MobileAuthResponse,
+  user: AuthUser,
   token: string,
   environmentName: AuthSession['environmentName'],
   rememberMe: boolean
 ): AuthSession {
-  if (!payload.user) {
-    throw new ApiError('Authentication response did not include a user', {
-      code: 'invalid_json',
-      details: payload,
-      url: LOGIN_PATH,
-    });
-  }
-
   return {
     environmentName,
     expiresAt: computeSessionExpiry(rememberMe),
     token,
-    user: {
-      displayName: payload.user.display_name,
-      identifier: payload.user.identifier,
-    },
+    user,
   };
 }
 
@@ -139,7 +129,11 @@ export const authService = {
       });
     }
 
-    const session = buildSession(payload, token, environmentName, rememberMe);
+    const profile = await profileService.getAuthenticatedProfile({
+      environmentName,
+      token,
+    });
+    const session = buildSession(profile, token, environmentName, rememberMe);
 
     await authStorage.writeSession(session);
     logger.info('auth.login.success', sanitizeAuthSession(session));
@@ -204,13 +198,15 @@ export const authService = {
         return null;
       }
 
+      const profile = await profileService.getAuthenticatedProfile({
+        environmentName: session.environmentName,
+        token: payload.token,
+      });
+
       const refreshedSession: AuthSession = {
         ...session,
         token: payload.token,
-        user: {
-          displayName: payload.user.display_name,
-          identifier: payload.user.identifier,
-        },
+        user: profile,
       };
       await authStorage.writeSession(refreshedSession);
       return refreshedSession;

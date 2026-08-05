@@ -1,31 +1,60 @@
-# IMPLEMENTATION STATUS
+# Implementation Status
 
-Status: Current
-Last Updated: 2026-08-03
-Authority: Primary implementation status document
+## Authentication
 
-This document is the authoritative source for current implementation progress in OpenVoz Mobile.
+- ✅ Token-based mobile login, logout, and validation endpoints implemented via Django REST Framework.
+- ✅ Secure mobile token storage and Bearer token request interceptor implemented.
+- ✅ Existing browser session/cookie authentication preserved.
 
-If another document contains older or conflicting implementation-status language, trust this document.
+## User Management
 
-## Completed
+- ✅ User profile API service and profile screen implemented.
+- ⚠️ User management and permission redesign TODO: Verify against backend roles.
 
-- Sprint 1 - Backend Connectivity
-- Sprint 2 - Authentication
-- Sprint 5.0.1 - Mobile Token Authentication
-- Sprint 3 - Application Shell
-- Sprint 4 - Shared Speaking Infrastructure
+## Mobile
 
-## Latest Completed Checkpoints
+- ✅ React Native / Expo application shell, navigation structure, and responsive layout hooks implemented.
+- ✅ Dashboard, practice, progress, settings, and profile screens implemented.
+- ✅ State management stores (auth, app, connectivity, speaking) implemented.
 
-- Sprint 5.0.1 - Mobile Token Authentication
-- Sprint 4.1 - Audio Foundation
-- Sprint 4.2 - Shared Speaking Infrastructure Hardening
+## Cambridge Speaking
 
-## Planned
+- ✅ Shared speaking infrastructure, audio foundation, and recording services implemented.
+- ⚠️ Cambridge B2 First Speaking Part 1 turn-based workflow and transport TODO: Verify against server-authoritative protocol specifications.
 
-- Sprint 5 - Cambridge Speaking Part 1
+## Billing
 
-## Blocked
+- ✅ Subscription status hook, API service, and subscription status views implemented.
 
-- Sprint 5.1 - Cambridge B2 First Speaking Part 1 implementation blocked pending verified Django Part 1 transport and workflow authority, and synchronization of older mobile API documents with `Docs/Architecture/MOBILE_CONVERSATION_API_SPECIFICATION.md`
+## AI Services
+
+- ✅ Assessment API service and feedback views implemented.
+- ⚠️ Full AI evaluation pipeline integration TODO: Verify end-to-end conversation feedback flow.
+
+## API
+
+- ✅ REST API client configuration with query caching and error handling.
+- ✅ Dedicated mobile API endpoints for authentication, profile, dashboard, subscription, and speaking sessions.
+
+## Infrastructure
+
+- ✅ Backend connectivity diagnostics and environment utility configuration implemented.
+
+## Testing
+
+- ✅ Backend mobile authentication unit tests implemented.
+- ⚠️ Mobile client unit and integration test suite TODO: Verify full coverage.
+
+## Documentation
+
+- ✅ Repository project index, AI context, system architecture, and completion implementation reports documented.
+
+## Last Updated
+
+- 2026-08-03
+
+## References
+
+- [AI Context](AI_CONTEXT.md)
+- [Project Index](PROJECT_INDEX.md)
+- [System Architecture](Docs/Architecture/OPENVOZ_MOBILE_SYSTEM_ARCHITECTURE.md)
