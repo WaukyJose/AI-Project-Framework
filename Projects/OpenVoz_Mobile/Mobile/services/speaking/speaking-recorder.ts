@@ -1,4 +1,12 @@
 import { Platform } from 'react-native';
+import {
+  AudioModule,
+  createAudioPlayer,
+  RecordingPresets,
+  requestRecordingPermissionsAsync,
+  setAudioModeAsync,
+} from 'expo-audio';
+import type { AudioRecorder, AudioPlayer } from 'expo-audio';
 
 import {
   SpeakingAudioClip,
@@ -6,12 +14,9 @@ import {
   SpeakingRecorderState,
 } from '../../types/speaking';
 
-const DEFAULT_CAPABILITY: SpeakingCapabilityState = {
-  playbackSupported: false,
-  recordingMessage:
-    'Recording requires an approved audio implementation. The current app can record in supported browsers and reports unsupported capability elsewhere.',
-  recordingStatus: 'unsupported',
-};
+// ---------------------------------------------------------------------------
+// Web-only browser types (not available on native)
+// ---------------------------------------------------------------------------
 
 type BrowserMediaDevices = {
   getUserMedia: (constraints: MediaStreamConstraints) => Promise<MediaStream>;
@@ -32,6 +37,10 @@ type BrowserGlobals = typeof globalThis & {
 function getBrowserGlobals(): BrowserGlobals {
   return globalThis as BrowserGlobals;
 }
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
 function getSupportedMimeType() {
   const browser = getBrowserGlobals();
@@ -54,31 +63,49 @@ function getSupportedMimeType() {
   return 'audio/webm';
 }
 
+function mimeTypeFromUri(uri: string): string {
+  if (uri.endsWith('.m4a')) return 'audio/mp4';
+  if (uri.endsWith('.mp3')) return 'audio/mpeg';
+  if (uri.endsWith('.wav')) return 'audio/wav';
+  if (uri.endsWith('.3gp')) return 'audio/3gpp';
+  return 'audio/m4a';
+}
+
+function fileNameFromUri(uri: string, suffix: string): string {
+  const ext = uri.split('.').pop() || 'm4a';
+  return `openvoz-speaking-${suffix}.${ext}`;
+}
+
+// ---------------------------------------------------------------------------
+// Service
+// ---------------------------------------------------------------------------
+
 class SpeakingRecorderService {
+  // ---- shared state ----
   private currentClip: SpeakingAudioClip | null = null;
   private lifecycleStatus: SpeakingRecorderState['lifecycleStatus'] = 'idle';
+  private recordingStartedAt: number | null = null;
+
+  // ---- web-only state ----
   private mediaRecorder: MediaRecorder | null = null;
   private playbackAudio: BrowserAudio | null = null;
-  private recordingStartedAt: number | null = null;
   private stream: MediaStream | null = null;
 
+  // ---- native-only state ----
+  private nativeRecorder: AudioRecorder | null = null;
+  private nativePlayer: AudioPlayer | null = null;
+  private audioSessionConfigured = false;
+
+  // =====================================================================
+  // Public contract
+  // =====================================================================
+
   getCapability(): SpeakingCapabilityState {
-    const browser = getBrowserGlobals();
-
-    if (Platform.OS !== 'web') {
-      return DEFAULT_CAPABILITY;
+    if (Platform.OS === 'web') {
+      return this.getWebCapability();
     }
 
-    if (!browser.navigator?.mediaDevices?.getUserMedia || !browser.MediaRecorder) {
-      return DEFAULT_CAPABILITY;
-    }
-
-    return {
-      playbackSupported: typeof browser.Audio !== 'undefined',
-      recordingMessage:
-        'Recording is available in this browser. Native mobile recording still requires an approved audio package.',
-      recordingStatus: 'ready',
-    };
+    return this.getNativeCapability();
   }
 
   getState(): SpeakingRecorderState {
@@ -89,8 +116,80 @@ class SpeakingRecorderService {
     };
   }
 
-  async startRecording() {
-    const capability = this.getCapability();
+  async startRecording(): Promise<SpeakingCapabilityState> {
+    if (Platform.OS === 'web') {
+      return this.startWebRecording();
+    }
+
+    return this.startNativeRecording();
+  }
+
+  async stopRecording(): Promise<SpeakingAudioClip | null> {
+    if (Platform.OS === 'web') {
+      return this.stopWebRecording();
+    }
+
+    return this.stopNativeRecording();
+  }
+
+  async togglePlayback(): Promise<boolean> {
+    if (Platform.OS === 'web') {
+      return this.toggleWebPlayback();
+    }
+
+    return this.toggleNativePlayback();
+  }
+
+  stopPlayback(): void {
+    if (Platform.OS === 'web') {
+      this.stopWebPlayback();
+      return;
+    }
+
+    this.stopNativePlayback();
+  }
+
+  discardRecording(): void {
+    this.stopPlayback();
+    this.releaseCurrentClip();
+    this.recordingStartedAt = null;
+
+    if (Platform.OS === 'web') {
+      this.mediaRecorder = null;
+      this.stopWebStream();
+    } else {
+      this.nativeRecorder = null;
+      this.removeNativePlayer();
+    }
+
+    this.lifecycleStatus = 'idle';
+  }
+
+  // =====================================================================
+  // Web implementation (preserved from the original MediaRecorder logic)
+  // =====================================================================
+
+  private getWebCapability(): SpeakingCapabilityState {
+    const browser = getBrowserGlobals();
+
+    if (!browser.navigator?.mediaDevices?.getUserMedia || !browser.MediaRecorder) {
+      return {
+        playbackSupported: false,
+        recordingMessage:
+          'Recording requires an approved audio implementation. The current app can record in supported browsers and reports unsupported capability elsewhere.',
+        recordingStatus: 'unsupported',
+      };
+    }
+
+    return {
+      playbackSupported: typeof browser.Audio !== 'undefined',
+      recordingMessage: 'Recording is available in this browser.',
+      recordingStatus: 'ready',
+    };
+  }
+
+  private async startWebRecording(): Promise<SpeakingCapabilityState> {
+    const capability = this.getWebCapability();
 
     if (capability.recordingStatus !== 'ready') {
       this.lifecycleStatus = 'error';
@@ -99,6 +198,7 @@ class SpeakingRecorderService {
 
     this.lifecycleStatus = 'preparing';
     this.releaseCurrentClip();
+
     const browser = getBrowserGlobals();
     const stream = await browser.navigator!.mediaDevices!.getUserMedia({ audio: true });
     const mimeType = getSupportedMimeType() ?? 'audio/webm';
@@ -115,7 +215,7 @@ class SpeakingRecorderService {
     return capability;
   }
 
-  async stopRecording() {
+  private async stopWebRecording(): Promise<SpeakingAudioClip | null> {
     const recorder = this.mediaRecorder;
 
     if (!recorder || recorder.state !== 'recording') {
@@ -155,7 +255,7 @@ class SpeakingRecorderService {
         this.recordingStartedAt = null;
         this.mediaRecorder = null;
         this.lifecycleStatus = 'recorded';
-        this.stopStream();
+        this.stopWebStream();
         resolve(this.currentClip);
       };
 
@@ -165,7 +265,7 @@ class SpeakingRecorderService {
     return clip;
   }
 
-  async togglePlayback() {
+  private async toggleWebPlayback(): Promise<boolean> {
     if (!this.currentClip?.objectUrl) {
       this.lifecycleStatus = 'error';
       throw new Error('No recording is available for playback.');
@@ -193,31 +293,218 @@ class SpeakingRecorderService {
     }
   }
 
-  stopPlayback() {
+  private stopWebPlayback(): void {
     this.playbackAudio?.pause();
     this.lifecycleStatus = this.currentClip ? 'recorded' : 'idle';
   }
 
-  discardRecording() {
-    this.stopPlayback();
-    this.releaseCurrentClip();
-    this.recordingStartedAt = null;
-    this.mediaRecorder = null;
-    this.lifecycleStatus = 'idle';
-    this.stopStream();
+  private stopWebStream(): void {
+    this.stream?.getTracks().forEach((track) => track.stop());
+    this.stream = null;
   }
 
-  private releaseCurrentClip() {
-    if (this.currentClip?.objectUrl) {
+  // =====================================================================
+  // Native implementation (expo-audio)
+  // =====================================================================
+
+  private getNativeCapability(): SpeakingCapabilityState {
+    return {
+      playbackSupported: true,
+      recordingMessage: 'Native recording is available on this device.',
+      recordingStatus: 'ready',
+    };
+  }
+
+  private async startNativeRecording(): Promise<SpeakingCapabilityState> {
+    // 1. Configure iOS audio session for recording (once per service lifetime)
+    if (!this.audioSessionConfigured) {
+      try {
+        await setAudioModeAsync({
+          allowsRecording: true,
+          playsInSilentMode: true,
+        });
+        this.audioSessionConfigured = true;
+      } catch (error) {
+        this.lifecycleStatus = 'error';
+        throw new Error(
+          error instanceof Error
+            ? `Failed to configure audio session: ${error.message}`
+            : 'Failed to configure audio session for recording.'
+        );
+      }
+    }
+
+    // 2. Check / request microphone permission
+    const { granted } = await requestRecordingPermissionsAsync();
+
+    if (!granted) {
+      this.lifecycleStatus = 'error';
+      throw new Error(
+        'Microphone permission was denied. Enable it in your device settings to record speaking responses.'
+      );
+    }
+
+    // 3. Prevent duplicate starts
+    if (this.nativeRecorder?.isRecording) {
+      this.lifecycleStatus = 'error';
+      throw new Error('A recording is already in progress.');
+    }
+
+    // 4. Prevent recording while playback is active
+    if (this.nativePlayer?.playing) {
+      this.lifecycleStatus = 'error';
+      throw new Error('Cannot start recording while playback is active.');
+    }
+
+    // 5. Clean up previous clip and player
+    this.releaseCurrentClip();
+    this.removeNativePlayer();
+
+    // 6. Prepare and start
+    this.lifecycleStatus = 'preparing';
+
+    // eslint-disable-next-line import/namespace -- AudioRecorder is a runtime native-module property
+    const recorder = new AudioModule.AudioRecorder(RecordingPresets.HIGH_QUALITY);
+
+    try {
+      await recorder.prepareToRecordAsync();
+      recorder.record();
+    } catch (error) {
+      this.lifecycleStatus = 'error';
+      throw new Error(
+        error instanceof Error
+          ? `Failed to start recording: ${error.message}`
+          : 'Failed to start recording.'
+      );
+    }
+
+    this.nativeRecorder = recorder;
+    this.recordingStartedAt = Date.now();
+    this.lifecycleStatus = 'recording';
+
+    return {
+      playbackSupported: true,
+      recordingMessage: 'Recording in progress.',
+      recordingStatus: 'ready',
+    };
+  }
+
+  private async stopNativeRecording(): Promise<SpeakingAudioClip | null> {
+    const recorder = this.nativeRecorder;
+
+    if (!recorder) {
+      return this.currentClip;
+    }
+
+    this.nativeRecorder = null;
+
+    try {
+      await recorder.stop();
+    } catch (error) {
+      this.lifecycleStatus = 'error';
+      throw new Error(
+        error instanceof Error
+          ? `Failed to stop recording: ${error.message}`
+          : 'Failed to stop recording.'
+      );
+    }
+
+    const uri = recorder.uri;
+
+    if (!uri) {
+      this.lifecycleStatus = 'error';
+      throw new Error('Recording finished but no audio file was produced.');
+    }
+
+    const durationMs =
+      this.recordingStartedAt ? Date.now() - this.recordingStartedAt : null;
+
+    this.currentClip = {
+      durationMs,
+      id: `clip-${Date.now()}`,
+      mimeType: mimeTypeFromUri(uri),
+      name: fileNameFromUri(uri, String(Date.now())),
+      objectUrl: uri,
+      sizeBytes: 0,
+    };
+
+    this.recordingStartedAt = null;
+    this.lifecycleStatus = 'recorded';
+
+    return this.currentClip;
+  }
+
+  private async toggleNativePlayback(): Promise<boolean> {
+    if (!this.currentClip?.objectUrl) {
+      this.lifecycleStatus = 'error';
+      throw new Error('No recording is available for playback.');
+    }
+
+    // Prevent playback while recording
+    if (this.nativeRecorder?.isRecording) {
+      this.lifecycleStatus = 'error';
+      throw new Error('Cannot play audio while recording is in progress.');
+    }
+
+    // If we already have a player, toggle play/pause
+    if (this.nativePlayer) {
+      if (this.nativePlayer.playing) {
+        this.nativePlayer.pause();
+        this.lifecycleStatus = 'recorded';
+        return false;
+      }
+
+      // Replace source and play
+      this.nativePlayer.replace({ uri: this.currentClip.objectUrl });
+      this.nativePlayer.play();
+      this.lifecycleStatus = 'playing';
+      return true;
+    }
+
+    // Create and play a new player
+    try {
+      const player = createAudioPlayer({ uri: this.currentClip.objectUrl });
+      player.play();
+      this.nativePlayer = player;
+      this.lifecycleStatus = 'playing';
+      return true;
+    } catch (error) {
+      this.lifecycleStatus = 'error';
+      throw new Error(
+        error instanceof Error
+          ? `Failed to play recording: ${error.message}`
+          : 'Failed to play recording.'
+      );
+    }
+  }
+
+  private stopNativePlayback(): void {
+    if (this.nativePlayer) {
+      this.nativePlayer.pause();
+    }
+
+    this.lifecycleStatus = this.currentClip ? 'recorded' : 'idle';
+  }
+
+  private removeNativePlayer(): void {
+    const player = this.nativePlayer;
+    this.nativePlayer = null;
+
+    if (player) {
+      player.remove();
+    }
+  }
+
+  // =====================================================================
+  // Shared helpers
+  // =====================================================================
+
+  private releaseCurrentClip(): void {
+    if (Platform.OS === 'web' && this.currentClip?.objectUrl) {
       URL.revokeObjectURL(this.currentClip.objectUrl);
     }
 
     this.currentClip = null;
-  }
-
-  private stopStream() {
-    this.stream?.getTracks().forEach((track) => track.stop());
-    this.stream = null;
   }
 }
 
