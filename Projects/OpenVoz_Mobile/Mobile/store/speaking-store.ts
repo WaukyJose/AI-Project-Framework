@@ -3,18 +3,24 @@ import { create } from 'zustand';
 import { ApiError, speakingApi } from '../services/api';
 import { speakingRecorder } from '../services/speaking/speaking-recorder';
 import { getSpeakingPartDefinition } from '../services/speaking/speaking-parts';
-import {
+import type {
+  AssessmentResponse,
+  CompleteSessionResponse,
   SpeakingAssessmentSummary,
   SpeakingAudioClip,
   SpeakingCapabilityState,
   SpeakingDraftSession,
-  SpeakingAssessmentStatus,
   SpeakingPartId,
   SpeakingRecorderState,
+  SpeakingSessionStatus,
   SpeakingTimerStatus,
 } from '../types/speaking';
 
 const DEFAULT_DURATION_SECONDS = 120;
+
+// ---------------------------------------------------------------------------
+// Store shape
+// ---------------------------------------------------------------------------
 
 interface SpeakingStoreState {
   assessment: SpeakingAssessmentSummary | null;
@@ -22,10 +28,14 @@ interface SpeakingStoreState {
   clip: SpeakingAudioClip | null;
   discardRecording: () => void;
   errorMessage: string | null;
+  examinerAudioUrl: string | null;
+  examinerText: string | null;
   initializePart: (partId: SpeakingPartId) => void;
+  isCreatingSession: boolean;
   isEvaluating: boolean;
   isPlaying: boolean;
   isRecording: boolean;
+  isStartingSession: boolean;
   isUploading: boolean;
   partDescription: string;
   partId: SpeakingPartId;
@@ -39,7 +49,7 @@ interface SpeakingStoreState {
   session: SpeakingDraftSession | null;
   setDurationSeconds: (seconds: number) => void;
   startRecording: () => Promise<void>;
-  startSession: () => void;
+  startSession: () => Promise<void>;
   startTimer: () => void;
   stopPlayback: () => void;
   stopRecording: () => Promise<void>;
@@ -50,11 +60,17 @@ interface SpeakingStoreState {
   uploadRecording: () => Promise<void>;
 }
 
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
 function createDraftSession(partId: SpeakingPartId): SpeakingDraftSession {
   const now = new Date().toISOString();
-
   return {
     createdAt: now,
+    lastExaminerAudioUrl: null,
+    lastExaminerText: null,
+    lastTurnNumber: 0,
     localSessionId: `local-${Date.now()}`,
     partId,
     remoteSessionId: null,
@@ -64,15 +80,13 @@ function createDraftSession(partId: SpeakingPartId): SpeakingDraftSession {
   };
 }
 
-function getErrorMessage(error: unknown) {
+function getErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
     return error.getUserMessage();
   }
-
   if (error instanceof Error) {
     return error.message;
   }
-
   return 'An unexpected speaking error occurred.';
 }
 
@@ -80,39 +94,29 @@ function getRecorderSnapshot() {
   return speakingRecorder.getState();
 }
 
-function createAssessmentSummary(status: SpeakingAssessmentStatus, result: unknown = null) {
+function buildAssessmentSummary(
+  response: AssessmentResponse | CompleteSessionResponse | null,
+  status: 'complete' | 'failed' | 'pending' | 'processing',
+): SpeakingAssessmentSummary {
   return {
-    assessmentId: null,
+    assessmentId: response?.assessment?.assessment_id ?? null,
+    feedbackReport: response?.feedback_report,
+    practiceScore: response?.practice_score,
     requestedAt: new Date().toISOString(),
-    result,
+    result: response ?? null,
     status,
-  } satisfies SpeakingAssessmentSummary;
+  };
 }
 
-async function buildAudioUploadFormData(clip: SpeakingAudioClip, partId: SpeakingPartId) {
-  if (!clip.objectUrl) {
-    throw new Error('No recording is available to upload.');
-  }
-
-  const response = await fetch(clip.objectUrl);
-  const blob = await response.blob();
-  const formData = new FormData();
-
-  formData.append('audio', blob, clip.name);
-  formData.append('part_id', partId);
-  formData.append('mime_type', clip.mimeType);
-
-  if (clip.durationMs !== null) {
-    formData.append('duration_ms', String(clip.durationMs));
-  }
-
-  return formData;
-}
+// ---------------------------------------------------------------------------
+// Store
+// ---------------------------------------------------------------------------
 
 export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
   assessment: null,
   capability: getRecorderSnapshot().capability,
   clip: null,
+
   discardRecording() {
     speakingRecorder.discardRecording();
     const recorder = getRecorderSnapshot();
@@ -124,15 +128,15 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
       isRecording: false,
       recorderStatus: recorder.lifecycleStatus,
       session: state.session
-        ? {
-            ...state.session,
-            status: 'ready',
-            updatedAt: new Date().toISOString(),
-          }
+        ? { ...state.session, status: 'ready', updatedAt: new Date().toISOString() }
         : state.session,
     }));
   },
+
   errorMessage: null,
+  examinerAudioUrl: null,
+  examinerText: null,
+
   initializePart(partId) {
     const part = getSpeakingPartDefinition(partId);
     speakingRecorder.stopPlayback();
@@ -143,9 +147,13 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
       capability: recorder.capability,
       clip: null,
       errorMessage: null,
+      examinerAudioUrl: null,
+      examinerText: null,
+      isCreatingSession: false,
       isEvaluating: false,
       isPlaying: false,
       isRecording: false,
+      isStartingSession: false,
       isUploading: false,
       partDescription: part.description,
       partId,
@@ -157,101 +165,119 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
       timerStatus: 'idle',
     });
   },
+
+  isCreatingSession: false,
   isEvaluating: false,
   isPlaying: false,
   isRecording: false,
+  isStartingSession: false,
   isUploading: false,
+
   partDescription: getSpeakingPartDefinition('part-1').description,
   partId: 'part-1',
   partTitle: getSpeakingPartDefinition('part-1').title,
+
   pauseTimer() {
     set((state) => ({
       timerStatus: state.timerStatus === 'running' ? 'paused' : state.timerStatus,
     }));
   },
+
   recorderStatus: getRecorderSnapshot().lifecycleStatus,
+
+  // -----------------------------------------------------------------------
+  // Evaluation
+  // -----------------------------------------------------------------------
+
   async requestEvaluation() {
-    const { session } = get();
+    const { session, partId } = get();
 
     if (!session?.remoteSessionId) {
-      set({
-        errorMessage: 'Upload a speaking recording before requesting evaluation.',
-      });
+      set({ errorMessage: 'Start a session and submit a recording before requesting evaluation.' });
+      return;
+    }
+
+    const lastTurn = session.lastTurnNumber;
+    if (lastTurn < 1) {
+      set({ errorMessage: 'Submit at least one recording before requesting evaluation.' });
       return;
     }
 
     set({
-      assessment: createAssessmentSummary('pending'),
       errorMessage: null,
       isEvaluating: true,
-      session: {
-        ...session,
-        status: 'assessment-requested',
-        updatedAt: new Date().toISOString(),
-      },
+      session: activeSession(session, 'assessment-requested'),
     });
 
     try {
-      await speakingApi.requestAssessment(session.remoteSessionId);
-      set((state) => ({
-        session: state.session
-          ? {
-              ...state.session,
-              status: 'evaluating',
-              updatedAt: new Date().toISOString(),
-            }
-          : state.session,
-      }));
+      // Step 1: Complete the session
+      const completeResult = await speakingApi.completeSession(
+        session.remoteSessionId,
+        partId,
+        lastTurn,
+      );
 
-      const assessmentResult = await speakingApi.getAssessment(session.remoteSessionId);
-
-      if (assessmentResult.status === 'failed') {
-        throw new Error(
-          'The backend reported that the assessment could not be completed.'
-        );
-      }
+      const interimStatus: SpeakingSessionStatus =
+        completeResult.assessment?.status === 'complete' ? 'evaluated' : 'evaluating';
 
       set({
-        assessment: {
-          assessmentId: assessmentResult.assessmentId,
-          requestedAt: new Date().toISOString(),
-          result: assessmentResult.raw,
-          status: assessmentResult.status,
-        },
-        errorMessage: null,
-        isEvaluating: false,
         session: {
           ...session,
-          status: assessmentResult.status === 'complete' ? 'evaluated' : 'evaluating',
+          remoteSessionStatus: completeResult.session_state,
+          status: interimStatus,
           updatedAt: new Date().toISOString(),
         },
       });
-    } catch (error) {
+
+      // Step 2: Fetch the final assessment
+      const assessmentResult = await speakingApi.getAssessment(session.remoteSessionId);
+
+      const isFailed =
+        assessmentResult.assessment?.status !== 'complete' &&
+        assessmentResult.assessment?.status !== 'pending' &&
+        assessmentResult.assessment?.status !== 'processing';
+
       set({
-        assessment: createAssessmentSummary('failed'),
-        errorMessage: getErrorMessage(error),
+        assessment: buildAssessmentSummary(
+          assessmentResult,
+          assessmentResult.assessment?.status === 'complete' ? 'complete' : 'pending',
+        ),
         isEvaluating: false,
         session: {
           ...session,
-          status: 'error',
+          remoteSessionStatus: assessmentResult.session_state,
+          status: assessmentResult.assessment?.status === 'complete' ? 'evaluated' : 'evaluating',
           updatedAt: new Date().toISOString(),
         },
+      });
+
+      if (isFailed) {
+        set({ errorMessage: 'The backend could not complete the assessment.' });
+      }
+    } catch (error) {
+      set({
+        assessment: buildAssessmentSummary(null, 'failed'),
+        errorMessage: getErrorMessage(error),
+        isEvaluating: false,
+        session: activeSession(session, 'error'),
       });
     }
   },
+
   resetError() {
-    set({
-      errorMessage: null,
-    });
+    set({ errorMessage: null });
   },
+
   resetTimer() {
     set((state) => ({
       secondsRemaining: state.timerDurationSeconds,
       timerStatus: 'idle',
     }));
   },
+
   secondsRemaining: DEFAULT_DURATION_SECONDS,
   session: null,
+
   setDurationSeconds(seconds) {
     set({
       secondsRemaining: seconds,
@@ -259,30 +285,28 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
       timerStatus: 'idle',
     });
   },
+
+  // -----------------------------------------------------------------------
+  // Recording
+  // -----------------------------------------------------------------------
+
   async startRecording() {
-    const session = get().session;
+    const { session, partId } = get();
 
-    if (!session) {
-      get().startSession();
-    }
+    // Auto-create local session if none exists
+    const active = session ?? createDraftSession(partId);
 
-      try {
+    try {
       const capability = await speakingRecorder.startRecording();
       const recorder = getRecorderSnapshot();
-      set((state) => ({
+      set({
         capability,
         errorMessage: null,
         isPlaying: false,
         isRecording: true,
         recorderStatus: recorder.lifecycleStatus,
-        session: state.session
-          ? {
-              ...state.session,
-              status: 'recording',
-              updatedAt: new Date().toISOString(),
-            }
-          : createDraftSession(state.partId),
-      }));
+        session: { ...active, status: 'recording', updatedAt: new Date().toISOString() },
+      });
     } catch (error) {
       const recorder = getRecorderSnapshot();
       set({
@@ -293,18 +317,76 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
       });
     }
   },
-  startSession() {
-    set((state) => ({
+
+  // -----------------------------------------------------------------------
+  // Session lifecycle (aligned with frozen backend)
+  // -----------------------------------------------------------------------
+
+  async startSession() {
+    const { partId, session } = get();
+
+    // Prevent duplicate creation
+    if (session?.remoteSessionId) {
+      set({ errorMessage: 'A session is already active. Discard and start fresh if needed.' });
+      return;
+    }
+
+    set({
       errorMessage: null,
-      session: createDraftSession(state.partId),
-      timerStatus: state.timerStatus === 'completed' ? 'idle' : state.timerStatus,
-    }));
+      isCreatingSession: true,
+      session: createDraftSession(partId),
+    });
+
+    try {
+      // Step 1: Create session on server
+      const created = await speakingApi.createSession(partId);
+
+      const draft = ensureSession(get().session, partId);
+      set({
+        isCreatingSession: false,
+        isStartingSession: true,
+        session: {
+          ...draft,
+          remoteSessionId: created.session_id,
+          remoteSessionStatus: created.session_state,
+          status: 'ready',
+          updatedAt: new Date().toISOString(),
+        },
+      });
+
+      // Step 2: Start the conversation
+      const started = await speakingApi.startSession(created.session_id, partId);
+
+      const s = ensureSession(get().session, partId);
+      set({
+        examinerAudioUrl: started.examiner_turn.audio_url,
+        examinerText: started.examiner_turn.text,
+        isStartingSession: false,
+        session: {
+          ...s,
+          lastExaminerAudioUrl: started.examiner_turn.audio_url,
+          lastExaminerText: started.examiner_turn.text,
+          remoteSessionStatus: started.session_state,
+          status: 'ready',
+          updatedAt: new Date().toISOString(),
+        },
+      });
+    } catch (error) {
+      set({
+        errorMessage: getErrorMessage(error),
+        isCreatingSession: false,
+        isStartingSession: false,
+        session: activeSession(ensureSession(get().session, partId), 'error'),
+      });
+    }
   },
+
   startTimer() {
     set((state) => ({
       timerStatus: state.secondsRemaining > 0 ? 'running' : 'completed',
     }));
   },
+
   stopPlayback() {
     speakingRecorder.stopPlayback();
     const recorder = getRecorderSnapshot();
@@ -313,11 +395,11 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
       recorderStatus: recorder.lifecycleStatus,
     });
   },
+
   async stopRecording() {
     try {
       const clip = await speakingRecorder.stopRecording();
       const recorder = getRecorderSnapshot();
-
       set((state) => ({
         clip: clip ?? null,
         errorMessage: null,
@@ -338,31 +420,26 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
         isRecording: false,
         recorderStatus: recorder.lifecycleStatus,
         session: state.session
-          ? {
-              ...state.session,
-              status: 'error',
-              updatedAt: new Date().toISOString(),
-            }
+          ? { ...state.session, status: 'error', updatedAt: new Date().toISOString() }
           : state.session,
       }));
     }
   },
+
   tickTimer() {
     set((state) => {
-      if (state.timerStatus !== 'running') {
-        return state;
-      }
-
+      if (state.timerStatus !== 'running') return state;
       const nextValue = Math.max(0, state.secondsRemaining - 1);
-
       return {
         secondsRemaining: nextValue,
         timerStatus: nextValue === 0 ? 'completed' : 'running',
       };
     });
   },
+
   timerDurationSeconds: DEFAULT_DURATION_SECONDS,
   timerStatus: 'idle',
+
   async togglePlayback() {
     try {
       const isPlaying = await speakingRecorder.togglePlayback();
@@ -381,55 +458,57 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
       });
     }
   },
+
+  // -----------------------------------------------------------------------
+  // Upload / submit turn
+  // -----------------------------------------------------------------------
+
   async uploadRecording() {
     const { clip, partId, session } = get();
 
-    if (!clip) {
-      set({
-        errorMessage: 'Record a speaking response before uploading.',
-      });
+    if (!clip?.objectUrl) {
+      set({ errorMessage: 'Record a speaking response before uploading.' });
       return;
     }
 
-    const activeSession = session ?? createDraftSession(partId);
+    if (!session?.remoteSessionId) {
+      set({ errorMessage: 'Start a session before uploading a recording.' });
+      return;
+    }
+
+    const nextTurn = session.lastTurnNumber + 1;
 
     set({
       errorMessage: null,
       isUploading: true,
-      session: {
-        ...activeSession,
-        status: 'uploading',
-        updatedAt: new Date().toISOString(),
-      },
+      session: activeSession(session, 'uploading'),
     });
 
     try {
-      let remoteSessionId = activeSession.remoteSessionId;
-      let remoteSessionStatus = activeSession.remoteSessionStatus;
+      const result = await speakingApi.submitTurn(
+        session.remoteSessionId,
+        partId,
+        nextTurn,
+        {
+          durationMs: clip.durationMs,
+          mimeType: clip.mimeType,
+          name: clip.name,
+          uri: clip.objectUrl,
+        },
+      );
 
-      if (!remoteSessionId) {
-        const sessionResponse = await speakingApi.createSession();
-        remoteSessionId = sessionResponse.id;
-        remoteSessionStatus = remoteSessionId ? 'created' : 'unknown';
-      }
-
-      if (!remoteSessionId) {
-        throw new Error(
-          'The backend did not return a speaking session identifier. The mobile upload contract still needs backend alignment.'
-        );
-      }
-
-      const formData = await buildAudioUploadFormData(clip, partId);
-      await speakingApi.uploadAudio(remoteSessionId, formData);
-
+      const s = ensureSession(get().session, partId);
       set({
-        assessment: null,
-        errorMessage: null,
+        clip: null,
+        examinerAudioUrl: result.examiner_turn.audio_url,
+        examinerText: result.examiner_turn.text,
         isUploading: false,
         session: {
-          ...activeSession,
-          remoteSessionId,
-          remoteSessionStatus,
+          ...s,
+          lastExaminerAudioUrl: result.examiner_turn.audio_url,
+          lastExaminerText: result.examiner_turn.text,
+          lastTurnNumber: nextTurn,
+          remoteSessionStatus: result.session_state,
           status: 'uploaded',
           updatedAt: new Date().toISOString(),
         },
@@ -438,12 +517,26 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
       set({
         errorMessage: getErrorMessage(error),
         isUploading: false,
-        session: {
-          ...activeSession,
-          status: 'error',
-          updatedAt: new Date().toISOString(),
-        },
+        session: activeSession(ensureSession(get().session, partId), 'error'),
       });
     }
   },
 }));
+
+// ---------------------------------------------------------------------------
+// Internal helpers
+// ---------------------------------------------------------------------------
+
+function activeSession(
+  session: SpeakingDraftSession,
+  status: SpeakingSessionStatus,
+): SpeakingDraftSession {
+  return { ...session, status, updatedAt: new Date().toISOString() };
+}
+
+function ensureSession(
+  session: SpeakingDraftSession | null,
+  partId: SpeakingPartId,
+): SpeakingDraftSession {
+  return session ?? createDraftSession(partId);
+}

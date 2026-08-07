@@ -29,10 +29,14 @@ export function B2SpeakingPartScreen({ partId }: { partId: string }) {
   const clip = useSpeakingStore((state) => state.clip);
   const discardRecording = useSpeakingStore((state) => state.discardRecording);
   const errorMessage = useSpeakingStore((state) => state.errorMessage);
+  const examinerAudioUrl = useSpeakingStore((state) => state.examinerAudioUrl);
+  const examinerText = useSpeakingStore((state) => state.examinerText);
   const initializePart = useSpeakingStore((state) => state.initializePart);
+  const isCreatingSession = useSpeakingStore((state) => state.isCreatingSession);
   const isEvaluating = useSpeakingStore((state) => state.isEvaluating);
   const isPlaying = useSpeakingStore((state) => state.isPlaying);
   const isRecording = useSpeakingStore((state) => state.isRecording);
+  const isStartingSession = useSpeakingStore((state) => state.isStartingSession);
   const isUploading = useSpeakingStore((state) => state.isUploading);
   const partDescription = useSpeakingStore((state) => state.partDescription);
   const partTitle = useSpeakingStore((state) => state.partTitle);
@@ -63,6 +67,15 @@ export function B2SpeakingPartScreen({ partId }: { partId: string }) {
   const canRequestEvaluation =
     Boolean(session?.remoteSessionId) && !isUploading && !isEvaluating && session?.status !== 'error';
   const canUpload = Boolean(clip) && !isRecording && !isUploading;
+  const isSessionLoading = isCreatingSession || isStartingSession;
+  const hasRemoteSession = Boolean(session?.remoteSessionId);
+  const startSessionLabel = isCreatingSession
+    ? 'Creating session...'
+    : isStartingSession
+      ? 'Starting conversation...'
+      : hasRemoteSession
+        ? 'Session ready'
+        : 'Start session';
   const summaryTitle =
     assessment?.status === 'complete'
       ? 'Latest evaluation result'
@@ -93,10 +106,20 @@ export function B2SpeakingPartScreen({ partId }: { partId: string }) {
           timerStatus={timerStatus}
         />
 
+        {examinerText ? (
+          <View style={styles.examinerCard}>
+            <Text style={styles.examinerTitle}>Examiner prompt</Text>
+            <Text style={styles.examinerText}>{examinerText}</Text>
+            {examinerAudioUrl ? (
+              <Text style={styles.examinerMeta}>TTS audio available</Text>
+            ) : null}
+          </View>
+        ) : null}
+
         <View style={styles.actions}>
           <PrimaryButton
-            disabled={Boolean(session)}
-            label={session ? 'Session ready' : 'Start session'}
+            disabled={hasRemoteSession || isSessionLoading}
+            label={startSessionLabel}
             onPress={startSession}
           />
           <SecondaryButton
@@ -167,6 +190,28 @@ const styles = StyleSheet.create({
   },
   errorGroup: {
     gap: 12,
+  },
+  examinerCard: {
+    backgroundColor: '#F0F9FF',
+    borderColor: '#B6E0FF',
+    borderRadius: 22,
+    borderWidth: 1,
+    gap: 8,
+    padding: 18,
+  },
+  examinerMeta: {
+    color: '#627D98',
+    fontSize: 12,
+  },
+  examinerText: {
+    color: '#334E68',
+    fontSize: 16,
+    lineHeight: 24,
+  },
+  examinerTitle: {
+    color: '#035388',
+    fontSize: 14,
+    fontWeight: '700',
   },
   summaryCard: {
     backgroundColor: '#FFFFFF',

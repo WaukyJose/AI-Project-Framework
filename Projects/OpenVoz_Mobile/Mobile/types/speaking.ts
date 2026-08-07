@@ -33,14 +33,114 @@ export type RecorderLifecycleStatus =
   | 'playing'
   | 'error';
 
+// ---------------------------------------------------------------------------
+// Backend-aligned types (matches frozen sprint-5.1 serializers)
+// ---------------------------------------------------------------------------
+
+export interface ExaminerTurn {
+  turn: number;
+  text: string;
+  audio_url: string | null;
+}
+
+export interface CandidateTurn {
+  turn: number;
+  transcript: string;
+}
+
+export interface ConversationState {
+  conversation_started: boolean;
+  current_question: string;
+  follow_up_asked: boolean;
+  part1_complete?: boolean;
+}
+
+export interface TranscriptDeltaEntry {
+  speaker: 'examiner' | 'candidate' | 'system';
+  text: string;
+}
+
+export interface SessionTiming {
+  session_duration_seconds: number;
+  remaining_seconds: number;
+  new_topic_cutoff_seconds: number;
+}
+
+export interface AssessmentStatus {
+  status: 'complete' | 'pending' | 'processing';
+  assessment_id: string | null;
+}
+
+export interface CreateSessionResponse {
+  session_id: string;
+  part: string;
+  session_state: string;
+  created_at: string;
+}
+
+export interface RetrieveSessionResponse {
+  session_id: string;
+  part: string;
+  session_state: string;
+  conversation_state: ConversationState;
+  timing: SessionTiming;
+  transcript: TranscriptDeltaEntry[];
+  assessment: AssessmentStatus | null;
+}
+
+export interface StartSessionResponse {
+  session_id: string;
+  part: string;
+  session_state: string;
+  conversation_state: ConversationState;
+  examiner_turn: ExaminerTurn;
+  transcript_delta: TranscriptDeltaEntry[];
+}
+
+export interface SubmitTurnResponse {
+  session_id: string;
+  part: string;
+  session_state: string;
+  turn_status: 'accepted' | 'rejected' | 'uploaded' | 'transcribing' | 'processing';
+  candidate_turn: CandidateTurn;
+  conversation_state: ConversationState;
+  examiner_turn: ExaminerTurn;
+  transcript_delta: TranscriptDeltaEntry[];
+}
+
+export interface CompleteSessionResponse {
+  session_id: string;
+  part: string;
+  session_state: string;
+  assessment: AssessmentStatus;
+  feedback_report: Record<string, unknown>;
+  practice_score: Record<string, unknown>;
+}
+
+export interface AssessmentResponse {
+  session_id: string;
+  part: string;
+  session_state: string;
+  assessment: AssessmentStatus;
+  feedback_report: Record<string, unknown>;
+  practice_score: Record<string, unknown>;
+}
+
+// ---------------------------------------------------------------------------
+// Mobile session state
+// ---------------------------------------------------------------------------
+
 export interface SpeakingDraftSession {
   createdAt: string;
   localSessionId: string;
   partId: SpeakingPartId;
   remoteSessionId: string | null;
-  remoteSessionStatus: 'created' | 'not-created' | 'unknown';
+  remoteSessionStatus: string;
   status: SpeakingSessionStatus;
   updatedAt: string;
+  lastExaminerText: string | null;
+  lastExaminerAudioUrl: string | null;
+  lastTurnNumber: number;
 }
 
 export interface SpeakingAudioClip {
@@ -69,20 +169,6 @@ export interface SpeakingAssessmentSummary {
   requestedAt: string;
   result: unknown;
   status: SpeakingAssessmentStatus;
-}
-
-export interface SpeakingSessionCreateResponse {
-  id: string | null;
-  raw: unknown;
-}
-
-export interface SpeakingAudioUploadResponse {
-  accepted: boolean;
-  raw: unknown;
-}
-
-export interface SpeakingAssessmentResponse {
-  assessmentId: string | null;
-  raw: unknown;
-  status: SpeakingAssessmentStatus;
+  feedbackReport?: Record<string, unknown>;
+  practiceScore?: Record<string, unknown>;
 }
