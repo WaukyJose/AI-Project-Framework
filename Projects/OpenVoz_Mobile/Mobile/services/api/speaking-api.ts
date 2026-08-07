@@ -1,3 +1,5 @@
+import { File } from 'expo-file-system';
+
 import { apiClient } from './api-client';
 import type {
   AssessmentResponse,
@@ -66,10 +68,9 @@ export const speakingApi = {
   ): Promise<SubmitTurnResponse> {
     const formData = new FormData();
 
-    // Audio file
-    const response = await fetch(audio.uri);
-    const blob = await response.blob();
-    formData.append('audio', blob, audio.name);
+    // Audio file — expo-file-system File (native-backed Blob, zero JS memory)
+    const file = new File(audio.uri);
+    formData.append('audio', file, audio.name);
 
     // JSON fields as form-data entries
     formData.append('part', part);

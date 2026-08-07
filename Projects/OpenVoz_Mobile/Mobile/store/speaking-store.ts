@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 
+import { getCurrentApiEnvironment } from '../utils/env';
 import { ApiError, speakingApi } from '../services/api';
 import { speakingRecorder } from '../services/speaking/speaking-recorder';
 import { getSpeakingPartDefinition } from '../services/speaking/speaking-parts';
@@ -15,6 +16,8 @@ import type {
   SpeakingSessionStatus,
   SpeakingTimerStatus,
 } from '../types/speaking';
+
+import { createAudioPlayer } from 'expo-audio';
 
 const DEFAULT_DURATION_SECONDS = 120;
 
@@ -371,6 +374,13 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
           updatedAt: new Date().toISOString(),
         },
       });
+
+        // Automatically play the examiner's opening prompt aloud
+        const rawUrl = started.examiner_turn.audio_url;
+        if (rawUrl) {
+          const siteUrl = getCurrentApiEnvironment().siteUrl.replace(/\/$/, '');
+          createAudioPlayer({ uri: `${siteUrl}${rawUrl}` }).play();
+        }
     } catch (error) {
       set({
         errorMessage: getErrorMessage(error),
@@ -513,6 +523,13 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
           updatedAt: new Date().toISOString(),
         },
       });
+
+        // Automatically play the examiner's response aloud
+        const rawUrl = result.examiner_turn.audio_url;
+        if (rawUrl) {
+          const siteUrl = getCurrentApiEnvironment().siteUrl.replace(/\/$/, '');
+          createAudioPlayer({ uri: `${siteUrl}${rawUrl}` }).play();
+        }
     } catch (error) {
       set({
         errorMessage: getErrorMessage(error),

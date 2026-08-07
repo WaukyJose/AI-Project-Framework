@@ -6,7 +6,7 @@ import {
   requestRecordingPermissionsAsync,
   setAudioModeAsync,
 } from 'expo-audio';
-import type { AudioRecorder, AudioPlayer } from 'expo-audio';
+import type { AudioRecorder, AudioPlayer, RecordingOptions } from 'expo-audio';
 
 import {
   SpeakingAudioClip,
@@ -363,8 +363,24 @@ class SpeakingRecorderService {
     // 6. Prepare and start
     this.lifecycleStatus = 'preparing';
 
+    // On Android, RecordingPresets nests outputFormat/audioEncoder inside an
+    // "android" sub-object, but the native AudioRecorder constructor reads
+    // them at the top level.  Expo's useAudioRecorder hook flattens these
+    // internally via createRecordingOptions; the direct constructor does not.
+    const recordingOptions =
+      Platform.OS === 'android'
+        ? ({
+            extension: RecordingPresets.HIGH_QUALITY.extension,
+            sampleRate: RecordingPresets.HIGH_QUALITY.sampleRate,
+            numberOfChannels: RecordingPresets.HIGH_QUALITY.numberOfChannels,
+            bitRate: RecordingPresets.HIGH_QUALITY.bitRate,
+            outputFormat: RecordingPresets.HIGH_QUALITY.android.outputFormat,
+            audioEncoder: RecordingPresets.HIGH_QUALITY.android.audioEncoder,
+          } as Partial<RecordingOptions>)
+        : RecordingPresets.HIGH_QUALITY;
+
     // eslint-disable-next-line import/namespace -- AudioRecorder is a runtime native-module property
-    const recorder = new AudioModule.AudioRecorder(RecordingPresets.HIGH_QUALITY);
+    const recorder = new AudioModule.AudioRecorder(recordingOptions);
 
     try {
       await recorder.prepareToRecordAsync();

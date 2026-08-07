@@ -293,6 +293,7 @@ export class ApiClient {
         signal: abortController.signal,
       });
       const processedResponse = await this.runResponseInterceptors(response, context);
+
       const statusError = classifyStatusError(processedResponse, context.fullUrl);
 
       if (statusError) {
