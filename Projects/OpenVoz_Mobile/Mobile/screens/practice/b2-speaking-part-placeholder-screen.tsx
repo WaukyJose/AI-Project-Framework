@@ -65,8 +65,13 @@ export function B2SpeakingPartScreen({ partId }: { partId: string }) {
   const evaluationLabel = assessment?.status ?? 'idle';
   const clipLabel = clip ? `${clip.name} (${Math.round(clip.sizeBytes / 1024)} KB)` : null;
   const canRequestEvaluation =
-    Boolean(session?.remoteSessionId) && !isUploading && !isEvaluating && session?.status !== 'error';
-  const canUpload = Boolean(clip) && !isRecording && !isUploading;
+    Boolean(session?.remoteSessionId) &&
+    !isUploading &&
+    !isEvaluating &&
+    session?.status !== 'error' &&
+    session?.part1Complete === true;
+  const canUpload =
+    Boolean(clip) && !isRecording && !isUploading && session?.part1Complete !== true;
   const isSessionLoading = isCreatingSession || isStartingSession;
   const hasRemoteSession = Boolean(session?.remoteSessionId);
   const startSessionLabel = isCreatingSession

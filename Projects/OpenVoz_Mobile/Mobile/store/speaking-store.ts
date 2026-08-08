@@ -17,8 +17,6 @@ import type {
   SpeakingTimerStatus,
 } from '../types/speaking';
 
-import { createAudioPlayer } from 'expo-audio';
-
 const DEFAULT_DURATION_SECONDS = 120;
 
 // ---------------------------------------------------------------------------
@@ -71,6 +69,7 @@ function createDraftSession(partId: SpeakingPartId): SpeakingDraftSession {
   const now = new Date().toISOString();
   return {
     createdAt: now,
+    part1Complete: false,
     lastExaminerAudioUrl: null,
     lastExaminerText: null,
     lastTurnNumber: 0,
@@ -200,6 +199,12 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
       return;
     }
 
+    // Guard: backend must have declared Part 1 complete
+    if (!session?.part1Complete) {
+      set({ errorMessage: 'Complete the conversation before requesting evaluation.' });
+      return;
+    }
+
     const lastTurn = session.lastTurnNumber;
     if (lastTurn < 1) {
       set({ errorMessage: 'Submit at least one recording before requesting evaluation.' });
@@ -296,6 +301,12 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
   async startRecording() {
     const { session, partId } = get();
 
+    // Block recording after Part 1 is complete
+    if (session?.part1Complete) {
+      set({ errorMessage: 'Part 1 is complete. Request evaluation to see your results.' });
+      return;
+    }
+
     // Auto-create local session if none exists
     const active = session ?? createDraftSession(partId);
 
@@ -379,7 +390,7 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
         const rawUrl = started.examiner_turn.audio_url;
         if (rawUrl) {
           const siteUrl = getCurrentApiEnvironment().siteUrl.replace(/\/$/, '');
-          createAudioPlayer({ uri: `${siteUrl}${rawUrl}` }).play();
+          speakingRecorder.playExaminerAudio(`${siteUrl}${rawUrl}`);
         }
     } catch (error) {
       set({
@@ -486,6 +497,12 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
       return;
     }
 
+    // Guard: no uploads after Part 1 is complete
+    if (session?.part1Complete) {
+      set({ errorMessage: 'Part 1 is complete. Request evaluation to see your results.' });
+      return;
+    }
+
     const nextTurn = session.lastTurnNumber + 1;
 
     set({
@@ -515,6 +532,7 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
         isUploading: false,
         session: {
           ...s,
+          part1Complete: result.conversation_state.part1_complete === true,
           lastExaminerAudioUrl: result.examiner_turn.audio_url,
           lastExaminerText: result.examiner_turn.text,
           lastTurnNumber: nextTurn,
@@ -528,7 +546,7 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
         const rawUrl = result.examiner_turn.audio_url;
         if (rawUrl) {
           const siteUrl = getCurrentApiEnvironment().siteUrl.replace(/\/$/, '');
-          createAudioPlayer({ uri: `${siteUrl}${rawUrl}` }).play();
+          speakingRecorder.playExaminerAudio(`${siteUrl}${rawUrl}`);
         }
     } catch (error) {
       set({

@@ -64,7 +64,7 @@ function getSupportedMimeType() {
 }
 
 function mimeTypeFromUri(uri: string): string {
-  if (uri.endsWith('.m4a')) return 'audio/mp4';
+  if (uri.endsWith('.m4a')) return 'audio/m4a';
   if (uri.endsWith('.mp3')) return 'audio/mpeg';
   if (uri.endsWith('.wav')) return 'audio/wav';
   if (uri.endsWith('.3gp')) return 'audio/3gpp';
@@ -94,6 +94,7 @@ class SpeakingRecorderService {
   // ---- native-only state ----
   private nativeRecorder: AudioRecorder | null = null;
   private nativePlayer: AudioPlayer | null = null;
+  private examinerPlayer: AudioPlayer | null = null;
   private audioSessionConfigured = false;
 
   // =====================================================================
@@ -153,6 +154,12 @@ class SpeakingRecorderService {
     this.stopPlayback();
     this.releaseCurrentClip();
     this.recordingStartedAt = null;
+
+    // Also release examiner player on full discard
+    if (Platform.OS !== 'web') {
+      this.examinerPlayer?.remove();
+      this.examinerPlayer = null;
+    }
 
     if (Platform.OS === 'web') {
       this.mediaRecorder = null;
@@ -364,8 +371,9 @@ class SpeakingRecorderService {
     this.lifecycleStatus = 'preparing';
 
     // On Android, RecordingPresets nests outputFormat/audioEncoder inside an
-    // "android" sub-object, but the native AudioRecorder constructor reads
-    // them at the top level.  Expo's useAudioRecorder hook flattens these
+    // "android" sub-object, and on iOS the same fields are nested inside an
+    // "ios" sub-object.  The native AudioRecorder constructor reads everything
+    // at the top level.  Expo's useAudioRecorder hook flattens these
     // internally via createRecordingOptions; the direct constructor does not.
     const recordingOptions =
       Platform.OS === 'android'
@@ -377,7 +385,17 @@ class SpeakingRecorderService {
             outputFormat: RecordingPresets.HIGH_QUALITY.android.outputFormat,
             audioEncoder: RecordingPresets.HIGH_QUALITY.android.audioEncoder,
           } as Partial<RecordingOptions>)
-        : RecordingPresets.HIGH_QUALITY;
+        : ({
+            extension: RecordingPresets.HIGH_QUALITY.extension,
+            sampleRate: RecordingPresets.HIGH_QUALITY.sampleRate,
+            numberOfChannels: RecordingPresets.HIGH_QUALITY.numberOfChannels,
+            bitRate: RecordingPresets.HIGH_QUALITY.bitRate,
+            outputFormat: RecordingPresets.HIGH_QUALITY.ios.outputFormat,
+            audioQuality: RecordingPresets.HIGH_QUALITY.ios.audioQuality,
+            linearPCMBitDepth: RecordingPresets.HIGH_QUALITY.ios.linearPCMBitDepth,
+            linearPCMIsBigEndian: RecordingPresets.HIGH_QUALITY.ios.linearPCMIsBigEndian,
+            linearPCMIsFloat: RecordingPresets.HIGH_QUALITY.ios.linearPCMIsFloat,
+          } as Partial<RecordingOptions>);
 
     // eslint-disable-next-line import/namespace -- AudioRecorder is a runtime native-module property
     const recorder = new AudioModule.AudioRecorder(recordingOptions);
@@ -521,6 +539,36 @@ class SpeakingRecorderService {
     }
 
     this.currentClip = null;
+  }
+
+  // =====================================================================
+  // Examiner TTS playback (persistent reference — must survive JS GC)
+  // =====================================================================
+
+  playExaminerAudio(uri: string): void {
+    if (Platform.OS === 'web') {
+      return;
+    }
+
+    // Stop and release any previous examiner player
+    this.examinerPlayer?.remove();
+    this.examinerPlayer = null;
+
+    // Create, store, and play — reference is retained so iOS GC won't
+    // trigger sharedObjectWillRelease → teardownPlayer → pause
+    const player = createAudioPlayer({ uri });
+    this.examinerPlayer = player;
+    player.play();
+  }
+
+  stopExaminerAudio(): void {
+    if (Platform.OS === 'web') {
+      return;
+    }
+
+    this.examinerPlayer?.pause();
+    this.examinerPlayer?.remove();
+    this.examinerPlayer = null;
   }
 }
 

@@ -133,6 +133,7 @@ export interface AssessmentResponse {
 export interface SpeakingDraftSession {
   createdAt: string;
   localSessionId: string;
+  part1Complete: boolean;
   partId: SpeakingPartId;
   remoteSessionId: string | null;
   remoteSessionStatus: string;
