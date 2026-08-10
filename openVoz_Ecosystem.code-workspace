@@ -1,39 +1,57 @@
 {
-	"folders": [
-		{
-			"path": "."
-		},
-		{
-			"path": "../OpenVoz"
-		}
-	],
-	"settings": {
-    "editor.dropIntoEditor.preferences": [],
+    "folders": [
+        {
+            "path": "."
+        },
+        {
+            "path": "../OpenVoz"
+        }
+    ],
+    "settings": {
+        "editor.dropIntoEditor.preferences": [],
 
-    "files.exclude": {
-      "**/__pycache__": true,
-      "**/*.pyc": true,
-      "**/.pytest_cache": true,
-      "**/.mypy_cache": true,
-      "**/*.mo": true
-    },
+        "files.exclude": {
+            "**/__pycache__": true,
+            "**/*.pyc": true,
+            "**/.pytest_cache": true,
+            "**/.mypy_cache": true,
+            "**/.ruff_cache": true,
+            "**/.DS_Store": true,
+            "**/*.mo": true,
+            "**/*.gz": true
+        },
 
-    "search.exclude": {
-      "**/__pycache__": true,
-      "**/*.pyc": true,
-      "**/.pytest_cache": true,
-      "**/.mypy_cache": true,
-      "**/node_modules": true,
-      "**/*.mo": true,
-      "**/*.gz": true
-    },
+        "search.exclude": {
+            "**/__pycache__": true,
+            "**/*.pyc": true,
+            "**/.pytest_cache": true,
+            "**/.mypy_cache": true,
+            "**/.ruff_cache": true,
+            "**/.venv": true,
+            "**/node_modules": true,
+            "**/.git": true,
+            "**/*.mo": true,
+            "**/*.gz": true
+        },
 
-    "files.watcherExclude": {
-      "**/__pycache__/**": true,
-      "**/.pytest_cache/**": true,
-      "**/.mypy_cache/**": true,
-      "**/.git/**": true,
-      "**/node_modules/**": true
+        "files.watcherExclude": {
+            "**/__pycache__/**": true,
+            "**/.pytest_cache/**": true,
+            "**/.mypy_cache/**": true,
+            "**/.ruff_cache/**": true,
+            "**/.git/**": true,
+            "**/.venv/**": true,
+            "**/node_modules/**": true
+        },
+
+        "python.analysis.indexing": false,
+
+        "python.analysis.exclude": [
+            "**/__pycache__",
+            "**/.venv",
+            "**/.pytest_cache",
+            "**/.mypy_cache",
+            "**/.ruff_cache"
+        ]
     }
-  }
 }

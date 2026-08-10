@@ -451,11 +451,17 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
     set((state) => {
       if (state.timerStatus !== 'running') return state;
       const nextValue = Math.max(0, state.secondsRemaining - 1);
+      const isCompleted = nextValue === 0;
       return {
         secondsRemaining: nextValue,
-        timerStatus: nextValue === 0 ? 'completed' : 'running',
+        timerStatus: isCompleted ? 'completed' : 'running',
       };
     });
+
+    const { secondsRemaining, isRecording, stopRecording } = get();
+    if (secondsRemaining === 0 && isRecording) {
+      void stopRecording();
+    }
   },
 
   timerDurationSeconds: DEFAULT_DURATION_SECONDS,
@@ -485,7 +491,11 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
   // -----------------------------------------------------------------------
 
   async uploadRecording() {
-    const { clip, partId, session } = get();
+    const { clip, partId, session, isUploading } = get();
+
+    if (isUploading) {
+      return;
+    }
 
     if (!clip?.objectUrl) {
       set({ errorMessage: 'Record a speaking response before uploading.' });

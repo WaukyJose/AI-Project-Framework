@@ -22,6 +22,7 @@ This document is the authority for UX journeys, navigation, screens, and interac
 - **Fast navigation.** Users should be able to move quickly between practice, speaking, assessment history, and account areas.
 - **Clear feedback.** The application should always show whether a task is loading, recording, processing, saved, pending synchronization, or failed.
 - **Recovery from errors.** Users should be able to understand what failed, what remains safe, and what to do next.
+- **Honest empty states.** When no learner data exists yet, show a neutral representation (such as an em dash) rather than a misleading zero-value like "0% accuracy".
 
 ## User Personas
 
@@ -123,6 +124,54 @@ Resume Practice or Review Progress
 
 This journey should minimize friction for returning users and restore the most relevant next action.
 
+#### Dashboard Information Hierarchy
+
+The authenticated Dashboard should answer three learner questions immediately:
+
+1. Where am I?
+2. What should I do next?
+3. How am I progressing?
+
+The Dashboard should present this information in a clear descending hierarchy:
+
+**Welcome** → **Continue Learning** (dominant primary action) → **Your Progress** (compact metrics) → **Recent Activity** (secondary, when useful) → low-emphasis account actions where temporarily required.
+
+##### Continue Learning
+
+The Dashboard must present one dominant primary action — the Continue Learning card. This card should:
+
+- be the strongest visual element on the screen
+- use the OpenVoz brand surface to signal importance
+- identify the learner's current program and next activity
+- provide one unmistakable call-to-action
+- remain architecture-neutral (the card must not permanently define itself as Part 1-specific; it should represent whatever the learner's current or next activity is)
+
+For the present B2 First sprint, "Part 1 · Interview" may be the initial activity.
+
+##### Progress
+
+Progress metrics should use compact horizontal presentation rather than multiple large equal-weight cards. Candidate metrics are drawn from existing dashboard data:
+
+- questionsAnswered
+- studyMinutes
+- accuracy
+- streak
+- correctAnswers
+
+Metrics must not be invented. When no questions have been attempted, accuracy must show an empty/unavailable representation such as "—" rather than misleading "0%".
+
+##### Account and Subscription
+
+Subscription and account status must not compete visually with learning progress on the Dashboard. These concerns should be reachable through Profile and Settings rather than occupying Dashboard top-line statistics.
+
+##### Recent Activity
+
+Recent Activity should use a compact, learner-facing empty state when no activity exists. The duplicate "Current Program" / "Next Recommended Action" presentation should be consolidated into the dominant Continue Learning card.
+
+##### Placeholder Features
+
+Placeholder UI such as the Daily Goal section must not appear on the learner Dashboard until backed by real functionality.
+
 Relevant API authority:
 
 - General mobile APIs for authentication, profile, progress, and history are defined in `Projects/OpenVoz_Mobile/Docs/Architecture/OPENVOZ_MOBILE_API_SPECIFICATION.md`.
@@ -216,7 +265,7 @@ Relevant API authority:
 The application should be organized into these functional areas:
 
 - **Authentication** - account entry, account recovery, and session validation
-- **Dashboard** - primary overview and launch point for next actions
+- **Dashboard** - primary overview and launch point for next actions; presents a clear hierarchy of Welcome, Continue Learning (dominant primary action), compact progress metrics, and recent activity
 - **Practice** - access to guided or structured learning activities outside the formal speaking flow
 - **Speaking** - active speaking session entry and execution
 - **Assessment** - assessment loading, summary, feedback, and result review
@@ -347,7 +396,7 @@ Every screen below belongs to at least one documented user journey.
 | Login | Authenticate user | Sign in, password recovery | Welcome, session-expired state | Dashboard, Password Recovery | Authentication APIs | Requires API Extension |
 | Registration | Create account when permitted | Register, return to login | Welcome | Dashboard, Login | Authentication APIs | Future |
 | Password Recovery | Recover account access | Request reset, return | Login, Welcome | Login | Password reset APIs | Future |
-| Dashboard | Present next actions and overview | Start speaking, open practice, review progress | Splash, Login, completed tasks | All primary areas | Profile, progress, history summaries | Requires API Extension |
+| Dashboard | Present next actions and progress overview with a clear visual hierarchy — welcome, dominant Continue Learning card, compact progress metrics, and recent activity | Continue learning, review progress | Splash, Login, completed tasks | All primary areas | Profile, progress, history summaries | Requires API Extension |
 | Practice Home | Show available practice activities | Start practice, open task | Dashboard | Practice Task Detail, Dashboard | Content APIs | Future |
 | Practice Task Detail | Explain one practice task | Start, save for later, back | Practice Home | Practice Results, Practice Home | Content APIs | Future |
 | Practice Results | Show result of a practice activity | Continue, retry, dashboard | Practice Task Detail | Dashboard, Practice Home | Practice result APIs | Future |

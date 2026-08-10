@@ -2,14 +2,14 @@ import { useEffect } from 'react';
 import { router } from 'expo-router';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { SpeakingIntegrationCard } from '../../components/speaking/speaking-integration-card';
-import { SpeakingRecordingCard } from '../../components/speaking/speaking-recording-card';
+import { AssessmentResultsCard } from '../../components/speaking/assessment-results-card';
+import { ExaminerTurnBubble } from '../../components/speaking/examiner-turn-bubble';
+import { SpeakingAnswerArea } from '../../components/speaking/speaking-answer-area';
 import { SpeakingSessionCard } from '../../components/speaking/speaking-session-card';
 import { AppHeader } from '../../components/ui/app-header';
 import { PrimaryButton, SecondaryButton } from '../../components/ui/buttons';
 import { ErrorView } from '../../components/ui/feedback-views';
 import { ScreenContainer } from '../../components/ui/screen-container';
-import { SectionHeader } from '../../components/ui/section-header';
 import { useSpeakingTimer } from '../../hooks/use-speaking-timer';
 import { useSpeakingStore } from '../../store/speaking-store';
 import { SpeakingPartId } from '../../types/speaking';
@@ -38,10 +38,8 @@ export function B2SpeakingPartScreen({ partId }: { partId: string }) {
   const isRecording = useSpeakingStore((state) => state.isRecording);
   const isStartingSession = useSpeakingStore((state) => state.isStartingSession);
   const isUploading = useSpeakingStore((state) => state.isUploading);
-  const partDescription = useSpeakingStore((state) => state.partDescription);
   const partTitle = useSpeakingStore((state) => state.partTitle);
   const pauseTimer = useSpeakingStore((state) => state.pauseTimer);
-  const recorderStatus = useSpeakingStore((state) => state.recorderStatus);
   const requestEvaluation = useSpeakingStore((state) => state.requestEvaluation);
   const resetError = useSpeakingStore((state) => state.resetError);
   const resetTimer = useSpeakingStore((state) => state.resetTimer);
@@ -62,8 +60,6 @@ export function B2SpeakingPartScreen({ partId }: { partId: string }) {
     initializePart((partId as SpeakingPartId) ?? 'part-1');
   }, [initializePart, partId]);
 
-  const evaluationLabel = assessment?.status ?? 'idle';
-  const clipLabel = clip ? `${clip.name} (${Math.round(clip.sizeBytes / 1024)} KB)` : null;
   const canRequestEvaluation =
     Boolean(session?.remoteSessionId) &&
     !isUploading &&
@@ -81,44 +77,23 @@ export function B2SpeakingPartScreen({ partId }: { partId: string }) {
       : hasRemoteSession
         ? 'Session ready'
         : 'Start session';
-  const summaryTitle =
-    assessment?.status === 'complete'
-      ? 'Latest evaluation result'
-      : assessment?.status === 'failed'
-        ? 'Latest evaluation attempt'
-        : 'Latest evaluation status';
 
   return (
     <ScreenContainer>
       <ScrollView contentContainerStyle={shellStyles.content}>
-        <AppHeader
-          eyebrow="Shared Speaking Infrastructure"
-          subtitle={partDescription}
-          title={partTitle}
-        />
+        <AppHeader eyebrow="B2 First Speaking" subtitle="Interview" title={partTitle} />
 
-        <SectionHeader
-          description="This workspace is shared across speaking routes and intentionally avoids part-specific prompt logic."
-          title="Current Sprint Workspace"
-        />
+        <Text style={styles.supportingCopy}>
+          Answer a few questions about yourself and everyday life.
+        </Text>
 
         <SpeakingSessionCard
-          recorderStatus={recorderStatus}
-          remoteSessionId={session?.remoteSessionId ?? null}
-          remoteSessionStatus={session?.remoteSessionStatus ?? 'not-created'}
-          status={session?.status ?? 'draft not started'}
           timeRemainingLabel={formatCountdown(secondsRemaining)}
           timerStatus={timerStatus}
         />
 
         {examinerText ? (
-          <View style={styles.examinerCard}>
-            <Text style={styles.examinerTitle}>Examiner prompt</Text>
-            <Text style={styles.examinerText}>{examinerText}</Text>
-            {examinerAudioUrl ? (
-              <Text style={styles.examinerMeta}>TTS audio available</Text>
-            ) : null}
-          </View>
+          <ExaminerTurnBubble examinerAudioUrl={examinerAudioUrl} examinerText={examinerText} />
         ) : null}
 
         <View style={styles.actions}>
@@ -134,46 +109,26 @@ export function B2SpeakingPartScreen({ partId }: { partId: string }) {
           <SecondaryButton label="Reset timer" onPress={resetTimer} />
         </View>
 
-        <SpeakingRecordingCard
-          capabilityMessage={capability.recordingMessage}
-          clipLabel={clipLabel}
+        <SpeakingAnswerArea
+          canRequestEvaluation={canRequestEvaluation}
+          canUpload={canUpload}
+          hasClip={Boolean(clip)}
+          isEvaluating={isEvaluating}
           isPlaying={isPlaying}
           isRecording={isRecording}
-          recorderStatus={recorderStatus}
+          isUploading={isUploading}
+          playbackSupported={capability.playbackSupported}
+          recordingSupported={capability.recordingStatus === 'ready'}
           onDiscard={discardRecording}
+          onRequestEvaluation={requestEvaluation}
           onStartRecording={startRecording}
           onStopPlayback={stopPlayback}
           onStopRecording={stopRecording}
           onTogglePlayback={togglePlayback}
-          playbackSupported={capability.playbackSupported}
-          recordingSupported={capability.recordingStatus === 'ready'}
+          onUpload={uploadRecording}
         />
 
-        <SpeakingIntegrationCard
-          canRequestEvaluation={canRequestEvaluation}
-          canUpload={canUpload}
-          evaluationLabel={evaluationLabel}
-          isEvaluating={isEvaluating}
-          isUploading={isUploading}
-          remoteSessionId={session?.remoteSessionId ?? null}
-          onRequestEvaluation={requestEvaluation}
-          onUploadRecording={uploadRecording}
-        />
-
-        {assessment ? (
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryTitle}>{summaryTitle}</Text>
-            <Text style={styles.summaryText}>Status: {assessment.status}</Text>
-            <Text style={styles.summaryText}>
-              Assessment ID: {assessment.assessmentId ? assessment.assessmentId : 'Not returned'}
-            </Text>
-            {assessment.status === 'pending' || assessment.status === 'processing' ? (
-              <Text style={styles.summaryText}>
-                The backend has accepted the request, but a final assessment result is not yet confirmed.
-              </Text>
-            ) : null}
-          </View>
-        ) : null}
+        {assessment ? <AssessmentResultsCard assessment={assessment} /> : null}
 
         {errorMessage ? (
           <View style={styles.errorGroup}>
@@ -196,44 +151,9 @@ const styles = StyleSheet.create({
   errorGroup: {
     gap: 12,
   },
-  examinerCard: {
-    backgroundColor: '#F0F9FF',
-    borderColor: '#B6E0FF',
-    borderRadius: 22,
-    borderWidth: 1,
-    gap: 8,
-    padding: 18,
-  },
-  examinerMeta: {
-    color: '#627D98',
-    fontSize: 12,
-  },
-  examinerText: {
-    color: '#334E68',
-    fontSize: 16,
-    lineHeight: 24,
-  },
-  examinerTitle: {
-    color: '#035388',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  summaryCard: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#D9E2EC',
-    borderRadius: 22,
-    borderWidth: 1,
-    gap: 8,
-    padding: 18,
-  },
-  summaryText: {
+  supportingCopy: {
     color: '#52606D',
-    fontSize: 14,
-    lineHeight: 21,
-  },
-  summaryTitle: {
-    color: '#102A43',
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 15,
+    lineHeight: 22,
   },
 });

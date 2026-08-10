@@ -34,8 +34,8 @@
         "environments": {
           "development": {
             "label": "Development",
-            "siteUrl": "http://192.168.100.127:8000",
-            "apiBaseUrl": "http://192.168.100.127:8000/api/v1",
+            "siteUrl": "http://192.168.100.132:8000",
+            "apiBaseUrl": "http://192.168.100.132:8000/api/v1",
             "connectivityPath": "/usersvoicechat/login/",
             "versionPath": "/api/version/"
           },

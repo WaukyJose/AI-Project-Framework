@@ -1,65 +1,37 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { ProgressCard } from '../ui/cards';
 
 interface SpeakingSessionCardProps {
-  recorderStatus: string;
-  remoteSessionId: string | null;
-  remoteSessionStatus: string;
-  status: string;
   timeRemainingLabel: string;
   timerStatus: string;
 }
 
-export function SpeakingSessionCard({
-  recorderStatus,
-  remoteSessionId,
-  remoteSessionStatus,
-  status,
-  timeRemainingLabel,
-  timerStatus,
-}: SpeakingSessionCardProps) {
+const STATUS_LABELS: Record<string, string> = {
+  completed: 'Time complete',
+  idle: 'Ready',
+  paused: 'Paused',
+  running: 'In progress',
+};
+
+function learnerTimerLabel(status: string): string {
+  return STATUS_LABELS[status] ?? status;
+}
+
+export function SpeakingSessionCard({ timeRemainingLabel, timerStatus }: SpeakingSessionCardProps) {
   return (
     <View style={styles.group}>
       <ProgressCard
         accentValue={timeRemainingLabel}
-        caption={`Timer ${timerStatus}`}
-        description="The countdown timer is shared infrastructure for future speaking parts and runs independently from backend state."
-        title="Speaking Timer"
+        caption={learnerTimerLabel(timerStatus)}
+        title="Speaking time"
       />
-      <View style={styles.card}>
-        <Text style={styles.title}>Session Lifecycle</Text>
-        <Text style={styles.copy}>Status: {status}</Text>
-        <Text style={styles.copy}>Recorder: {recorderStatus}</Text>
-        <Text style={styles.copy}>
-          Remote session: {remoteSessionId ? remoteSessionId : 'Not connected yet'}
-        </Text>
-        <Text style={styles.copy}>Remote state: {remoteSessionStatus}</Text>
-      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#D9E2EC',
-    borderRadius: 22,
-    borderWidth: 1,
-    gap: 8,
-    padding: 18,
-  },
-  copy: {
-    color: '#52606D',
-    fontSize: 14,
-    lineHeight: 21,
-  },
   group: {
     gap: 14,
-  },
-  title: {
-    color: '#102A43',
-    fontSize: 18,
-    fontWeight: '700',
   },
 });

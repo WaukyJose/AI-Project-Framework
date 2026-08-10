@@ -51,10 +51,10 @@ function getOverride(name: ApiEnvironmentName, key: 'apiBaseUrl' | 'siteUrl') {
 
 const fallbackEnvironments: Record<ApiEnvironmentName, Omit<ApiEnvironment, 'name'>> = {
   development: {
-    apiBaseUrl: 'http://192.168.100.127:8000/api/v1',
+    apiBaseUrl: 'http://192.168.100.132:8000/api/v1',
     connectivityPath: '/usersvoicechat/login/',
     label: 'Development',
-    siteUrl: 'http://192.168.100.127:8000',
+    siteUrl: 'http://192.168.100.132:8000',
     versionPath: '/api/version/',
   },
   production: {
