@@ -5,6 +5,7 @@ import { PrimaryButton, SecondaryButton } from '../ui/buttons';
 interface SpeakingAnswerAreaProps {
   canRequestEvaluation: boolean;
   canUpload: boolean;
+  hasCompletedPart: boolean;
   hasClip: boolean;
   isEvaluating: boolean;
   isPlaying: boolean;
@@ -24,6 +25,7 @@ interface SpeakingAnswerAreaProps {
 export function SpeakingAnswerArea({
   canRequestEvaluation,
   canUpload,
+  hasCompletedPart,
   hasClip,
   isEvaluating,
   isPlaying,
@@ -43,17 +45,19 @@ export function SpeakingAnswerArea({
     <View style={styles.card}>
       <Text style={styles.title}>Your turn</Text>
 
-      <View style={styles.row}>
-        {!isRecording ? (
-          <PrimaryButton
-            disabled={!recordingSupported}
-            label="Start recording"
-            onPress={onStartRecording}
-          />
-        ) : (
-          <PrimaryButton label="Stop recording" onPress={onStopRecording} />
-        )}
-      </View>
+      {!hasCompletedPart ? (
+        <View style={styles.row}>
+          {!isRecording ? (
+            <PrimaryButton
+              disabled={!recordingSupported}
+              label="Start recording"
+              onPress={onStartRecording}
+            />
+          ) : (
+            <PrimaryButton label="Stop recording" onPress={onStopRecording} />
+          )}
+        </View>
+      ) : null}
 
       {hasClip ? (
         <>
@@ -84,16 +88,17 @@ export function SpeakingAnswerArea({
             </View>
           ) : null}
 
-          {canRequestEvaluation ? (
-            <View style={styles.row}>
-              <SecondaryButton
-                disabled={isEvaluating}
-                label={isEvaluating ? 'Requesting feedback…' : 'Get feedback'}
-                onPress={onRequestEvaluation}
-              />
-            </View>
-          ) : null}
         </>
+      ) : null}
+
+      {canRequestEvaluation ? (
+        <View style={styles.row}>
+          <SecondaryButton
+            disabled={isEvaluating}
+            label={isEvaluating ? 'Requesting feedback…' : 'Get feedback'}
+            onPress={onRequestEvaluation}
+          />
+        </View>
       ) : null}
     </View>
   );

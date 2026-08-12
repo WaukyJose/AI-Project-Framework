@@ -68,9 +68,13 @@ export const speakingApi = {
   ): Promise<SubmitTurnResponse> {
     const formData = new FormData();
 
-    // Audio file — expo-file-system File (native-backed Blob, zero JS memory)
+    // expo-file-system File backs the native recording URI.  Expo's patched
+    // FormData.append stores the File directly in _parts, and Expo's
+    // convertFormDataAsync reads it via entry.bytes() — the only multipart
+    // representation supported by this Expo 57 / RN 0.86 stack.  Name and
+    // type are extracted from the File object in getFormDataPartHeaders.
     const file = new File(audio.uri);
-    formData.append('audio', file, audio.name);
+    formData.append('audio', file);
 
     // JSON fields as form-data entries
     formData.append('part', part);
@@ -87,6 +91,7 @@ export const speakingApi = {
     return apiClient.request<SubmitTurnResponse>(sessionPath(sessionId, 'turns/'), {
       body: formData,
       method: 'POST',
+      timeoutMs: 60000,
     });
   },
 

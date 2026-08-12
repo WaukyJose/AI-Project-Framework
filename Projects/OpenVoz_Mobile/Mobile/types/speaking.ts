@@ -22,6 +22,8 @@ export type SpeakingAssessmentStatus =
 
 export type SpeakingTimerStatus = 'completed' | 'idle' | 'paused' | 'running';
 
+export type Part2Phase = 'long_turn' | 'follow_up' | 'complete';
+
 export type RecordingCapabilityStatus = 'blocked' | 'ready' | 'unsupported';
 
 export type RecorderLifecycleStatus =
@@ -53,6 +55,8 @@ export interface ConversationState {
   current_question: string;
   follow_up_asked: boolean;
   part1_complete?: boolean;
+  part2_phase?: Part2Phase | null;
+  part2_complete?: boolean;
 }
 
 export interface TranscriptDeltaEntry {
@@ -95,6 +99,7 @@ export interface StartSessionResponse {
   conversation_state: ConversationState;
   examiner_turn: ExaminerTurn;
   transcript_delta: TranscriptDeltaEntry[];
+  photo?: Part2PhotoPrompt;
 }
 
 export interface SubmitTurnResponse {
@@ -129,6 +134,18 @@ export interface AssessmentResponse {
 // ---------------------------------------------------------------------------
 // Mobile session state
 // ---------------------------------------------------------------------------
+
+export interface Part2PhotoPrompt {
+  id: string;
+  photoUrl: string;
+  specificInstruction: string;
+  taskInstruction: string;
+}
+
+export interface SpeakingPart2TimerConfig {
+  followUpSeconds: number;
+  longTurnSeconds: number;
+}
 
 export interface SpeakingDraftSession {
   createdAt: string;

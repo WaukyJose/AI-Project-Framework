@@ -4,6 +4,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { AssessmentResultsCard } from '../../components/speaking/assessment-results-card';
 import { ExaminerTurnBubble } from '../../components/speaking/examiner-turn-bubble';
+import { Part2PhotoPrompt } from '../../components/speaking/part2-photo-prompt';
 import { SpeakingAnswerArea } from '../../components/speaking/speaking-answer-area';
 import { SpeakingSessionCard } from '../../components/speaking/speaking-session-card';
 import { AppHeader } from '../../components/ui/app-header';
@@ -38,6 +39,9 @@ export function B2SpeakingPartScreen({ partId }: { partId: string }) {
   const isRecording = useSpeakingStore((state) => state.isRecording);
   const isStartingSession = useSpeakingStore((state) => state.isStartingSession);
   const isUploading = useSpeakingStore((state) => state.isUploading);
+  const part2Complete = useSpeakingStore((state) => state.part2Complete);
+  const part2Phase = useSpeakingStore((state) => state.part2Phase);
+  const part2Photo = useSpeakingStore((state) => state.part2Photo);
   const partTitle = useSpeakingStore((state) => state.partTitle);
   const pauseTimer = useSpeakingStore((state) => state.pauseTimer);
   const requestEvaluation = useSpeakingStore((state) => state.requestEvaluation);
@@ -65,10 +69,13 @@ export function B2SpeakingPartScreen({ partId }: { partId: string }) {
     !isUploading &&
     !isEvaluating &&
     session?.status !== 'error' &&
-    session?.part1Complete === true;
+    ((partId as SpeakingPartId) === 'part-2'
+      ? part2Complete === true && part2Phase === 'complete'
+      : session?.part1Complete === true);
   const canUpload =
     Boolean(clip) && !isRecording && !isUploading && session?.part1Complete !== true;
   const isSessionLoading = isCreatingSession || isStartingSession;
+  const isPart2 = (partId as SpeakingPartId) === 'part-2';
   const hasRemoteSession = Boolean(session?.remoteSessionId);
   const startSessionLabel = isCreatingSession
     ? 'Creating session...'
@@ -78,14 +85,21 @@ export function B2SpeakingPartScreen({ partId }: { partId: string }) {
         ? 'Session ready'
         : 'Start session';
 
+  const part2SupportingCopy = isPart2
+    ? "You'll speak about a photograph and then answer a follow-up question."
+    : 'Answer a few questions about yourself and everyday life.';
+
+  const showPhoto = isPart2 && part2Photo !== null && part2Phase !== null;
+  const isPart2Complete = isPart2 && part2Complete && part2Phase === 'complete';
+  const showSessionSetupControls = !isPart2Complete;
+  const startSessionControlLabel = isPart2Complete ? 'Session completed' : startSessionLabel;
+
   return (
     <ScreenContainer>
       <ScrollView contentContainerStyle={shellStyles.content}>
         <AppHeader eyebrow="B2 First Speaking" subtitle="Interview" title={partTitle} />
 
-        <Text style={styles.supportingCopy}>
-          Answer a few questions about yourself and everyday life.
-        </Text>
+        <Text style={styles.supportingCopy}>{part2SupportingCopy}</Text>
 
         <SpeakingSessionCard
           timeRemainingLabel={formatCountdown(secondsRemaining)}
@@ -96,22 +110,36 @@ export function B2SpeakingPartScreen({ partId }: { partId: string }) {
           <ExaminerTurnBubble examinerAudioUrl={examinerAudioUrl} examinerText={examinerText} />
         ) : null}
 
-        <View style={styles.actions}>
-          <PrimaryButton
-            disabled={hasRemoteSession || isSessionLoading}
-            label={startSessionLabel}
-            onPress={startSession}
-          />
-          <SecondaryButton
-            label={timerStatus === 'running' ? 'Pause timer' : 'Start timer'}
-            onPress={timerStatus === 'running' ? pauseTimer : startTimer}
-          />
-          <SecondaryButton label="Reset timer" onPress={resetTimer} />
-        </View>
+        {showPhoto ? <Part2PhotoPrompt photo={part2Photo} /> : null}
+
+        {isPart2Complete ? (
+          <View style={styles.completionBanner}>
+            <Text style={styles.completionTitle}>Part 2 complete</Text>
+            <Text style={styles.completionSubtitle}>
+              You have completed the long turn and follow-up.
+            </Text>
+          </View>
+        ) : null}
+
+        {showSessionSetupControls ? (
+          <View style={styles.actions}>
+            <PrimaryButton
+              disabled={hasRemoteSession || isSessionLoading}
+              label={startSessionControlLabel}
+              onPress={startSession}
+            />
+            <SecondaryButton
+              label={timerStatus === 'running' ? 'Pause timer' : 'Start timer'}
+              onPress={timerStatus === 'running' ? pauseTimer : startTimer}
+            />
+            <SecondaryButton label="Reset timer" onPress={resetTimer} />
+          </View>
+        ) : null}
 
         <SpeakingAnswerArea
           canRequestEvaluation={canRequestEvaluation}
           canUpload={canUpload}
+          hasCompletedPart={isPart2Complete}
           hasClip={Boolean(clip)}
           isEvaluating={isEvaluating}
           isPlaying={isPlaying}
@@ -147,6 +175,25 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row',
     gap: 12,
+  },
+  completionBanner: {
+    alignItems: 'center',
+    backgroundColor: '#F0FDF4',
+    borderColor: '#BBF7D0',
+    borderRadius: 18,
+    borderWidth: 1,
+    gap: 6,
+    padding: 20,
+  },
+  completionSubtitle: {
+    color: '#166534',
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  completionTitle: {
+    color: '#14532D',
+    fontSize: 18,
+    fontWeight: '700',
   },
   errorGroup: {
     gap: 12,

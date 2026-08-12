@@ -7,6 +7,8 @@ import { getSpeakingPartDefinition } from '../services/speaking/speaking-parts';
 import type {
   AssessmentResponse,
   CompleteSessionResponse,
+  Part2Phase,
+  Part2PhotoPrompt,
   SpeakingAssessmentSummary,
   SpeakingAudioClip,
   SpeakingCapabilityState,
@@ -18,6 +20,11 @@ import type {
 } from '../types/speaking';
 
 const DEFAULT_DURATION_SECONDS = 120;
+
+export const PART2_TIMER_CONFIG = {
+  longTurnSeconds: 60,
+  followUpSeconds: 30,
+} as const;
 
 // ---------------------------------------------------------------------------
 // Store shape
@@ -38,6 +45,9 @@ interface SpeakingStoreState {
   isRecording: boolean;
   isStartingSession: boolean;
   isUploading: boolean;
+  part2Complete: boolean;
+  part2Phase: Part2Phase | null;
+  part2Photo: Part2PhotoPrompt | null;
   partDescription: string;
   partId: SpeakingPartId;
   partTitle: string;
@@ -90,6 +100,20 @@ function getErrorMessage(error: unknown): string {
     return error.message;
   }
   return 'An unexpected speaking error occurred.';
+}
+
+function resolvePhotoUrl(photo: { photo_url: string } | null | undefined): Part2PhotoPrompt | null {
+  if (!photo) return null;
+  const rawUrl = photo.photo_url;
+  const resolvedUrl = rawUrl.startsWith('http')
+    ? rawUrl
+    : getCurrentApiEnvironment().siteUrl.replace(/\/$/, '') + rawUrl;
+  return {
+    id: (photo as Record<string, string>).id ?? '',
+    photoUrl: resolvedUrl,
+    specificInstruction: (photo as Record<string, string>).specific_instruction ?? '',
+    taskInstruction: (photo as Record<string, string>).task_instruction ?? '',
+  };
 }
 
 function getRecorderSnapshot() {
@@ -157,6 +181,9 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
       isRecording: false,
       isStartingSession: false,
       isUploading: false,
+      part2Complete: false,
+      part2Phase: null,
+      part2Photo: null,
       partDescription: part.description,
       partId,
       partTitle: part.title,
@@ -174,7 +201,9 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
   isRecording: false,
   isStartingSession: false,
   isUploading: false,
-
+  part2Complete: false,
+  part2Phase: null,
+  part2Photo: null,
   partDescription: getSpeakingPartDefinition('part-1').description,
   partId: 'part-1',
   partTitle: getSpeakingPartDefinition('part-1').title,
@@ -192,16 +221,26 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
   // -----------------------------------------------------------------------
 
   async requestEvaluation() {
-    const { session, partId } = get();
+    const { part2Complete, part2Phase, partId, session } = get();
 
     if (!session?.remoteSessionId) {
       set({ errorMessage: 'Start a session and submit a recording before requesting evaluation.' });
       return;
     }
 
-    // Guard: backend must have declared Part 1 complete
-    if (!session?.part1Complete) {
-      set({ errorMessage: 'Complete the conversation before requesting evaluation.' });
+    // Guard: assessment availability is part-aware.  Part 1 unlocks when the
+    // backend declares Part 1 complete; Part 2 unlocks only after BOTH the
+    // long turn and the follow-up have been submitted (part2Phase === "complete").
+    const isPart2 = partId === 'part-2';
+    const readyForEvaluation = isPart2
+      ? part2Complete === true && part2Phase === 'complete'
+      : session?.part1Complete === true;
+    if (!readyForEvaluation) {
+      set({
+        errorMessage: isPart2
+          ? 'Complete the long turn and follow-up before requesting evaluation.'
+          : 'Complete the conversation before requesting evaluation.',
+      });
       return;
     }
 
@@ -376,6 +415,9 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
         examinerAudioUrl: started.examiner_turn.audio_url,
         examinerText: started.examiner_turn.text,
         isStartingSession: false,
+        part2Complete: started.conversation_state.part2_complete ?? false,
+        part2Phase: started.conversation_state.part2_phase ?? null,
+        part2Photo: resolvePhotoUrl(started.photo as { photo_url: string } | null | undefined),
         session: {
           ...s,
           lastExaminerAudioUrl: started.examiner_turn.audio_url,
@@ -540,6 +582,8 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
         examinerAudioUrl: result.examiner_turn.audio_url,
         examinerText: result.examiner_turn.text,
         isUploading: false,
+        part2Complete: result.conversation_state.part2_complete ?? false,
+        part2Phase: result.conversation_state.part2_phase ?? null,
         session: {
           ...s,
           part1Complete: result.conversation_state.part1_complete === true,
