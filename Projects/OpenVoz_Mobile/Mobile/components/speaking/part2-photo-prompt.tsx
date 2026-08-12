@@ -4,6 +4,7 @@ import { Image, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import type { Part2PhotoPrompt as Part2PhotoPromptType } from '../../types/speaking';
 
 interface Part2PhotoPromptProps {
+  followUpMode?: boolean;
   photo: Part2PhotoPromptType | null;
   style?: ViewStyle;
 }
@@ -13,7 +14,7 @@ interface NaturalSize {
   height: number;
 }
 
-export function Part2PhotoPrompt({ photo, style }: Part2PhotoPromptProps) {
+export function Part2PhotoPrompt({ followUpMode = false, photo, style }: Part2PhotoPromptProps) {
   const [hasError, setHasError] = useState(false);
   const [naturalSize, setNaturalSize] = useState<NaturalSize | null>(null);
 
@@ -60,7 +61,13 @@ export function Part2PhotoPrompt({ photo, style }: Part2PhotoPromptProps) {
         </View>
 
         {!hasError ? (
-          <Text style={styles.cue}>Speak for about 1 minute.</Text>
+          <View style={styles.copyGroup}>
+            <Text style={styles.cue}>
+              {followUpMode
+                ? 'Answer the examiner briefly.'
+                : "Press Start recording when you're ready."}
+            </Text>
+          </View>
         ) : null}
       </View>
     </View>
@@ -79,12 +86,13 @@ const styles = StyleSheet.create({
   container: {
     width: '100%',
   },
+  copyGroup: {
+    gap: 6,
+  },
   cue: {
     color: '#627D98',
     fontSize: 14,
-    fontStyle: 'italic',
     lineHeight: 20,
-    textAlign: 'center',
   },
   errorHint: {
     color: '#627D98',

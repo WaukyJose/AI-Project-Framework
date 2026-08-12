@@ -2,49 +2,41 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import type { SpeakingAssessmentSummary } from '../../types/speaking';
 
-// ---------------------------------------------------------------------------
-// Presentation-layer view model (defensive; backend contract stays Record<string,unknown>)
-// ---------------------------------------------------------------------------
-
 interface PracticeScoreModel {
-  display: string;
-  stars: string;
-  starRating: number | null;
-  overallConfidence: string | null;
   assessedCriterionCount: number | null;
+  display: string;
 }
 
 interface CriterionObservationModel {
-  name: string;
-  status: 'assessed' | 'unavailable';
   band: number | null;
-  confidence: string | null;
+  name: string;
   rationale: string | null;
-  limitation: string | null;
+  status: 'assessed' | 'unavailable';
 }
 
 interface AssessmentResultsModel {
-  practiceScore: PracticeScoreModel | null;
-  criterionObservations: CriterionObservationModel[];
-  strengths: string[];
+  assessedCriteria: CriterionObservationModel[];
+  compactLimitations: string[];
   improvements: string[];
-  limitationNotices: string[];
+  practiceScore: PracticeScoreModel | null;
+  strengths: string[];
+  unavailableCriteria: string[];
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === 'object' ? (value as Record<string, unknown>) : null;
 }
+
 function asString(value: unknown): string | null {
   return typeof value === 'string' && value.length > 0 ? value : null;
 }
+
 function asNumber(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
+
 function asArray(value: unknown): unknown[] {
   return Array.isArray(value) ? value : [];
-}
-function capitalize(value: string): string {
-  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 function buildAssessmentResultsModel(summary: SpeakingAssessmentSummary): AssessmentResultsModel {
@@ -68,43 +60,38 @@ function buildAssessmentResultsModel(summary: SpeakingAssessmentSummary): Assess
       const rec = asRecord(raw);
       if (!rec) return null;
       return {
-        name: asString(rec.criterion_name) ?? asString(rec.criterion) ?? 'Criterion',
-        status: rec.status === 'assessed' ? ('assessed' as const) : ('unavailable' as const),
         band: asNumber(rec.awarded_band),
-        confidence: asString(rec.confidence),
+        name: asString(rec.criterion_name) ?? asString(rec.criterion) ?? 'Criterion',
         rationale: asString(rec.rationale),
-        limitation: asString(rec.evidence_limitation),
+        status: rec.status === 'assessed' ? ('assessed' as const) : ('unavailable' as const),
       };
     })
-    .filter((c): c is CriterionObservationModel => c !== null);
+    .filter((item): item is CriterionObservationModel => item !== null);
 
   const strengths = asArray(feedbackReport?.strengths)
     .map((raw) => asString(asRecord(raw)?.text))
-    .filter((t): t is string => t !== null);
+    .filter((text): text is string => text !== null);
+
   const improvements = asArray(feedbackReport?.improvement_priorities)
     .map((raw) => asString(asRecord(raw)?.text))
-    .filter((t): t is string => t !== null);
+    .filter((text): text is string => text !== null);
 
   return {
+    assessedCriteria: criterionObservations.filter((item) => item.status === 'assessed'),
+    compactLimitations: noticeTexts.slice(0, 1),
+    improvements,
     practiceScore: practiceScore
       ? {
-          display: asString(practiceScore.display) ?? 'Score unavailable',
-          stars: asString(practiceScore.stars) ?? '☆☆☆☆☆',
-          starRating: asNumber(practiceScore.star_rating),
-          overallConfidence: asString(practiceScore.overall_confidence),
           assessedCriterionCount: asNumber(practiceScore.assessed_criterion_count),
+          display: asString(practiceScore.display) ?? 'Score unavailable',
         }
       : null,
-    criterionObservations,
     strengths,
-    improvements,
-    limitationNotices: noticeTexts,
+    unavailableCriteria: criterionObservations
+      .filter((item) => item.status === 'unavailable')
+      .map((item) => item.name),
   };
 }
-
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
 
 export function AssessmentResultsCard({ assessment }: { assessment: SpeakingAssessmentSummary }) {
   if (assessment.status === 'pending' || assessment.status === 'processing') {
@@ -141,30 +128,21 @@ export function AssessmentResultsCard({ assessment }: { assessment: SpeakingAsse
       {score ? (
         <View style={styles.scoreBlock}>
           <Text style={styles.scoreDisplay}>{score.display}</Text>
-          <Text style={styles.stars} accessible={false}>
-            {score.stars}
-          </Text>
           <Text style={styles.scoreMeta}>
-            {score.starRating != null ? `${score.starRating} out of 5 stars` : 'No rating'}
             {score.assessedCriterionCount != null
-              ? ` · Based on ${score.assessedCriterionCount} assessed criteria`
-              : ''}
+              ? `Based on ${score.assessedCriterionCount} assessed criteria`
+              : 'Practice score'}
           </Text>
-          {score.overallConfidence ? (
-            <Text style={styles.scoreMeta}>
-              Overall confidence: {capitalize(score.overallConfidence)}
-            </Text>
-          ) : null}
         </View>
       ) : null}
 
       {model.strengths.length > 0 ? (
         <View style={styles.section}>
           <Text style={styles.sectionTitle} accessibilityRole="header">
-            Strengths
+            What you did well
           </Text>
-          {model.strengths.map((text, i) => (
-            <Text key={`s-${i}`} style={styles.bullet}>
+          {model.strengths.map((text, index) => (
+            <Text key={`s-${index}`} style={styles.bullet}>
               • {text}
             </Text>
           ))}
@@ -174,54 +152,51 @@ export function AssessmentResultsCard({ assessment }: { assessment: SpeakingAsse
       {model.improvements.length > 0 ? (
         <View style={styles.section}>
           <Text style={styles.sectionTitle} accessibilityRole="header">
-            Areas to improve
+            What to work on next
           </Text>
-          {model.improvements.map((text, i) => (
-            <Text key={`i-${i}`} style={styles.bullet}>
+          {model.improvements.map((text, index) => (
+            <Text key={`i-${index}`} style={styles.bullet}>
               • {text}
             </Text>
           ))}
         </View>
       ) : null}
 
-      {model.criterionObservations.length > 0 ? (
+      {model.assessedCriteria.length > 0 ? (
         <View style={styles.section}>
           <Text style={styles.sectionTitle} accessibilityRole="header">
-            Criterion feedback
+            Detailed feedback
           </Text>
-          {model.criterionObservations.map((obs, i) => (
-            <View key={`c-${i}`} style={styles.criterionRow}>
+          {model.assessedCriteria.map((obs, index) => (
+            <View key={`c-${index}`} style={styles.criterionRow}>
               <Text style={styles.criterionName}>
                 {obs.name}
-                {obs.status === 'assessed' && obs.band != null
-                  ? ` — Band ${obs.band}`
-                  : ' — Not assessed'}
+                {obs.band != null ? ` — Band ${obs.band}` : ''}
               </Text>
-              {obs.status === 'assessed' && obs.confidence ? (
-                <Text style={styles.criterionMeta}>Confidence: {capitalize(obs.confidence)}</Text>
-              ) : null}
-              {obs.status === 'assessed' && obs.rationale ? (
+              {obs.rationale ? (
                 <Text style={styles.criterionRationale}>{obs.rationale}</Text>
-              ) : null}
-              {obs.status === 'unavailable' ? (
-                <Text style={styles.criterionLimitation}>
-                  {obs.limitation ??
-                    'This criterion was not assessed for this session; no score or band is inferred.'}
-                </Text>
               ) : null}
             </View>
           ))}
         </View>
       ) : null}
 
-      {model.limitationNotices.length > 0 ? (
+      {(model.unavailableCriteria.length > 0 || model.compactLimitations.length > 0) ? (
         <View style={styles.section}>
           <Text style={styles.sectionTitle} accessibilityRole="header">
-            Assessment limitation notice
+            About this feedback
           </Text>
-          {model.limitationNotices.map((text, i) => (
-            <Text key={`n-${i}`} style={styles.notice}>
-              • {text}
+          {model.unavailableCriteria.length > 0 ? (
+            <Text style={styles.notice}>
+              {model.unavailableCriteria.join(' and ')} were not assessed in this activity.
+            </Text>
+          ) : null}
+          <Text style={styles.notice}>
+            This is practice feedback, not an official Cambridge score.
+          </Text>
+          {model.compactLimitations.map((text, index) => (
+            <Text key={`n-${index}`} style={styles.notice}>
+              {text}
             </Text>
           ))}
         </View>
@@ -248,16 +223,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: 14,
     padding: 18,
-  },
-  criterionLimitation: {
-    color: '#9B2226',
-    fontSize: 13,
-    lineHeight: 20,
-  },
-  criterionMeta: {
-    color: '#486581',
-    fontSize: 13,
-    fontWeight: '600',
   },
   criterionName: {
     color: '#102A43',
@@ -304,11 +269,6 @@ const styles = StyleSheet.create({
     color: '#102A43',
     fontSize: 16,
     fontWeight: '800',
-  },
-  stars: {
-    color: '#E6A700',
-    fontSize: 22,
-    letterSpacing: 2,
   },
   title: {
     color: '#102A43',

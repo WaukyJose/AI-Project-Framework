@@ -21,6 +21,12 @@ import type {
 
 const DEFAULT_DURATION_SECONDS = 120;
 
+function part2DurationForPhase(phase: Part2Phase | null) {
+  return phase === 'follow_up'
+    ? PART2_TIMER_CONFIG.followUpSeconds
+    : PART2_TIMER_CONFIG.longTurnSeconds;
+}
+
 export const PART2_TIMER_CONFIG = {
   longTurnSeconds: 60,
   followUpSeconds: 30,
@@ -167,6 +173,10 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
     const part = getSpeakingPartDefinition(partId);
     speakingRecorder.stopPlayback();
     const recorder = getRecorderSnapshot();
+    const isPart2 = partId === 'part-2';
+    const initialDuration = isPart2
+      ? PART2_TIMER_CONFIG.longTurnSeconds
+      : DEFAULT_DURATION_SECONDS;
 
     set({
       assessment: null,
@@ -188,9 +198,9 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
       partId,
       partTitle: part.title,
       recorderStatus: recorder.lifecycleStatus,
-      secondsRemaining: DEFAULT_DURATION_SECONDS,
+      secondsRemaining: initialDuration,
       session: null,
-      timerDurationSeconds: DEFAULT_DURATION_SECONDS,
+      timerDurationSeconds: initialDuration,
       timerStatus: 'idle',
     });
   },
@@ -338,7 +348,7 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
   // -----------------------------------------------------------------------
 
   async startRecording() {
-    const { session, partId } = get();
+    const { session, partId, part2Phase } = get();
 
     // Block recording after Part 1 is complete
     if (session?.part1Complete) {
@@ -352,13 +362,20 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
     try {
       const capability = await speakingRecorder.startRecording();
       const recorder = getRecorderSnapshot();
+      const isPart2 = partId === 'part-2';
+      const recordingDuration = isPart2
+        ? part2DurationForPhase(part2Phase)
+        : get().timerDurationSeconds;
       set({
         capability,
         errorMessage: null,
         isPlaying: false,
         isRecording: true,
         recorderStatus: recorder.lifecycleStatus,
+        secondsRemaining: recordingDuration,
         session: { ...active, status: 'recording', updatedAt: new Date().toISOString() },
+        timerDurationSeconds: recordingDuration,
+        timerStatus: 'running',
       });
     } catch (error) {
       const recorder = getRecorderSnapshot();
@@ -475,6 +492,12 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
               updatedAt: new Date().toISOString(),
             }
           : state.session,
+        timerStatus:
+          state.timerStatus === 'completed'
+            ? 'completed'
+            : clip
+              ? 'paused'
+              : 'idle',
       }));
     } catch (error) {
       const recorder = getRecorderSnapshot();
@@ -577,13 +600,16 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
       );
 
       const s = ensureSession(get().session, partId);
+      const nextPhase = result.conversation_state.part2_phase ?? null;
+      const part2NextDuration =
+        partId === 'part-2' ? part2DurationForPhase(nextPhase) : get().timerDurationSeconds;
       set({
         clip: null,
         examinerAudioUrl: result.examiner_turn.audio_url,
         examinerText: result.examiner_turn.text,
         isUploading: false,
         part2Complete: result.conversation_state.part2_complete ?? false,
-        part2Phase: result.conversation_state.part2_phase ?? null,
+        part2Phase: nextPhase,
         session: {
           ...s,
           part1Complete: result.conversation_state.part1_complete === true,
@@ -594,6 +620,12 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
           status: 'uploaded',
           updatedAt: new Date().toISOString(),
         },
+        secondsRemaining: part2NextDuration,
+        timerDurationSeconds: part2NextDuration,
+        timerStatus:
+          partId === 'part-2' && result.conversation_state.part2_complete === true
+            ? 'completed'
+            : 'idle',
       });
 
         // Automatically play the examiner's response aloud

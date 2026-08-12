@@ -3,8 +3,10 @@ import { StyleSheet, View } from 'react-native';
 import { ProgressCard } from '../ui/cards';
 
 interface SpeakingSessionCardProps {
+  description?: string;
   timeRemainingLabel: string;
   timerStatus: string;
+  title?: string;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -18,13 +20,19 @@ function learnerTimerLabel(status: string): string {
   return STATUS_LABELS[status] ?? status;
 }
 
-export function SpeakingSessionCard({ timeRemainingLabel, timerStatus }: SpeakingSessionCardProps) {
+export function SpeakingSessionCard({
+  description,
+  timeRemainingLabel,
+  timerStatus,
+  title = 'Speaking time',
+}: SpeakingSessionCardProps) {
   return (
     <View style={styles.group}>
       <ProgressCard
         accentValue={timeRemainingLabel}
         caption={learnerTimerLabel(timerStatus)}
-        title="Speaking time"
+        description={description}
+        title={title}
       />
     </View>
   );

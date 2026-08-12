@@ -7,12 +7,15 @@ interface SpeakingAnswerAreaProps {
   canUpload: boolean;
   hasCompletedPart: boolean;
   hasClip: boolean;
+  isFollowUpPhase?: boolean;
   isEvaluating: boolean;
   isPlaying: boolean;
   isRecording: boolean;
   isUploading: boolean;
   playbackSupported: boolean;
   recordingSupported: boolean;
+  timerDisplay?: string | null;
+  timerStatusLabel?: string | null;
   onDiscard: () => void;
   onRequestEvaluation: () => void;
   onStartRecording: () => void;
@@ -27,12 +30,15 @@ export function SpeakingAnswerArea({
   canUpload,
   hasCompletedPart,
   hasClip,
+  isFollowUpPhase = false,
   isEvaluating,
   isPlaying,
   isRecording,
   isUploading,
   playbackSupported,
   recordingSupported,
+  timerDisplay = null,
+  timerStatusLabel = null,
   onDiscard,
   onRequestEvaluation,
   onStartRecording,
@@ -44,6 +50,16 @@ export function SpeakingAnswerArea({
   return (
     <View style={styles.card}>
       <Text style={styles.title}>Your turn</Text>
+
+      {!hasCompletedPart && timerDisplay && timerStatusLabel ? (
+        <View style={styles.timerRow}>
+          <Text style={styles.timerValue}>
+            {timerDisplay}
+            {isRecording ? ' remaining' : ''}
+          </Text>
+          <Text style={styles.timerStatus}>{timerStatusLabel}</Text>
+        </View>
+      ) : null}
 
       {!hasCompletedPart ? (
         <View style={styles.row}>
@@ -116,6 +132,19 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     gap: 12,
+  },
+  timerRow: {
+    gap: 2,
+  },
+  timerStatus: {
+    color: '#486581',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  timerValue: {
+    color: '#0F4C5C',
+    fontSize: 24,
+    fontWeight: '800',
   },
   title: {
     color: '#102A43',

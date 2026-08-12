@@ -374,6 +374,12 @@ function shouldShowGetFeedback(params: {
   return params.canRequestEvaluation && (params.hasClip || params.isPart2Complete);
 }
 
+function timerGuideDuration(phase: Part2Phase | null): number {
+  return phase === 'follow_up'
+    ? PART2_TIMER_CONFIG.followUpSeconds
+    : PART2_TIMER_CONFIG.longTurnSeconds;
+}
+
 test('part-1 → no Part 2 photo (showPhoto = false for Part 1)', () => {
   const photo: Part2PhotoPrompt = {
     id: 'p', photoUrl: '/img.png',
@@ -519,7 +525,46 @@ test('Part 2 incomplete → session/timer controls remain visible', () => {
   assert.strictEqual(shouldShowSessionSetupControls(false), true);
 });
 
-// -- 13. Source-contract checks for minimal reuse -------------------------
+// -- 13. Timer semantics --------------------------------------------------
+
+test('Part 2 long turn guide uses 60 seconds, follow-up uses 30 seconds', () => {
+  assert.strictEqual(timerGuideDuration('long_turn'), 60);
+  assert.strictEqual(timerGuideDuration('follow_up'), 30);
+});
+
+test('Part 2 does not carry a contradictory 120-second guide', () => {
+  const screenSource = readFileSync(
+    resolve(process.cwd(), 'screens/practice/b2-speaking-part-placeholder-screen.tsx'),
+    'utf8',
+  );
+
+  assert.match(screenSource, /subtitle=\{isPart2 \? 'Long turn' : 'Interview'\}/);
+  assert.match(screenSource, /const startLabel = isTaskLoading/);
+  assert.match(screenSource, /\? 'Starting Part 2…'/);
+  assert.match(screenSource, /\? 'Start Part 2'/);
+  assert.doesNotMatch(screenSource, /void startSession\(\);/);
+  assert.doesNotMatch(screenSource, /<SpeakingSessionCard/);
+  assert.match(screenSource, /timerDisplay=\{shouldShowTimerGuide \? formatCountdown\(secondsRemaining\) : null\}/);
+  assert.match(screenSource, /timerStatusLabel=\{shouldShowTimerGuide \? timerStatusLabel : null\}/);
+  assert.doesNotMatch(screenSource, /Start timer/);
+  assert.doesNotMatch(screenSource, /Reset timer/);
+  assert.doesNotMatch(screenSource, /Session ready/);
+  assert.doesNotMatch(screenSource, /02:00/);
+});
+
+test('Part 1 initial workspace exposes Start Part 1 and does not auto-start', () => {
+  const screenSource = readFileSync(
+    resolve(process.cwd(), 'screens/practice/b2-speaking-part-placeholder-screen.tsx'),
+    'utf8',
+  );
+
+  assert.match(screenSource, /const isPart1 = \(partId as SpeakingPartId\) === 'part-1';/);
+  assert.match(screenSource, /Start Part 1/);
+  assert.match(screenSource, /!hasStartedTask && \(isPart1 \|\| isPart2\)/);
+  assert.doesNotMatch(screenSource, /void startSession\(\);/);
+});
+
+// -- 14. Source-contract checks for minimal reuse -------------------------
 
 test('Part 2 screen reuses existing requestEvaluation and AssessmentResultsCard', () => {
   const screenSource = readFileSync(
@@ -530,6 +575,9 @@ test('Part 2 screen reuses existing requestEvaluation and AssessmentResultsCard'
   assert.match(screenSource, /const requestEvaluation = useSpeakingStore\(\(state\) => state\.requestEvaluation\);/);
   assert.match(screenSource, /onRequestEvaluation=\{requestEvaluation\}/);
   assert.match(screenSource, /\{assessment \? <AssessmentResultsCard assessment=\{assessment\} \/> : null\}/);
+  assert.match(screenSource, /Short follow-up/);
+  assert.match(screenSource, /Candidate A's long turn is finished/);
+  assert.match(screenSource, /showPhoto = isPart2 && hasStartedTask && part2Photo !== null/);
 });
 
 test('SpeakingAnswerArea shows Get feedback independently of hasClip and hides recording after completion', () => {
@@ -541,7 +589,71 @@ test('SpeakingAnswerArea shows Get feedback independently of hasClip and hides r
   assert.match(source, /!\s*hasCompletedPart\s*\?/);
   assert.match(source, /\{canRequestEvaluation \? \(/);
   assert.match(source, /\{hasClip \? \(/);
+  assert.match(source, /timerDisplay && timerStatusLabel/);
+  assert.match(source, /isRecording \? ' remaining' : ''/);
   assert.match(source, /\) : null}\s*\n\s*\n\s*\{canRequestEvaluation \? \(/);
+});
+
+test('Part 2 photo prompt carries task text and phase-specific duration guidance', () => {
+  const source = readFileSync(
+    resolve(process.cwd(), 'components/speaking/part2-photo-prompt.tsx'),
+    'utf8',
+  );
+
+  assert.match(source, /Press Start recording when you're ready\./);
+  assert.match(source, /Answer the examiner briefly\./);
+  assert.doesNotMatch(source, /photo\.taskInstruction/);
+  assert.doesNotMatch(source, /photo\.specificInstruction/);
+  assert.doesNotMatch(source, /Candidate A, you have one minute to compare the photographs and answer the/);
+});
+
+test('Initial Part 2 long-turn state keeps assigned photo/task content primary', () => {
+  const source = readFileSync(
+    resolve(process.cwd(), 'components/speaking/part2-photo-prompt.tsx'),
+    'utf8',
+  );
+
+  assert.match(source, /photo\.photoUrl/);
+  assert.match(source, /Press Start recording when you're ready\./);
+  assert.doesNotMatch(source, /photo\.taskInstruction/);
+  assert.doesNotMatch(source, /photo\.specificInstruction/);
+});
+
+test('Opening Part 2 does not auto-start the task and shows explicit start gate', () => {
+  const screenSource = readFileSync(
+    resolve(process.cwd(), 'screens/practice/b2-speaking-part-placeholder-screen.tsx'),
+    'utf8',
+  );
+
+  assert.match(screenSource, /!hasStartedTask/);
+  assert.match(screenSource, /Start Part 2/);
+  assert.match(screenSource, /hasStartedTask && examinerText/);
+  assert.match(screenSource, /\{hasStartedTask \? \(\s*<SpeakingAnswerArea/);
+});
+
+test('Part 1 and Part 2 use the same explicit startSession gate, while Part 3/4 are untouched', () => {
+  const screenSource = readFileSync(
+    resolve(process.cwd(), 'screens/practice/b2-speaking-part-placeholder-screen.tsx'),
+    'utf8',
+  );
+
+  assert.match(screenSource, /onPress=\{startSession\}/);
+  assert.match(screenSource, /isPart1 \|\| isPart2/);
+  assert.doesNotMatch(screenSource, /part-3.*Start Part 3/s);
+  assert.doesNotMatch(screenSource, /part-4.*Start Part 4/s);
+});
+
+test('Assessment results prioritize numeric score and hide stars/confidence', () => {
+  const source = readFileSync(
+    resolve(process.cwd(), 'components/speaking/assessment-results-card.tsx'),
+    'utf8',
+  );
+
+  assert.match(source, /What you did well/);
+  assert.match(source, /What to work on next/);
+  assert.match(source, /About this feedback/);
+  assert.doesNotMatch(source, /Overall confidence/);
+  assert.doesNotMatch(source, /out of 5 stars/);
 });
 
 console.log('\n✅ All Part 2 speaking tests passed.\n');
