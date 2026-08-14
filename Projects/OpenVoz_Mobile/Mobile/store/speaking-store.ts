@@ -73,7 +73,7 @@ interface SpeakingStoreState {
   session: SpeakingDraftSession | null;
   setDurationSeconds: (seconds: number) => void;
   startRecording: () => Promise<void>;
-  startSession: () => Promise<void>;
+  startSession: (sourcePart3SessionId?: string) => Promise<void>;
   startTimer: () => void;
   stopPlayback: () => void;
   stopRecording: () => Promise<void>;
@@ -423,8 +423,13 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
   // Session lifecycle (aligned with frozen backend)
   // -----------------------------------------------------------------------
 
-  async startSession() {
+  async startSession(sourcePart3SessionId) {
     const { partId, session } = get();
+
+    if (partId === 'part-4' && !sourcePart3SessionId) {
+      set({ errorMessage: 'Complete Part 3 before starting Part 4.' });
+      return;
+    }
 
     // Prevent duplicate creation
     if (session?.remoteSessionId) {
@@ -456,7 +461,11 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
       });
 
       // Step 2: Start the conversation
-      const started = await speakingApi.startSession(created.session_id, partId);
+      const started = await speakingApi.startSession(
+        created.session_id,
+        partId,
+        partId === 'part-4' ? { sourcePart3SessionId } : undefined,
+      );
 
       const s = ensureSession(get().session, partId);
       const isPart2 = partId === 'part-2';

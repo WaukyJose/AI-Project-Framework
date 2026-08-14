@@ -23,7 +23,13 @@ function formatCountdown(secondsRemaining: number) {
   return `${minutes}:${seconds}`;
 }
 
-export function B2SpeakingPartScreen({ partId }: { partId: string }) {
+export function B2SpeakingPartScreen({
+  partId,
+  sourcePart3SessionId,
+}: {
+  partId: string;
+  sourcePart3SessionId?: string;
+}) {
   const assessment = useSpeakingStore((state) => state.assessment);
   const capability = useSpeakingStore((state) => state.capability);
   const clip = useSpeakingStore((state) => state.clip);
@@ -66,10 +72,12 @@ export function B2SpeakingPartScreen({ partId }: { partId: string }) {
   const isPart1 = (partId as SpeakingPartId) === 'part-1';
   const isPart2 = (partId as SpeakingPartId) === 'part-2';
   const isPart3 = (partId as SpeakingPartId) === 'part-3';
+  const isPart4 = (partId as SpeakingPartId) === 'part-4';
   const isFollowUpPhase = isPart2 && part2Phase === 'follow_up';
   const isPart2Complete = isPart2 && part2Complete && part2Phase === 'complete';
   const isPart3Complete = isPart3 && part3Complete && part3Phase === 'complete';
   const isPart3Decision = isPart3 && part3Phase === 'decision';
+  const canStartPart4 = isPart4 && Boolean(sourcePart3SessionId);
   const hasStartedTask = Boolean(session?.remoteSessionId);
   const isTaskLoading = !hasStartedTask && (isCreatingSession || isStartingSession);
 
@@ -94,28 +102,38 @@ export function B2SpeakingPartScreen({ partId }: { partId: string }) {
     ? 'Compare the photographs and answer the task before responding briefly to one follow-up question.'
     : isPart3
       ? 'Discuss the scenario with the examiner, then answer a final decision-making question.'
-      : 'Answer a few questions about yourself and everyday life.';
+      : isPart4
+        ? 'Continue the discussion with questions related to the Part 3 topic.'
+        : 'Answer a few questions about yourself and everyday life.';
   const readyTitle = isPart2
     ? 'Compare two photographs and answer the question.'
     : isPart3
       ? 'Read the scenario and prepare your response.'
-      : 'Answer a few questions about yourself and everyday life.';
+      : isPart4
+        ? 'Continue from your completed Part 3 session.'
+        : 'Answer a few questions about yourself and everyday life.';
   const readyText = isPart2
     ? "You'll speak for about one minute, then answer one short follow-up."
     : isPart3
       ? "You'll discuss a scenario with a scripted partner, then answer a final decision-making question."
-      : 'Start Part 1 when you are ready to hear the examiner’s first question.';
+      : isPart4
+        ? 'The examiner will continue with broader questions on the same topic.'
+        : 'Start Part 1 when you are ready to hear the examiner’s first question.';
   const startLabel = isTaskLoading
     ? isPart2
       ? 'Starting Part 2…'
       : isPart3
         ? 'Starting Part 3…'
-        : 'Starting Part 1…'
+        : isPart4
+          ? 'Starting Part 4…'
+          : 'Starting Part 1…'
     : isPart2
       ? 'Start Part 2'
       : isPart3
         ? 'Start Part 3'
-        : 'Start Part 1';
+        : isPart4
+          ? 'Start Part 4'
+          : 'Start Part 1';
 
   const showPhoto =
     (isPart2 && hasStartedTask && part2Photo !== null) ||
@@ -152,6 +170,27 @@ export function B2SpeakingPartScreen({ partId }: { partId: string }) {
               label={startLabel}
               onPress={startSession}
             />
+          </View>
+        ) : null}
+
+        {!hasStartedTask && canStartPart4 ? (
+          <View style={styles.readyCard}>
+            <Text style={styles.readyTitle}>{readyTitle}</Text>
+            <Text style={styles.readyText}>{readyText}</Text>
+            <PrimaryButton
+              disabled={isCreatingSession || isStartingSession}
+              label={startLabel}
+              onPress={() => startSession(sourcePart3SessionId)}
+            />
+          </View>
+        ) : null}
+
+        {isPart4 && !hasStartedTask && !sourcePart3SessionId ? (
+          <View style={styles.readyCard}>
+            <Text style={styles.readyTitle}>Complete Part 3 first</Text>
+            <Text style={styles.readyText}>
+              Part 4 continues the topic from a completed Part 3 session.
+            </Text>
           </View>
         ) : null}
 
@@ -207,6 +246,20 @@ export function B2SpeakingPartScreen({ partId }: { partId: string }) {
             <Text style={styles.completionSubtitle}>
               You have completed the discussion and decision phase.
             </Text>
+            {session?.remoteSessionId ? (
+              <PrimaryButton
+                label="Continue to Part 4"
+                onPress={() =>
+                  router.push({
+                    pathname: '/(app)/practice/[part]',
+                    params: {
+                      part: 'part-4',
+                      source_part3_session_id: session.remoteSessionId,
+                    },
+                  })
+                }
+              />
+            ) : null}
           </View>
         ) : null}
 
