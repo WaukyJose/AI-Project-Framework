@@ -298,7 +298,10 @@ test('Part 3 completion hides recording/upload controls', () => {
     resolve(process.cwd(), 'screens/practice/b2-speaking-part-placeholder-screen.tsx'),
     'utf8',
   );
-  assert.match(source, /hasCompletedPart=\{isPart2Complete \|\| isPart3Complete\}/);
+  assert.match(
+    source,
+    /hasCompletedPart=\{isPart2Complete \|\| isPart3Complete \|\| isPart4Complete\}/,
+  );
 });
 
 test('incomplete Part 3 cannot request assessment', () => {

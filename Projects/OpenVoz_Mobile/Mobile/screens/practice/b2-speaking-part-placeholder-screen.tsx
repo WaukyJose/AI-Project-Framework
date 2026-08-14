@@ -50,6 +50,8 @@ export function B2SpeakingPartScreen({
   const part3Complete = useSpeakingStore((state) => state.part3Complete);
   const part3Phase = useSpeakingStore((state) => state.part3Phase);
   const part3Scenario = useSpeakingStore((state) => state.part3Scenario);
+  const part4Complete = useSpeakingStore((state) => state.part4Complete);
+  const part4Phase = useSpeakingStore((state) => state.part4Phase);
   const partTitle = useSpeakingStore((state) => state.partTitle);
   const requestEvaluation = useSpeakingStore((state) => state.requestEvaluation);
   const resetError = useSpeakingStore((state) => state.resetError);
@@ -77,6 +79,7 @@ export function B2SpeakingPartScreen({
   const isPart2Complete = isPart2 && part2Complete && part2Phase === 'complete';
   const isPart3Complete = isPart3 && part3Complete && part3Phase === 'complete';
   const isPart3Decision = isPart3 && part3Phase === 'decision';
+  const isPart4Complete = isPart4 && part4Complete && part4Phase === 'complete';
   const canStartPart4 = isPart4 && Boolean(sourcePart3SessionId);
   const hasStartedTask = Boolean(session?.remoteSessionId);
   const isTaskLoading = !hasStartedTask && (isCreatingSession || isStartingSession);
@@ -96,7 +99,8 @@ export function B2SpeakingPartScreen({
     !isRecording &&
     !isUploading &&
     session?.part1Complete !== true &&
-    !isPart3Complete;
+    !isPart3Complete &&
+    !isPart4Complete;
 
   const supportingCopy = isPart2
     ? 'Compare the photographs and answer the task before responding briefly to one follow-up question.'
@@ -267,7 +271,7 @@ export function B2SpeakingPartScreen({
           <SpeakingAnswerArea
             canRequestEvaluation={canRequestEvaluation}
             canUpload={canUpload}
-            hasCompletedPart={isPart2Complete || isPart3Complete}
+            hasCompletedPart={isPart2Complete || isPart3Complete || isPart4Complete}
             hasClip={Boolean(clip)}
             isFollowUpPhase={isFollowUpPhase}
             isEvaluating={isEvaluating}
