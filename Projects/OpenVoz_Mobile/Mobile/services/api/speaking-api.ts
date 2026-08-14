@@ -22,6 +22,10 @@ function sessionPath(sessionId: string, suffix = '') {
   return `/speaking/sessions/${sessionId}/${suffix}`;
 }
 
+interface StartSessionOptions {
+  sourcePart3SessionId?: string;
+}
+
 // ---------------------------------------------------------------------------
 // Public API — exact match with frozen sprint-5.1 backend
 // ---------------------------------------------------------------------------
@@ -47,9 +51,18 @@ export const speakingApi = {
   /**
    * POST /api/v1/speaking/sessions/{session_id}/start/
    */
-  async startSession(sessionId: string, part: string): Promise<StartSessionResponse> {
+  async startSession(
+    sessionId: string,
+    part: string,
+    options?: StartSessionOptions,
+  ): Promise<StartSessionResponse> {
+    const body =
+      part === 'part-4' && options?.sourcePart3SessionId
+        ? { part, source_part3_session_id: options.sourcePart3SessionId }
+        : { part };
+
     return apiClient.request<StartSessionResponse>(sessionPath(sessionId, 'start/'), {
-      body: { part },
+      body,
       method: 'POST',
     });
   },

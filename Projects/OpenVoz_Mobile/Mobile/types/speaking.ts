@@ -24,6 +24,10 @@ export type SpeakingTimerStatus = 'completed' | 'idle' | 'paused' | 'running';
 
 export type Part2Phase = 'long_turn' | 'follow_up' | 'complete';
 
+export type Part3Phase = 'discussion' | 'decision' | 'complete';
+
+export type Part4Phase = 'not_started' | 'awaiting_response' | 'complete';
+
 export type RecordingCapabilityStatus = 'blocked' | 'ready' | 'unsupported';
 
 export type RecorderLifecycleStatus =
@@ -57,6 +61,17 @@ export interface ConversationState {
   part1_complete?: boolean;
   part2_phase?: Part2Phase | null;
   part2_complete?: boolean;
+  part3_complete?: boolean;
+  part3_phase?: Part3Phase | null;
+  part3_comment_index?: number;
+  part3_scenario_id?: string;
+  part4_complete?: boolean;
+  part4_phase?: Part4Phase | null;
+  source_part3_session_id?: string | null;
+  part4_set_id?: string | null;
+  part4_question_id?: string | null;
+  part4_question_index?: number | null;
+  part4_progression_pending?: boolean;
 }
 
 export interface TranscriptDeltaEntry {
@@ -106,7 +121,7 @@ export interface SubmitTurnResponse {
   session_id: string;
   part: string;
   session_state: string;
-  turn_status: 'accepted' | 'rejected' | 'uploaded' | 'transcribing' | 'processing';
+  turn_status: 'accepted' | 'rejected' | 'uploaded' | 'transcribing' | 'processing' | 'closing';
   candidate_turn: CandidateTurn;
   conversation_state: ConversationState;
   examiner_turn: ExaminerTurn;
@@ -141,6 +156,11 @@ export interface Part2PhotoPrompt {
   specificInstruction: string;
   taskInstruction: string;
 }
+
+// Part 3 scenarios use the same mapped photo/task shape exposed by the
+// backend start response. Keeping this as an alias preserves Part 2's type
+// without duplicating a structurally identical model.
+export type Part3Scenario = Part2PhotoPrompt;
 
 export interface SpeakingPart2TimerConfig {
   followUpSeconds: number;
