@@ -9,6 +9,8 @@ import type {
   CompleteSessionResponse,
   Part2Phase,
   Part2PhotoPrompt,
+  Part3Phase,
+  Part3Scenario,
   SpeakingAssessmentSummary,
   SpeakingAudioClip,
   SpeakingCapabilityState,
@@ -54,6 +56,11 @@ interface SpeakingStoreState {
   part2Complete: boolean;
   part2Phase: Part2Phase | null;
   part2Photo: Part2PhotoPrompt | null;
+  part3CommentIndex: number | null;
+  part3Complete: boolean;
+  part3Phase: Part3Phase | null;
+  part3Scenario: Part3Scenario | null;
+  part3ScenarioId: string | null;
   partDescription: string;
   partId: SpeakingPartId;
   partTitle: string;
@@ -194,6 +201,11 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
       part2Complete: false,
       part2Phase: null,
       part2Photo: null,
+      part3CommentIndex: null,
+      part3Complete: false,
+      part3Phase: null,
+      part3Scenario: null,
+      part3ScenarioId: null,
       partDescription: part.description,
       partId,
       partTitle: part.title,
@@ -214,6 +226,11 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
   part2Complete: false,
   part2Phase: null,
   part2Photo: null,
+  part3CommentIndex: null,
+  part3Complete: false,
+  part3Phase: null,
+  part3Scenario: null,
+  part3ScenarioId: null,
   partDescription: getSpeakingPartDefinition('part-1').description,
   partId: 'part-1',
   partTitle: getSpeakingPartDefinition('part-1').title,
@@ -231,7 +248,7 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
   // -----------------------------------------------------------------------
 
   async requestEvaluation() {
-    const { part2Complete, part2Phase, partId, session } = get();
+    const { part2Complete, part2Phase, part3Complete, part3Phase, partId, session } = get();
 
     if (!session?.remoteSessionId) {
       set({ errorMessage: 'Start a session and submit a recording before requesting evaluation.' });
@@ -239,17 +256,22 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
     }
 
     // Guard: assessment availability is part-aware.  Part 1 unlocks when the
-    // backend declares Part 1 complete; Part 2 unlocks only after BOTH the
-    // long turn and the follow-up have been submitted (part2Phase === "complete").
+    // backend declares Part 1 complete; Parts 2 and 3 unlock only after their
+    // respective canonical completion phases.
     const isPart2 = partId === 'part-2';
-    const readyForEvaluation = isPart2
-      ? part2Complete === true && part2Phase === 'complete'
-      : session?.part1Complete === true;
+    const isPart3 = partId === 'part-3';
+    const readyForEvaluation = isPart3
+      ? part3Complete === true && part3Phase === 'complete'
+      : isPart2
+        ? part2Complete === true && part2Phase === 'complete'
+        : session?.part1Complete === true;
     if (!readyForEvaluation) {
       set({
         errorMessage: isPart2
           ? 'Complete the long turn and follow-up before requesting evaluation.'
-          : 'Complete the conversation before requesting evaluation.',
+          : isPart3
+            ? 'Complete the discussion and decision before requesting evaluation.'
+            : 'Complete the conversation before requesting evaluation.',
       });
       return;
     }
@@ -285,6 +307,14 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
           updatedAt: new Date().toISOString(),
         },
       });
+
+      if (completeResult.assessment?.status === 'complete') {
+        set({
+          assessment: buildAssessmentSummary(completeResult, 'complete'),
+          isEvaluating: false,
+        });
+        return;
+      }
 
       // Step 2: Fetch the final assessment
       const assessmentResult = await speakingApi.getAssessment(session.remoteSessionId);
@@ -363,6 +393,7 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
       const capability = await speakingRecorder.startRecording();
       const recorder = getRecorderSnapshot();
       const isPart2 = partId === 'part-2';
+      const isPart3 = partId === 'part-3';
       const recordingDuration = isPart2
         ? part2DurationForPhase(part2Phase)
         : get().timerDurationSeconds;
@@ -375,7 +406,7 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
         secondsRemaining: recordingDuration,
         session: { ...active, status: 'recording', updatedAt: new Date().toISOString() },
         timerDurationSeconds: recordingDuration,
-        timerStatus: 'running',
+        timerStatus: isPart3 ? 'idle' : 'running',
       });
     } catch (error) {
       const recorder = getRecorderSnapshot();
@@ -428,13 +459,32 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
       const started = await speakingApi.startSession(created.session_id, partId);
 
       const s = ensureSession(get().session, partId);
+      const isPart2 = partId === 'part-2';
+      const isPart3 = partId === 'part-3';
       set({
         examinerAudioUrl: started.examiner_turn.audio_url,
         examinerText: started.examiner_turn.text,
         isStartingSession: false,
         part2Complete: started.conversation_state.part2_complete ?? false,
         part2Phase: started.conversation_state.part2_phase ?? null,
-        part2Photo: resolvePhotoUrl(started.photo as { photo_url: string } | null | undefined),
+        part2Photo: isPart2
+          ? resolvePhotoUrl(started.photo as { photo_url: string } | null | undefined)
+          : null,
+        part3CommentIndex: isPart3
+          ? started.conversation_state.part3_comment_index ?? null
+          : null,
+        part3Complete: isPart3
+          ? started.conversation_state.part3_complete ?? false
+          : false,
+        part3Phase: isPart3
+          ? started.conversation_state.part3_phase ?? null
+          : null,
+        part3Scenario: isPart3
+          ? resolvePhotoUrl(started.photo as { photo_url: string } | null | undefined)
+          : null,
+        part3ScenarioId: isPart3
+          ? started.conversation_state.part3_scenario_id ?? null
+          : null,
         session: {
           ...s,
           lastExaminerAudioUrl: started.examiner_turn.audio_url,
@@ -600,16 +650,33 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
       );
 
       const s = ensureSession(get().session, partId);
+      const isPart2 = partId === 'part-2';
+      const isPart3 = partId === 'part-3';
       const nextPhase = result.conversation_state.part2_phase ?? null;
-      const part2NextDuration =
-        partId === 'part-2' ? part2DurationForPhase(nextPhase) : get().timerDurationSeconds;
+      const part2NextDuration = isPart2
+        ? part2DurationForPhase(nextPhase)
+        : get().timerDurationSeconds;
       set({
         clip: null,
         examinerAudioUrl: result.examiner_turn.audio_url,
         examinerText: result.examiner_turn.text,
         isUploading: false,
-        part2Complete: result.conversation_state.part2_complete ?? false,
-        part2Phase: nextPhase,
+        part2Complete: isPart2
+          ? result.conversation_state.part2_complete ?? false
+          : false,
+        part2Phase: isPart2 ? nextPhase : null,
+        part3CommentIndex: isPart3
+          ? result.conversation_state.part3_comment_index ?? null
+          : null,
+        part3Complete: isPart3
+          ? result.conversation_state.part3_complete ?? false
+          : false,
+        part3Phase: isPart3
+          ? result.conversation_state.part3_phase ?? null
+          : null,
+        part3ScenarioId: isPart3
+          ? result.conversation_state.part3_scenario_id ?? null
+          : null,
         session: {
           ...s,
           part1Complete: result.conversation_state.part1_complete === true,
@@ -623,7 +690,7 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
         secondsRemaining: part2NextDuration,
         timerDurationSeconds: part2NextDuration,
         timerStatus:
-          partId === 'part-2' && result.conversation_state.part2_complete === true
+          isPart2 && result.conversation_state.part2_complete === true
             ? 'completed'
             : 'idle',
       });

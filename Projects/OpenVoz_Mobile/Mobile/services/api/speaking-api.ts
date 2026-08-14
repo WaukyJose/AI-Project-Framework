@@ -106,6 +106,7 @@ export const speakingApi = {
     return apiClient.request<CompleteSessionResponse>(sessionPath(sessionId, 'complete/'), {
       body: { part, last_client_turn: lastClientTurn },
       method: 'POST',
+      timeoutMs: 60000,
     });
   },
 

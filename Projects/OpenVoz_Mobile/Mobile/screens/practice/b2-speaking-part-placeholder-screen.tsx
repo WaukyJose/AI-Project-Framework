@@ -41,6 +41,9 @@ export function B2SpeakingPartScreen({ partId }: { partId: string }) {
   const part2Complete = useSpeakingStore((state) => state.part2Complete);
   const part2Phase = useSpeakingStore((state) => state.part2Phase);
   const part2Photo = useSpeakingStore((state) => state.part2Photo);
+  const part3Complete = useSpeakingStore((state) => state.part3Complete);
+  const part3Phase = useSpeakingStore((state) => state.part3Phase);
+  const part3Scenario = useSpeakingStore((state) => state.part3Scenario);
   const partTitle = useSpeakingStore((state) => state.partTitle);
   const requestEvaluation = useSpeakingStore((state) => state.requestEvaluation);
   const resetError = useSpeakingStore((state) => state.resetError);
@@ -60,41 +63,63 @@ export function B2SpeakingPartScreen({ partId }: { partId: string }) {
     initializePart((partId as SpeakingPartId) ?? 'part-1');
   }, [initializePart, partId]);
 
+  const isPart1 = (partId as SpeakingPartId) === 'part-1';
+  const isPart2 = (partId as SpeakingPartId) === 'part-2';
+  const isPart3 = (partId as SpeakingPartId) === 'part-3';
+  const isFollowUpPhase = isPart2 && part2Phase === 'follow_up';
+  const isPart2Complete = isPart2 && part2Complete && part2Phase === 'complete';
+  const isPart3Complete = isPart3 && part3Complete && part3Phase === 'complete';
+  const isPart3Decision = isPart3 && part3Phase === 'decision';
+  const hasStartedTask = Boolean(session?.remoteSessionId);
+  const isTaskLoading = !hasStartedTask && (isCreatingSession || isStartingSession);
+
   const canRequestEvaluation =
     Boolean(session?.remoteSessionId) &&
     !isUploading &&
     !isEvaluating &&
     session?.status !== 'error' &&
-    ((partId as SpeakingPartId) === 'part-2'
-      ? part2Complete === true && part2Phase === 'complete'
-      : session?.part1Complete === true);
+    (isPart3
+      ? isPart3Complete
+      : isPart2
+        ? isPart2Complete
+        : session?.part1Complete === true);
   const canUpload =
-    Boolean(clip) && !isRecording && !isUploading && session?.part1Complete !== true;
-  const isPart2 = (partId as SpeakingPartId) === 'part-2';
-  const isPart1 = (partId as SpeakingPartId) === 'part-1';
-  const isFollowUpPhase = isPart2 && part2Phase === 'follow_up';
-  const hasStartedTask = Boolean(session?.remoteSessionId);
-  const isTaskLoading = !hasStartedTask && (isCreatingSession || isStartingSession);
+    Boolean(clip) &&
+    !isRecording &&
+    !isUploading &&
+    session?.part1Complete !== true &&
+    !isPart3Complete;
 
-  const part2SupportingCopy = isPart2
+  const supportingCopy = isPart2
     ? 'Compare the photographs and answer the task before responding briefly to one follow-up question.'
-    : 'Answer a few questions about yourself and everyday life.';
+    : isPart3
+      ? 'Discuss the scenario with the examiner, then answer a final decision-making question.'
+      : 'Answer a few questions about yourself and everyday life.';
   const readyTitle = isPart2
     ? 'Compare two photographs and answer the question.'
-    : 'Answer a few questions about yourself and everyday life.';
+    : isPart3
+      ? 'Read the scenario and prepare your response.'
+      : 'Answer a few questions about yourself and everyday life.';
   const readyText = isPart2
     ? "You'll speak for about one minute, then answer one short follow-up."
-    : 'Start Part 1 when you are ready to hear the examiner’s first question.';
+    : isPart3
+      ? "You'll discuss a scenario with a scripted partner, then answer a final decision-making question."
+      : 'Start Part 1 when you are ready to hear the examiner’s first question.';
   const startLabel = isTaskLoading
     ? isPart2
       ? 'Starting Part 2…'
-      : 'Starting Part 1…'
+      : isPart3
+        ? 'Starting Part 3…'
+        : 'Starting Part 1…'
     : isPart2
       ? 'Start Part 2'
-      : 'Start Part 1';
+      : isPart3
+        ? 'Start Part 3'
+        : 'Start Part 1';
 
-  const showPhoto = isPart2 && hasStartedTask && part2Photo !== null;
-  const isPart2Complete = isPart2 && part2Complete && part2Phase === 'complete';
+  const showPhoto =
+    (isPart2 && hasStartedTask && part2Photo !== null) ||
+    (isPart3 && hasStartedTask && part3Scenario !== null);
   const shouldShowTimerGuide = isPart2 && hasStartedTask && !isPart2Complete;
   const timerStatusLabel = isRecording
     ? 'Recording'
@@ -110,11 +135,15 @@ export function B2SpeakingPartScreen({ partId }: { partId: string }) {
   return (
     <ScreenContainer>
       <ScrollView contentContainerStyle={shellStyles.content}>
-        <AppHeader eyebrow="B2 First Speaking" subtitle={isPart2 ? 'Long turn' : 'Interview'} title={partTitle} />
+        <AppHeader
+          eyebrow="B2 First Speaking"
+          subtitle={isPart2 ? 'Long turn' : isPart3 ? 'Collaborative task' : 'Interview'}
+          title={partTitle}
+        />
 
-        <Text style={styles.supportingCopy}>{part2SupportingCopy}</Text>
+        <Text style={styles.supportingCopy}>{supportingCopy}</Text>
 
-        {!hasStartedTask && (isPart1 || isPart2) ? (
+        {!hasStartedTask && (isPart1 || isPart2 || isPart3) ? (
           <View style={styles.readyCard}>
             <Text style={styles.readyTitle}>{readyTitle}</Text>
             <Text style={styles.readyText}>{readyText}</Text>
@@ -137,14 +166,31 @@ export function B2SpeakingPartScreen({ partId }: { partId: string }) {
           </View>
         ) : null}
 
-        {isPart2 && isTaskLoading ? (
-          <View style={styles.taskLoadingBanner}>
-            <Text style={styles.taskLoadingTitle}>Loading Part 2 task</Text>
-            <Text style={styles.taskLoadingText}>Your photographs and task will appear in a moment.</Text>
+        {isPart3Decision ? (
+          <View style={styles.transitionBanner}>
+            <Text style={styles.transitionTitle}>Decision phase</Text>
+            <Text style={styles.transitionText}>
+              Answer the examiner’s final decision-making question.
+            </Text>
           </View>
         ) : null}
 
-        {showPhoto ? <Part2PhotoPrompt followUpMode={isFollowUpPhase} photo={part2Photo} /> : null}
+        {isPart2 && isTaskLoading ? (
+          <View style={styles.taskLoadingBanner}>
+            <Text style={styles.taskLoadingTitle}>Loading Part 2 task</Text>
+            <Text style={styles.taskLoadingText}>
+              Your photographs and task will appear in a moment.
+            </Text>
+          </View>
+        ) : null}
+
+        {showPhoto ? (
+          <Part2PhotoPrompt
+            followUpMode={isFollowUpPhase}
+            photo={isPart2 ? part2Photo : part3Scenario}
+            scaleToFitWidth={isPart3}
+          />
+        ) : null}
 
         {isPart2Complete ? (
           <View style={styles.completionBanner}>
@@ -155,24 +201,33 @@ export function B2SpeakingPartScreen({ partId }: { partId: string }) {
           </View>
         ) : null}
 
-        {hasStartedTask ? (
+        {isPart3Complete ? (
+          <View style={styles.completionBanner}>
+            <Text style={styles.completionTitle}>Part 3 complete</Text>
+            <Text style={styles.completionSubtitle}>
+              You have completed the discussion and decision phase.
+            </Text>
+          </View>
+        ) : null}
+
+        {hasStartedTask && !isPart3Complete ? (
           <SpeakingAnswerArea
             canRequestEvaluation={canRequestEvaluation}
             canUpload={canUpload}
-          hasCompletedPart={isPart2Complete}
-          hasClip={Boolean(clip)}
-          isFollowUpPhase={isFollowUpPhase}
-          isEvaluating={isEvaluating}
-          isPlaying={isPlaying}
-          isRecording={isRecording}
-          isUploading={isUploading}
-          playbackSupported={capability.playbackSupported}
-          recordingSupported={capability.recordingStatus === 'ready'}
-          timerDisplay={shouldShowTimerGuide ? formatCountdown(secondsRemaining) : null}
-          timerStatusLabel={shouldShowTimerGuide ? timerStatusLabel : null}
-          onDiscard={discardRecording}
-          onRequestEvaluation={requestEvaluation}
-          onStartRecording={startRecording}
+            hasCompletedPart={isPart2Complete || isPart3Complete}
+            hasClip={Boolean(clip)}
+            isFollowUpPhase={isFollowUpPhase}
+            isEvaluating={isEvaluating}
+            isPlaying={isPlaying}
+            isRecording={isRecording}
+            isUploading={isUploading}
+            playbackSupported={capability.playbackSupported}
+            recordingSupported={capability.recordingStatus === 'ready'}
+            timerDisplay={shouldShowTimerGuide ? formatCountdown(secondsRemaining) : null}
+            timerStatusLabel={shouldShowTimerGuide ? timerStatusLabel : null}
+            onDiscard={discardRecording}
+            onRequestEvaluation={requestEvaluation}
+            onStartRecording={startRecording}
             onStopPlayback={stopPlayback}
             onStopRecording={stopRecording}
             onTogglePlayback={togglePlayback}
