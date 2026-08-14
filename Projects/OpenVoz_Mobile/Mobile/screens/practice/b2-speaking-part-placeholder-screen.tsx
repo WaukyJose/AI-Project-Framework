@@ -86,6 +86,7 @@ export function B2SpeakingPartScreen({
 
   const canRequestEvaluation =
     Boolean(session?.remoteSessionId) &&
+    !isPart4 &&
     !isUploading &&
     !isEvaluating &&
     session?.status !== 'error' &&
@@ -107,21 +108,21 @@ export function B2SpeakingPartScreen({
     : isPart3
       ? 'Discuss the scenario with the examiner, then answer a final decision-making question.'
       : isPart4
-        ? 'Continue the discussion with questions related to the Part 3 topic.'
+        ? "Answer the examiner's questions about the topic from Part 3. Give reasons and examples to develop your answers."
         : 'Answer a few questions about yourself and everyday life.';
   const readyTitle = isPart2
     ? 'Compare two photographs and answer the question.'
     : isPart3
       ? 'Read the scenario and prepare your response.'
       : isPart4
-        ? 'Continue from your completed Part 3 session.'
+        ? 'Further discussion'
         : 'Answer a few questions about yourself and everyday life.';
   const readyText = isPart2
     ? "You'll speak for about one minute, then answer one short follow-up."
     : isPart3
       ? "You'll discuss a scenario with a scripted partner, then answer a final decision-making question."
       : isPart4
-        ? 'The examiner will continue with broader questions on the same topic.'
+        ? 'Answer each question when you are ready.'
         : 'Start Part 1 when you are ready to hear the examiner’s first question.';
   const startLabel = isTaskLoading
     ? isPart2
@@ -159,7 +160,15 @@ export function B2SpeakingPartScreen({
       <ScrollView contentContainerStyle={shellStyles.content}>
         <AppHeader
           eyebrow="B2 First Speaking"
-          subtitle={isPart2 ? 'Long turn' : isPart3 ? 'Collaborative task' : 'Interview'}
+          subtitle={
+            isPart2
+              ? 'Long turn'
+              : isPart3
+                ? 'Collaborative task'
+                : isPart4
+                  ? 'Further discussion'
+                  : 'Interview'
+          }
           title={partTitle}
         />
 
@@ -267,7 +276,13 @@ export function B2SpeakingPartScreen({
           </View>
         ) : null}
 
-        {hasStartedTask && !isPart3Complete ? (
+        {isPart4Complete ? (
+          <View style={styles.completionBanner}>
+            <Text style={styles.completionTitle}>Part 4 complete</Text>
+          </View>
+        ) : null}
+
+        {hasStartedTask && !isPart3Complete && !isPart4Complete ? (
           <SpeakingAnswerArea
             canRequestEvaluation={canRequestEvaluation}
             canUpload={canUpload}
