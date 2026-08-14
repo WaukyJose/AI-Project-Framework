@@ -259,6 +259,13 @@ export function B2SpeakingPartScreen({
             <Text style={styles.completionSubtitle}>
               You have completed the discussion and decision phase.
             </Text>
+            {canRequestEvaluation ? (
+              <SecondaryButton
+                disabled={isEvaluating}
+                label={isEvaluating ? 'Requesting feedback…' : 'View Part 3 feedback'}
+                onPress={requestEvaluation}
+              />
+            ) : null}
             {session?.remoteSessionId ? (
               <PrimaryButton
                 label="Continue to Part 4"
