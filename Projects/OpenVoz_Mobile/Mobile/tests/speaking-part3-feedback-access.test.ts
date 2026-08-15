@@ -50,10 +50,9 @@ test('Part 3 to Part 4 handoff remains independent and UUID-authoritative', () =
   );
 });
 
-test('Part 4 assessment remains explicitly unavailable', () => {
-  assert.match(screenSource, /Boolean\(session\?\.remoteSessionId\) &&\s*!isPart4/);
-  assert.match(
-    storeSource,
-    /if \(partId === 'part-4'\)[\s\S]*Assessment is not available for Part 4 yet/,
-  );
+test('Part 4 assessment is available after canonical completion', () => {
+  assert.doesNotMatch(screenSource, /Boolean\(session\?\.remoteSessionId\) &&\s*!isPart4/);
+  assert.match(screenSource, /View Part 4 feedback/);
+  assert.match(storeSource, /const isPart4 = partId === 'part-4'/);
+  assert.match(storeSource, /part4Complete === true && part4Phase === 'complete'/);
 });

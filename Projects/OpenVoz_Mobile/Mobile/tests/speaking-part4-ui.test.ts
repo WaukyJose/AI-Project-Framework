@@ -52,9 +52,11 @@ test('canonical completion preserves closing turn, shows success, and hides answ
   assert.match(screenSource, /Back to B2 Speaking/);
 });
 
-test('Part 4 cannot expose assessment or manually complete the session', () => {
-  assert.match(screenSource, /Boolean\(session\?\.remoteSessionId\) &&\s*!isPart4/);
-  assert.match(storeSource, /if \(partId === 'part-4'\)[\s\S]*Assessment is not available for Part 4 yet/);
+test('Part 4 completion exposes assessment request without manual session completion', () => {
+  assert.doesNotMatch(screenSource, /Boolean\(session\?\.remoteSessionId\) &&\s*!isPart4/);
+  assert.match(screenSource, /View Part 4 feedback/);
+  assert.match(screenSource, /isPart4\s*\?\s*isPart4Complete/);
+  assert.match(storeSource, /part4Complete === true && part4Phase === 'complete'/);
   const uploadBlock = storeSource.slice(
     storeSource.indexOf('async uploadRecording()'),
     storeSource.indexOf('// Internal helpers'),

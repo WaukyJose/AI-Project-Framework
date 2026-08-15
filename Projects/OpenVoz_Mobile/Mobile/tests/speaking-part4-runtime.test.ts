@@ -73,12 +73,15 @@ test('A3 closing is retained and completion is accepted only from canonical resp
   assert.doesNotMatch(storeSource, /current_question[^\n]*throw|!.*current_question/);
 });
 
-test('Part 4 completion blocks recording and submission and never invokes completion or assessment', () => {
+test('Part 4 completion blocks recording and submission but allows governed assessment', () => {
   const completionGuard = /partId === 'part-4' && part4Complete && part4Phase === 'complete'/g;
   assert.ok((storeSource.match(completionGuard) ?? []).length >= 2);
   assert.match(screenSource, /!isPart4Complete/);
   assert.match(screenSource, /hasCompletedPart=\{isPart2Complete \|\| isPart3Complete \|\| isPart4Complete\}/);
-  assert.match(storeSource, /if \(partId === 'part-4'\)[\s\S]*Assessment is not available for Part 4 yet/);
+  assert.match(storeSource, /const isPart4 = partId === 'part-4'/);
+  assert.match(storeSource, /part4Complete === true && part4Phase === 'complete'/);
+  assert.match(storeSource, /speakingApi\.completeSession/);
+  assert.match(storeSource, /speakingApi\.getAssessment/);
   assert.doesNotMatch(uploadBlock, /completeSession|getAssessment|requestEvaluation/);
 });
 

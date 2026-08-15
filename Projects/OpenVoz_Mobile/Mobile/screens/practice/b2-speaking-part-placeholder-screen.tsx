@@ -86,7 +86,6 @@ export function B2SpeakingPartScreen({
 
   const canRequestEvaluation =
     Boolean(session?.remoteSessionId) &&
-    !isPart4 &&
     !isUploading &&
     !isEvaluating &&
     session?.status !== 'error' &&
@@ -94,7 +93,9 @@ export function B2SpeakingPartScreen({
       ? isPart3Complete
       : isPart2
         ? isPart2Complete
-        : session?.part1Complete === true);
+        : isPart4
+          ? isPart4Complete
+          : session?.part1Complete === true);
   const canUpload =
     Boolean(clip) &&
     !isRecording &&
@@ -286,6 +287,14 @@ export function B2SpeakingPartScreen({
         {isPart4Complete ? (
           <View style={styles.completionBanner}>
             <Text style={styles.completionTitle}>Part 4 complete</Text>
+            <Text style={styles.completionSubtitle}>You have completed the final discussion.</Text>
+            {canRequestEvaluation ? (
+              <SecondaryButton
+                disabled={isEvaluating}
+                label={isEvaluating ? 'Requesting feedback…' : 'View Part 4 feedback'}
+                onPress={requestEvaluation}
+              />
+            ) : null}
           </View>
         ) : null}
 

@@ -270,35 +270,35 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
   // -----------------------------------------------------------------------
 
   async requestEvaluation() {
-    const { part2Complete, part2Phase, part3Complete, part3Phase, partId, session } = get();
+    const { part2Complete, part2Phase, part3Complete, part3Phase, part4Complete, part4Phase, partId, session } = get();
 
     if (!session?.remoteSessionId) {
       set({ errorMessage: 'Start a session and submit a recording before requesting evaluation.' });
       return;
     }
 
-    if (partId === 'part-4') {
-      set({ errorMessage: 'Assessment is not available for Part 4 yet.' });
-      return;
-    }
-
     // Guard: assessment availability is part-aware.  Part 1 unlocks when the
-    // backend declares Part 1 complete; Parts 2 and 3 unlock only after their
-    // respective canonical completion phases.
+    // backend declares Part 1 complete; Parts 2, 3, and 4 unlock only after
+    // their respective canonical completion phases.
     const isPart2 = partId === 'part-2';
     const isPart3 = partId === 'part-3';
+    const isPart4 = partId === 'part-4';
     const readyForEvaluation = isPart3
       ? part3Complete === true && part3Phase === 'complete'
       : isPart2
         ? part2Complete === true && part2Phase === 'complete'
-        : session?.part1Complete === true;
+        : isPart4
+          ? part4Complete === true && part4Phase === 'complete'
+          : session?.part1Complete === true;
     if (!readyForEvaluation) {
       set({
         errorMessage: isPart2
           ? 'Complete the long turn and follow-up before requesting evaluation.'
           : isPart3
             ? 'Complete the discussion and decision before requesting evaluation.'
-            : 'Complete the conversation before requesting evaluation.',
+            : isPart4
+              ? 'Complete all three Part 4 questions before requesting evaluation.'
+              : 'Complete the conversation before requesting evaluation.',
       });
       return;
     }
