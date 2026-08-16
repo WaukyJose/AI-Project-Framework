@@ -12,7 +12,7 @@ const storeSource = read('store/speaking-store.ts');
 
 test('completed Part 3 navigation carries its authoritative remote session UUID only', () => {
   assert.match(screenSource, /source_part3_session_id: session\.remoteSessionId/);
-  assert.match(screenSource, /label="Continue to Part 4"/);
+  assert.match(screenSource, /label=\{t\.continueToPart4\}/);
   assert.doesNotMatch(
     screenSource,
     /params:\s*\{[^}]*(part3_scenario_id|part4_set_id|part4_question_id|part4_question_index)/s,

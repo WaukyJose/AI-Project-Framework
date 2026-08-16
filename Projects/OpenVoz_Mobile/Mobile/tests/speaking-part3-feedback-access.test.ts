@@ -15,16 +15,16 @@ const part3CompletionBlock = screenSource.slice(
 );
 
 test('canonical Part 3 completion exposes feedback and Part 4 as independent actions', () => {
-  assert.match(part3CompletionBlock, /View Part 3 feedback/);
-  assert.match(part3CompletionBlock, /label="Continue to Part 4"/);
-  assert.doesNotMatch(part3CompletionBlock, /assessment[\s\S]*Continue to Part 4/);
+  assert.match(part3CompletionBlock, /t\.viewPart3Feedback/);
+  assert.match(part3CompletionBlock, /label=\{t\.continueToPart4\}/);
+  assert.doesNotMatch(part3CompletionBlock, /AssessmentResultsCard/);
 });
 
 test('View Part 3 feedback invokes the existing evaluation action and loading state', () => {
   assert.match(part3CompletionBlock, /canRequestEvaluation \? \(/);
   assert.match(part3CompletionBlock, /onPress=\{requestEvaluation\}/);
   assert.match(part3CompletionBlock, /disabled=\{isEvaluating\}/);
-  assert.match(part3CompletionBlock, /Requesting feedback…/);
+  assert.match(part3CompletionBlock, /t\.requestingFeedback/);
   assert.match(storeSource, /async requestEvaluation\(\)/);
   assert.match(
     storeSource,

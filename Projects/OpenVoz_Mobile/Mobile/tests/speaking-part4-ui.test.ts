@@ -10,7 +10,7 @@ const screenSource = read('screens/practice/b2-speaking-part-placeholder-screen.
 const storeSource = read('store/speaking-store.ts');
 
 test('linked Part 4 has its own Further discussion introduction and start action', () => {
-  assert.match(screenSource, /isPart4[\s\S]*'Further discussion'/);
+  assert.match(screenSource, /'part-4': 'Further discussion'/);
   assert.match(
     screenSource,
     /Answer the examiner's questions about the topic from Part 3\. Give reasons and examples to develop your answers\./,
@@ -31,7 +31,7 @@ test('active Part 4 renders the server examiner turn and existing answer area', 
   assert.match(screenSource, /hasStartedTask && examinerText/);
   assert.match(
     screenSource,
-    /ExaminerTurnBubble examinerAudioUrl=\{examinerAudioUrl\} examinerText=\{examinerText\}/,
+    /<ExaminerTurnBubble[\s\S]*examinerAudioUrl=\{examinerAudioUrl\}[\s\S]*examinerText=\{examinerText\}/,
   );
   assert.match(screenSource, /<SpeakingAnswerArea/);
   assert.match(screenSource, /onStartRecording=\{startRecording\}/);
@@ -47,7 +47,7 @@ test('Part 4 exposes no question count or client progression control', () => {
 test('canonical completion preserves closing turn, shows success, and hides answer controls', () => {
   assert.match(screenSource, /part4Complete && part4Phase === 'complete'/);
   assert.match(screenSource, /hasStartedTask && examinerText/);
-  assert.match(screenSource, /<Text style=\{styles\.completionTitle\}>Part 4 complete<\/Text>/);
+  assert.match(screenSource, /<Text style=\{styles\.completionTitle\}>\{t\.part4CompleteTitle\}<\/Text>/);
   assert.match(screenSource, /hasStartedTask && !isPart3Complete && !isPart4Complete/);
   assert.match(screenSource, /Back to B2 Speaking/);
 });
@@ -66,7 +66,7 @@ test('Part 4 completion exposes assessment request without manual session comple
 
 test('Part 3 completion handoff remains canonical and isolated', () => {
   assert.match(screenSource, /isPart3Complete \? \(/);
-  assert.match(screenSource, /label="Continue to Part 4"/);
+  assert.match(screenSource, /label=\{t\.continueToPart4\}/);
   assert.match(screenSource, /source_part3_session_id: session\.remoteSessionId/);
   assert.doesNotMatch(
     screenSource,

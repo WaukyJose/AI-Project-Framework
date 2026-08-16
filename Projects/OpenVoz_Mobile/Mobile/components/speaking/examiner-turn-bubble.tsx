@@ -1,13 +1,36 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { ExaminerAvatar } from './examiner-avatar';
+import { languageIdentities } from '../../constants/language-identity';
+
+type Language = 'en' | 'es';
 
 interface ExaminerTurnBubbleProps {
   examinerText: string;
   examinerAudioUrl: string | null;
+  language?: Language;
 }
 
-export function ExaminerTurnBubble({ examinerText, examinerAudioUrl }: ExaminerTurnBubbleProps) {
+const content = {
+  en: {
+    examinerTitle: 'OpenVoz Examiner',
+    audioReady: 'Audio ready',
+  },
+  es: {
+    examinerTitle: 'Examinador OpenVoz',
+    audioReady: 'Audio listo',
+  },
+};
+
+export function ExaminerTurnBubble({
+  examinerText,
+  examinerAudioUrl,
+  language = 'en',
+}: ExaminerTurnBubbleProps) {
+  const t = content[language];
+  const identity = languageIdentities[language];
+  const isSpanish = language === 'es';
+
   return (
     <View style={styles.section}>
       <View style={styles.avatarRow}>
@@ -15,8 +38,22 @@ export function ExaminerTurnBubble({ examinerText, examinerAudioUrl }: ExaminerT
       </View>
       <View style={styles.bubble}>
         <View style={styles.headerRow}>
-          <Text style={styles.examinerTitle}>OpenVoz Examiner</Text>
-          {examinerAudioUrl ? <Text style={styles.audioBadge}>Audio ready</Text> : null}
+          <Text style={[styles.examinerTitle, isSpanish && { color: identity.accent }]}>
+            {t.examinerTitle}
+          </Text>
+          {examinerAudioUrl ? (
+            <Text
+              style={[
+                styles.audioBadge,
+                isSpanish && {
+                  backgroundColor: `${identity.accent}26`,
+                  color: identity.accent,
+                },
+              ]}
+            >
+              {t.audioReady}
+            </Text>
+          ) : null}
         </View>
         <Text style={styles.examinerText}>{examinerText}</Text>
       </View>

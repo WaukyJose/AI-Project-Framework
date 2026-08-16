@@ -538,10 +538,12 @@ test('Part 2 does not carry a contradictory 120-second guide', () => {
     'utf8',
   );
 
-  assert.match(screenSource, /subtitle=\{isPart2 \? 'Long turn' : 'Interview'\}/);
+  assert.match(screenSource, /subtitle=\{t\.subtitles\[partKey\]\}/);
+  assert.match(screenSource, /'part-2': 'Long turn'/);
+  assert.match(screenSource, /'part-3': 'Collaborative task'/);
   assert.match(screenSource, /const startLabel = isTaskLoading/);
-  assert.match(screenSource, /\? 'Starting Part 2…'/);
-  assert.match(screenSource, /\? 'Start Part 2'/);
+  assert.match(screenSource, /'part-2': 'Starting Part 2…'/);
+  assert.match(screenSource, /'part-2': 'Start Part 2'/);
   assert.doesNotMatch(screenSource, /void startSession\(\);/);
   assert.doesNotMatch(screenSource, /<SpeakingSessionCard/);
   assert.match(screenSource, /timerDisplay=\{shouldShowTimerGuide \? formatCountdown\(secondsRemaining\) : null\}/);
@@ -560,7 +562,7 @@ test('Part 1 initial workspace exposes Start Part 1 and does not auto-start', ()
 
   assert.match(screenSource, /const isPart1 = \(partId as SpeakingPartId\) === 'part-1';/);
   assert.match(screenSource, /Start Part 1/);
-  assert.match(screenSource, /!hasStartedTask && \(isPart1 \|\| isPart2\)/);
+  assert.match(screenSource, /!hasStartedTask && \(isPart1 \|\| isPart2 \|\| isPart3\)/);
   assert.doesNotMatch(screenSource, /void startSession\(\);/);
 });
 
@@ -577,7 +579,7 @@ test('Part 2 screen reuses existing requestEvaluation and AssessmentResultsCard'
   assert.match(screenSource, /\{assessment \? <AssessmentResultsCard assessment=\{assessment\} \/> : null\}/);
   assert.match(screenSource, /Short follow-up/);
   assert.match(screenSource, /Candidate A's long turn is finished/);
-  assert.match(screenSource, /showPhoto = isPart2 && hasStartedTask && part2Photo !== null/);
+  assert.match(screenSource, /\(isPart2 && hasStartedTask && part2Photo !== null\)/);
 });
 
 test('SpeakingAnswerArea shows Get feedback independently of hasClip and hides recording after completion', () => {
@@ -590,7 +592,7 @@ test('SpeakingAnswerArea shows Get feedback independently of hasClip and hides r
   assert.match(source, /\{canRequestEvaluation \? \(/);
   assert.match(source, /\{hasClip \? \(/);
   assert.match(source, /timerDisplay && timerStatusLabel/);
-  assert.match(source, /isRecording \? ' remaining' : ''/);
+  assert.match(source, /isRecording \? t\.remaining : ''/);
   assert.match(source, /\) : null}\s*\n\s*\n\s*\{canRequestEvaluation \? \(/);
 });
 
@@ -628,19 +630,23 @@ test('Opening Part 2 does not auto-start the task and shows explicit start gate'
   assert.match(screenSource, /!hasStartedTask/);
   assert.match(screenSource, /Start Part 2/);
   assert.match(screenSource, /hasStartedTask && examinerText/);
-  assert.match(screenSource, /\{hasStartedTask \? \(\s*<SpeakingAnswerArea/);
+  assert.match(
+    screenSource,
+    /\{hasStartedTask && !isPart3Complete && !isPart4Complete \? \(\s*<SpeakingAnswerArea/,
+  );
 });
 
-test('Part 1 and Part 2 use the same explicit startSession gate, while Part 3/4 are untouched', () => {
+test('Parts 1-3 retain the shared startSession gate while Part 4 uses its linked gate', () => {
   const screenSource = readFileSync(
     resolve(process.cwd(), 'screens/practice/b2-speaking-part-placeholder-screen.tsx'),
     'utf8',
   );
 
   assert.match(screenSource, /onPress=\{startSession\}/);
-  assert.match(screenSource, /isPart1 \|\| isPart2/);
-  assert.doesNotMatch(screenSource, /part-3.*Start Part 3/s);
-  assert.doesNotMatch(screenSource, /part-4.*Start Part 4/s);
+  assert.match(screenSource, /isPart1 \|\| isPart2 \|\| isPart3/);
+  assert.match(screenSource, /Start Part 3/);
+  assert.match(screenSource, /canStartPart4/);
+  assert.match(screenSource, /startSession\(sourcePart3SessionId\)/);
 });
 
 test('Assessment results prioritize numeric score and hide stars/confidence', () => {

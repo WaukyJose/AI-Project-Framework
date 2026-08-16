@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { ScreenContainer } from '../../components/ui/screen-container';
+import { languageIdentities } from '../../constants/language-identity';
 
 type Language = 'en' | 'es';
 
@@ -42,7 +43,7 @@ const content = {
     eyebrow: 'OpenVoz',
     screenTitle: 'Práctica de expresión oral',
     examBadgeText: 'Cambridge',
-    primaryTitle: 'B2 First Speaking',
+    primaryTitle: 'B2 Expresión oral',
     primarySubtitle: 'Examen oral de cuatro partes · ~14 minutos · Partes 1–4',
     infoLabel: 'QUÉ EVALUAMOS',
     infoBody:
@@ -71,6 +72,7 @@ const content = {
 export function PracticeScreen({ language = 'en' }: PracticeScreenProps) {
   const t = content[language];
   const activeLanguageCode = language.toUpperCase();
+  const identity = languageIdentities[language];
 
   const handleLanguagePress = (code: string) => {
     if (code === 'ES' && language === 'en') {
@@ -86,15 +88,33 @@ export function PracticeScreen({ language = 'en' }: PracticeScreenProps) {
         <Text style={styles.eyebrow}>{t.eyebrow}</Text>
         <Text style={styles.screenTitle}>{t.screenTitle}</Text>
 
+        <View style={styles.languagePillContainer}>
+          <View style={[styles.languagePill, { backgroundColor: identity.accent }]}>
+            <Text style={styles.languagePillText}>{identity.code}</Text>
+          </View>
+        </View>
+
         <Pressable
-          onPress={() => router.push('/(app)/practice/b2-speaking')}
-          style={({ pressed }) => [styles.primaryCard, pressed && styles.primaryCardPressed]}
+          onPress={() =>
+            router.push(
+              language === 'es'
+                ? '/(app)/practice/b2-speaking?lang=es'
+                : '/(app)/practice/b2-speaking'
+            )
+          }
+          style={({ pressed }) => [
+            styles.primaryCard,
+            { borderColor: identity.accent, borderWidth: 4 },
+            pressed && styles.primaryCardPressed,
+          ]}
         >
           <View style={styles.primaryTopRow}>
-            <View style={styles.examBadge}>
-              <Text style={styles.examBadgeText}>{t.examBadgeText}</Text>
+            <View style={[styles.examBadge, { backgroundColor: `${identity.accent}1A` }]}>
+              <Text style={[styles.examBadgeText, { color: identity.accent }]}>
+                {t.examBadgeText}
+              </Text>
             </View>
-            <View style={styles.chevronButton}>
+            <View style={[styles.chevronButton, { backgroundColor: `${identity.accent}1A` }]}>
               <Text style={styles.chevronText}>›</Text>
             </View>
           </View>
@@ -108,7 +128,9 @@ export function PracticeScreen({ language = 'en' }: PracticeScreenProps) {
                 key={part.id}
                 style={[
                   styles.partChip,
-                  part.active ? styles.partChipActive : styles.partChipInactive,
+                  part.active
+                    ? { backgroundColor: `${identity.accent}72` }
+                    : styles.partChipInactive,
                 ]}
               >
                 <Text
@@ -144,7 +166,7 @@ export function PracticeScreen({ language = 'en' }: PracticeScreenProps) {
               <Text
                 style={[
                   styles.languageBadgeText,
-                  exam.code === activeLanguageCode && styles.languageBadgeTextActive,
+                  exam.code === activeLanguageCode && { color: identity.accent },
                 ]}
               >
                 {exam.code}
@@ -157,8 +179,13 @@ export function PracticeScreen({ language = 'en' }: PracticeScreenProps) {
           </Pressable>
         ))}
 
-        <View style={styles.infoBlock}>
-          <Text style={styles.infoLabel}>{t.infoLabel}</Text>
+        <View
+          style={[
+            styles.infoBlock,
+            { borderColor: `${identity.accent}26`, backgroundColor: `${identity.accent}26` },
+          ]}
+        >
+          <Text style={[styles.infoLabel, { color: identity.accent }]}>{t.infoLabel}</Text>
           <Text style={styles.infoBody}>{t.infoBody}</Text>
         </View>
       </ScrollView>
@@ -264,7 +291,6 @@ const styles = StyleSheet.create({
   },
   infoBlock: {
     backgroundColor: '#EAF4F2',
-    borderColor: 'rgba(29,122,107,0.15)',
     borderRadius: 14,
     borderWidth: 1,
     marginTop: 24,
@@ -350,5 +376,23 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '600',
     letterSpacing: -0.3,
+  },
+  languagePillContainer: {
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  languagePill: {
+    alignItems: 'center',
+    borderRadius: 10,
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  languagePillText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
 });

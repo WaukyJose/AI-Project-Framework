@@ -14,6 +14,7 @@ import { useSpeakingTimer } from '../../hooks/use-speaking-timer';
 import { useSpeakingStore } from '../../store/speaking-store';
 import { SpeakingPartId } from '../../types/speaking';
 import { shellStyles } from '../shared/shell-styles';
+import { languageIdentities } from '../../constants/language-identity';
 
 function formatCountdown(secondsRemaining: number) {
   const minutes = Math.floor(secondsRemaining / 60)
@@ -23,13 +24,179 @@ function formatCountdown(secondsRemaining: number) {
   return `${minutes}:${seconds}`;
 }
 
+type PartKey = 'part-1' | 'part-2' | 'part-3' | 'part-4';
+
+const content = {
+  en: {
+    eyebrow: 'B2 First Speaking',
+    partTitles: {
+      'part-1': 'Part 1',
+      'part-2': 'Part 2',
+      'part-3': 'Part 3',
+      'part-4': 'Part 4',
+    },
+    subtitles: {
+      'part-1': 'Interview',
+      'part-2': 'Long turn',
+      'part-3': 'Collaborative task',
+      'part-4': 'Further discussion',
+    },
+    supportingCopy: {
+      'part-1': 'Answer a few questions about yourself and everyday life.',
+      'part-2':
+        'Compare the photographs and answer the task before responding briefly to one follow-up question.',
+      'part-3':
+        'Discuss the scenario with the examiner, then answer a final decision-making question.',
+      'part-4':
+        "Answer the examiner's questions about the topic from Part 3. Give reasons and examples to develop your answers.",
+    },
+    readyTitle: {
+      'part-1': 'Answer a few questions about yourself and everyday life.',
+      'part-2': 'Compare two photographs and answer the question.',
+      'part-3': 'Read the scenario and prepare your response.',
+      'part-4': 'Further discussion',
+    },
+    readyText: {
+      'part-1': 'Start Part 1 when you are ready to hear the examiner’s first question.',
+      'part-2': "You'll speak for about one minute, then answer one short follow-up.",
+      'part-3':
+        "You'll discuss a scenario with a scripted partner, then answer a final decision-making question.",
+      'part-4': 'Answer each question when you are ready.',
+    },
+    startLabel: {
+      'part-1': 'Start Part 1',
+      'part-2': 'Start Part 2',
+      'part-3': 'Start Part 3',
+      'part-4': 'Start Part 4',
+    },
+    startingLabel: {
+      'part-1': 'Starting Part 1…',
+      'part-2': 'Starting Part 2…',
+      'part-3': 'Starting Part 3…',
+      'part-4': 'Starting Part 4…',
+    },
+    status: {
+      recording: 'Recording',
+      timeComplete: 'Time complete',
+      paused: 'Paused',
+      ready: 'Ready',
+    },
+    transitionMessage:
+      "Candidate A's long turn is finished. Now answer the examiner's question briefly.",
+    transitionTitle: 'Short follow-up',
+    decisionPhaseTitle: 'Decision phase',
+    decisionPhaseText: 'Answer the examiner’s final decision-making question.',
+    part4GateTitle: 'Complete Part 3 first',
+    part4GateText: 'Part 4 continues the topic from a completed Part 3 session.',
+    part2LoadingTitle: 'Loading Part 2 task',
+    part2LoadingText: 'Your photographs and task will appear in a moment.',
+    part2CompleteTitle: 'Part 2 complete',
+    part2CompleteText: 'You have completed the long turn and follow-up.',
+    part3CompleteTitle: 'Part 3 complete',
+    part3CompleteText: 'You have completed the discussion and decision phase.',
+    part4CompleteTitle: 'Part 4 complete',
+    part4CompleteText: 'You have completed the final discussion.',
+    requestingFeedback: 'Requesting feedback…',
+    viewPart3Feedback: 'View Part 3 feedback',
+    viewPart4Feedback: 'View Part 4 feedback',
+    continueToPart4: 'Continue to Part 4',
+    dismissMessage: 'Dismiss message',
+    leaveScreen: 'Leave this speaking screen',
+    backToB2Speaking: 'Back to B2 Speaking',
+  },
+  es: {
+    eyebrow: 'B2 Expresión oral',
+    partTitles: {
+      'part-1': 'Parte 1',
+      'part-2': 'Parte 2',
+      'part-3': 'Parte 3',
+      'part-4': 'Parte 4',
+    },
+    subtitles: {
+      'part-1': 'Entrevista',
+      'part-2': 'Turno largo',
+      'part-3': 'Tarea colaborativa',
+      'part-4': 'Discusión adicional',
+    },
+    supportingCopy: {
+      'part-1': 'Responde unas cuantas preguntas sobre ti y tu vida cotidiana.',
+      'part-2':
+        'Compara las fotografías y responde a la tarea antes de contestar brevemente una pregunta de seguimiento.',
+      'part-3':
+        'Comenta la situación con el examinador y luego responde una pregunta final para tomar una decisión.',
+      'part-4':
+        'Responde las preguntas del examinador sobre el tema de la Parte 3. Da razones y ejemplos para desarrollar tus respuestas.',
+    },
+    readyTitle: {
+      'part-1': 'Responde unas cuantas preguntas sobre ti y tu vida cotidiana.',
+      'part-2': 'Compara dos fotografías y responde a la pregunta.',
+      'part-3': 'Lee la situación y prepara tu respuesta.',
+      'part-4': 'Discusión adicional',
+    },
+    readyText: {
+      'part-1':
+        'Comienza la Parte 1 cuando estés listo para escuchar la primera pregunta del examinador.',
+      'part-2':
+        'Hablarás durante aproximadamente un minuto y luego responderás una breve pregunta de seguimiento.',
+      'part-3':
+        'Comentarás una situación con un interlocutor guionizado y luego responderás una pregunta final para tomar una decisión.',
+      'part-4': 'Responde cada pregunta cuando estés listo.',
+    },
+    startLabel: {
+      'part-1': 'Comenzar Parte 1',
+      'part-2': 'Comenzar Parte 2',
+      'part-3': 'Comenzar Parte 3',
+      'part-4': 'Comenzar Parte 4',
+    },
+    startingLabel: {
+      'part-1': 'Iniciando Parte 1…',
+      'part-2': 'Iniciando Parte 2…',
+      'part-3': 'Iniciando Parte 3…',
+      'part-4': 'Iniciando Parte 4…',
+    },
+    status: {
+      recording: 'Grabando',
+      timeComplete: 'Tiempo finalizado',
+      paused: 'Pausado',
+      ready: 'Listo',
+    },
+    transitionMessage:
+      'El turno largo ha terminado. Ahora responde brevemente la pregunta de seguimiento del examinador.',
+    transitionTitle: 'Pregunta breve de seguimiento',
+    decisionPhaseTitle: 'Fase de decisión',
+    decisionPhaseText: 'Responde la pregunta final del examinador para tomar una decisión.',
+    part4GateTitle: 'Completa primero la Parte 3',
+    part4GateText: 'La Parte 4 continúa el tema de una sesión completada de la Parte 3.',
+    part2LoadingTitle: 'Cargando la tarea de la Parte 2',
+    part2LoadingText: 'Tus fotografías y la tarea aparecerán en un momento.',
+    part2CompleteTitle: 'Parte 2 completada',
+    part2CompleteText: 'Completaste el turno largo y la pregunta de seguimiento.',
+    part3CompleteTitle: 'Parte 3 completada',
+    part3CompleteText: 'Completaste la discusión y la fase de decisión final.',
+    part4CompleteTitle: 'Parte 4 completada',
+    part4CompleteText: 'Completaste la discusión final.',
+    requestingFeedback: 'Solicitando evaluación…',
+    viewPart3Feedback: 'Ver evaluación de la Parte 3',
+    viewPart4Feedback: 'Ver evaluación de la Parte 4',
+    continueToPart4: 'Continuar a la Parte 4',
+    dismissMessage: 'Descartar mensaje',
+    leaveScreen: 'Salir de esta práctica oral',
+    backToB2Speaking: 'Volver a B2 Expresión oral',
+  },
+} as const;
+
 export function B2SpeakingPartScreen({
   partId,
   sourcePart3SessionId,
+  language = 'en',
 }: {
   partId: string;
   sourcePart3SessionId?: string;
+  language?: 'en' | 'es';
 }) {
+  const identity = languageIdentities[language];
+  const t = content[language];
+  const isSpanish = language === 'es';
   const assessment = useSpeakingStore((state) => state.assessment);
   const capability = useSpeakingStore((state) => state.capability);
   const clip = useSpeakingStore((state) => state.clip);
@@ -52,7 +219,6 @@ export function B2SpeakingPartScreen({
   const part3Scenario = useSpeakingStore((state) => state.part3Scenario);
   const part4Complete = useSpeakingStore((state) => state.part4Complete);
   const part4Phase = useSpeakingStore((state) => state.part4Phase);
-  const partTitle = useSpeakingStore((state) => state.partTitle);
   const requestEvaluation = useSpeakingStore((state) => state.requestEvaluation);
   const resetError = useSpeakingStore((state) => state.resetError);
   const secondsRemaining = useSpeakingStore((state) => state.secondsRemaining);
@@ -104,73 +270,36 @@ export function B2SpeakingPartScreen({
     !isPart3Complete &&
     !isPart4Complete;
 
-  const supportingCopy = isPart2
-    ? 'Compare the photographs and answer the task before responding briefly to one follow-up question.'
-    : isPart3
-      ? 'Discuss the scenario with the examiner, then answer a final decision-making question.'
-      : isPart4
-        ? "Answer the examiner's questions about the topic from Part 3. Give reasons and examples to develop your answers."
-        : 'Answer a few questions about yourself and everyday life.';
-  const readyTitle = isPart2
-    ? 'Compare two photographs and answer the question.'
-    : isPart3
-      ? 'Read the scenario and prepare your response.'
-      : isPart4
-        ? 'Further discussion'
-        : 'Answer a few questions about yourself and everyday life.';
-  const readyText = isPart2
-    ? "You'll speak for about one minute, then answer one short follow-up."
-    : isPart3
-      ? "You'll discuss a scenario with a scripted partner, then answer a final decision-making question."
-      : isPart4
-        ? 'Answer each question when you are ready.'
-        : 'Start Part 1 when you are ready to hear the examiner’s first question.';
-  const startLabel = isTaskLoading
-    ? isPart2
-      ? 'Starting Part 2…'
-      : isPart3
-        ? 'Starting Part 3…'
-        : isPart4
-          ? 'Starting Part 4…'
-          : 'Starting Part 1…'
-    : isPart2
-      ? 'Start Part 2'
-      : isPart3
-        ? 'Start Part 3'
-        : isPart4
-          ? 'Start Part 4'
-          : 'Start Part 1';
+  const partKey = (
+    isPart2 ? 'part-2' : isPart3 ? 'part-3' : isPart4 ? 'part-4' : 'part-1'
+  ) as PartKey;
+  const supportingCopy = t.supportingCopy[partKey];
+  const readyTitle = t.readyTitle[partKey];
+  const readyText = t.readyText[partKey];
+  const startLabel = isTaskLoading ? t.startingLabel[partKey] : t.startLabel[partKey];
 
   const showPhoto =
     (isPart2 && hasStartedTask && part2Photo !== null) ||
     (isPart3 && hasStartedTask && part3Scenario !== null);
   const shouldShowTimerGuide = isPart2 && hasStartedTask && !isPart2Complete;
   const timerStatusLabel = isRecording
-    ? 'Recording'
+    ? t.status.recording
     : timerStatus === 'completed'
-      ? 'Time complete'
+      ? t.status.timeComplete
       : timerStatus === 'paused'
-        ? 'Paused'
-        : 'Ready';
-  const transitionMessage = isFollowUpPhase
-    ? "Candidate A's long turn is finished. Now answer the examiner's question briefly."
-    : null;
+        ? t.status.paused
+        : t.status.ready;
+  const transitionMessage = isFollowUpPhase ? t.transitionMessage : null;
+  const backLabel = hasStartedTask ? t.leaveScreen : t.backToB2Speaking;
 
   return (
     <ScreenContainer>
       <ScrollView contentContainerStyle={shellStyles.content}>
         <AppHeader
-          eyebrow="B2 First Speaking"
-          subtitle={
-            isPart2
-              ? 'Long turn'
-              : isPart3
-                ? 'Collaborative task'
-                : isPart4
-                  ? 'Further discussion'
-                  : 'Interview'
-          }
-          title={partTitle}
+          accent={isSpanish ? identity.accent : undefined}
+          eyebrow={t.eyebrow}
+          subtitle={t.subtitles[partKey]}
+          title={t.partTitles[partKey]}
         />
 
         <Text style={styles.supportingCopy}>{supportingCopy}</Text>
@@ -180,6 +309,7 @@ export function B2SpeakingPartScreen({
             <Text style={styles.readyTitle}>{readyTitle}</Text>
             <Text style={styles.readyText}>{readyText}</Text>
             <PrimaryButton
+              accent={isSpanish ? identity.accent : undefined}
               disabled={isCreatingSession || isStartingSession}
               label={startLabel}
               onPress={startSession}
@@ -192,6 +322,7 @@ export function B2SpeakingPartScreen({
             <Text style={styles.readyTitle}>{readyTitle}</Text>
             <Text style={styles.readyText}>{readyText}</Text>
             <PrimaryButton
+              accent={isSpanish ? identity.accent : undefined}
               disabled={isCreatingSession || isStartingSession}
               label={startLabel}
               onPress={() => startSession(sourcePart3SessionId)}
@@ -201,39 +332,37 @@ export function B2SpeakingPartScreen({
 
         {isPart4 && !hasStartedTask && !sourcePart3SessionId ? (
           <View style={styles.readyCard}>
-            <Text style={styles.readyTitle}>Complete Part 3 first</Text>
-            <Text style={styles.readyText}>
-              Part 4 continues the topic from a completed Part 3 session.
-            </Text>
+            <Text style={styles.readyTitle}>{t.part4GateTitle}</Text>
+            <Text style={styles.readyText}>{t.part4GateText}</Text>
           </View>
         ) : null}
 
         {hasStartedTask && examinerText ? (
-          <ExaminerTurnBubble examinerAudioUrl={examinerAudioUrl} examinerText={examinerText} />
+          <ExaminerTurnBubble
+            examinerAudioUrl={examinerAudioUrl}
+            examinerText={examinerText}
+            language={language}
+          />
         ) : null}
 
         {transitionMessage ? (
           <View style={styles.transitionBanner}>
-            <Text style={styles.transitionTitle}>Short follow-up</Text>
+            <Text style={styles.transitionTitle}>{t.transitionTitle}</Text>
             <Text style={styles.transitionText}>{transitionMessage}</Text>
           </View>
         ) : null}
 
         {isPart3Decision ? (
           <View style={styles.transitionBanner}>
-            <Text style={styles.transitionTitle}>Decision phase</Text>
-            <Text style={styles.transitionText}>
-              Answer the examiner’s final decision-making question.
-            </Text>
+            <Text style={styles.transitionTitle}>{t.decisionPhaseTitle}</Text>
+            <Text style={styles.transitionText}>{t.decisionPhaseText}</Text>
           </View>
         ) : null}
 
         {isPart2 && isTaskLoading ? (
           <View style={styles.taskLoadingBanner}>
-            <Text style={styles.taskLoadingTitle}>Loading Part 2 task</Text>
-            <Text style={styles.taskLoadingText}>
-              Your photographs and task will appear in a moment.
-            </Text>
+            <Text style={styles.taskLoadingTitle}>{t.part2LoadingTitle}</Text>
+            <Text style={styles.taskLoadingText}>{t.part2LoadingText}</Text>
           </View>
         ) : null}
 
@@ -247,35 +376,33 @@ export function B2SpeakingPartScreen({
 
         {isPart2Complete ? (
           <View style={styles.completionBanner}>
-            <Text style={styles.completionTitle}>Part 2 complete</Text>
-            <Text style={styles.completionSubtitle}>
-              You have completed the long turn and follow-up.
-            </Text>
+            <Text style={styles.completionTitle}>{t.part2CompleteTitle}</Text>
+            <Text style={styles.completionSubtitle}>{t.part2CompleteText}</Text>
           </View>
         ) : null}
 
         {isPart3Complete ? (
           <View style={styles.completionBanner}>
-            <Text style={styles.completionTitle}>Part 3 complete</Text>
-            <Text style={styles.completionSubtitle}>
-              You have completed the discussion and decision phase.
-            </Text>
+            <Text style={styles.completionTitle}>{t.part3CompleteTitle}</Text>
+            <Text style={styles.completionSubtitle}>{t.part3CompleteText}</Text>
             {canRequestEvaluation ? (
               <SecondaryButton
                 disabled={isEvaluating}
-                label={isEvaluating ? 'Requesting feedback…' : 'View Part 3 feedback'}
+                label={isEvaluating ? t.requestingFeedback : t.viewPart3Feedback}
                 onPress={requestEvaluation}
               />
             ) : null}
             {session?.remoteSessionId ? (
               <PrimaryButton
-                label="Continue to Part 4"
+                accent={isSpanish ? identity.accent : undefined}
+                label={t.continueToPart4}
                 onPress={() =>
                   router.push({
                     pathname: '/(app)/practice/[part]',
                     params: {
                       part: 'part-4',
                       source_part3_session_id: session.remoteSessionId,
+                      ...(language === 'es' ? { lang: 'es' } : {}),
                     },
                   })
                 }
@@ -286,12 +413,12 @@ export function B2SpeakingPartScreen({
 
         {isPart4Complete ? (
           <View style={styles.completionBanner}>
-            <Text style={styles.completionTitle}>Part 4 complete</Text>
-            <Text style={styles.completionSubtitle}>You have completed the final discussion.</Text>
+            <Text style={styles.completionTitle}>{t.part4CompleteTitle}</Text>
+            <Text style={styles.completionSubtitle}>{t.part4CompleteText}</Text>
             {canRequestEvaluation ? (
               <SecondaryButton
                 disabled={isEvaluating}
-                label={isEvaluating ? 'Requesting feedback…' : 'View Part 4 feedback'}
+                label={isEvaluating ? t.requestingFeedback : t.viewPart4Feedback}
                 onPress={requestEvaluation}
               />
             ) : null}
@@ -309,6 +436,7 @@ export function B2SpeakingPartScreen({
             isPlaying={isPlaying}
             isRecording={isRecording}
             isUploading={isUploading}
+            language={language}
             playbackSupported={capability.playbackSupported}
             recordingSupported={capability.recordingStatus === 'ready'}
             timerDisplay={shouldShowTimerGuide ? formatCountdown(secondsRemaining) : null}
@@ -328,11 +456,11 @@ export function B2SpeakingPartScreen({
         {errorMessage ? (
           <View style={styles.errorGroup}>
             <ErrorView message={errorMessage} />
-            <SecondaryButton label="Dismiss message" onPress={resetError} />
+            <SecondaryButton label={t.dismissMessage} onPress={resetError} />
           </View>
         ) : null}
 
-        <SecondaryButton label="Back to B2 Speaking" onPress={() => router.back()} />
+        <SecondaryButton label={backLabel} onPress={() => router.back()} />
       </ScrollView>
     </ScreenContainer>
   );
@@ -352,11 +480,13 @@ const styles = StyleSheet.create({
     color: '#166534',
     fontSize: 14,
     lineHeight: 20,
+    textAlign: 'center',
   },
   completionTitle: {
     color: '#14532D',
     fontSize: 18,
     fontWeight: '700',
+    textAlign: 'center',
   },
   errorGroup: {
     gap: 12,

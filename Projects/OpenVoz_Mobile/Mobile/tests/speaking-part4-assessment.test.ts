@@ -27,7 +27,7 @@ test('Part 4 completion surfaces a feedback button rendered by the results card'
     screenSource.indexOf('{isPart4Complete ? ('),
     screenSource.indexOf('{hasStartedTask && !isPart3Complete && !isPart4Complete ? ('),
   );
-  assert.match(part4Block, /View Part 4 feedback/);
+  assert.match(part4Block, /t\.viewPart4Feedback/);
   assert.match(part4Block, /onPress=\{requestEvaluation\}/);
   assert.match(part4Block, /disabled=\{isEvaluating\}/);
   assert.match(
@@ -49,7 +49,7 @@ test('Part 3 feedback access remains unchanged', () => {
     screenSource.indexOf('{isPart3Complete ? ('),
     screenSource.indexOf('{isPart4Complete ? ('),
   );
-  assert.match(part3Block, /View Part 3 feedback/);
+  assert.match(part3Block, /t\.viewPart3Feedback/);
   assert.match(part3Block, /onPress=\{requestEvaluation\}/);
-  assert.doesNotMatch(part3Block, /View Part 4 feedback/);
+  assert.doesNotMatch(part3Block, /t\.viewPart4Feedback/);
 });

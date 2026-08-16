@@ -1,6 +1,9 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { PrimaryButton, SecondaryButton } from '../ui/buttons';
+import { languageIdentities } from '../../constants/language-identity';
+
+type Language = 'en' | 'es';
 
 interface SpeakingAnswerAreaProps {
   canRequestEvaluation: boolean;
@@ -12,6 +15,7 @@ interface SpeakingAnswerAreaProps {
   isPlaying: boolean;
   isRecording: boolean;
   isUploading: boolean;
+  language?: Language;
   playbackSupported: boolean;
   recordingSupported: boolean;
   timerDisplay?: string | null;
@@ -25,6 +29,35 @@ interface SpeakingAnswerAreaProps {
   onUpload: () => void;
 }
 
+const content = {
+  en: {
+    yourTurn: 'Your turn',
+    remaining: ' remaining',
+    startRecording: 'Start recording',
+    stopRecording: 'Stop recording',
+    stop: 'Stop',
+    listen: 'Listen',
+    discardRecording: 'Discard recording',
+    submitting: 'Submitting…',
+    submitAnswer: 'Submit answer',
+    requestingFeedback: 'Requesting feedback…',
+    getFeedback: 'Get feedback',
+  },
+  es: {
+    yourTurn: 'Tu turno',
+    remaining: ' restantes',
+    startRecording: 'Empezar a grabar',
+    stopRecording: 'Detener grabación',
+    stop: 'Detener',
+    listen: 'Escuchar',
+    discardRecording: 'Descartar grabación',
+    submitting: 'Enviando…',
+    submitAnswer: 'Enviar respuesta',
+    requestingFeedback: 'Solicitando evaluación…',
+    getFeedback: 'Ver evaluación',
+  },
+};
+
 export function SpeakingAnswerArea({
   canRequestEvaluation,
   canUpload,
@@ -35,6 +68,7 @@ export function SpeakingAnswerArea({
   isPlaying,
   isRecording,
   isUploading,
+  language = 'en',
   playbackSupported,
   recordingSupported,
   timerDisplay = null,
@@ -47,15 +81,19 @@ export function SpeakingAnswerArea({
   onTogglePlayback,
   onUpload,
 }: SpeakingAnswerAreaProps) {
+  const t = content[language];
+  const identity = languageIdentities[language];
+  const isSpanish = language === 'es';
+
   return (
     <View style={styles.card}>
-      <Text style={styles.title}>Your turn</Text>
+      <Text style={styles.title}>{t.yourTurn}</Text>
 
       {!hasCompletedPart && timerDisplay && timerStatusLabel ? (
         <View style={styles.timerRow}>
-          <Text style={styles.timerValue}>
+          <Text style={[styles.timerValue, isSpanish && { color: identity.accent }]}>
             {timerDisplay}
-            {isRecording ? ' remaining' : ''}
+            {isRecording ? t.remaining : ''}
           </Text>
           <Text style={styles.timerStatus}>{timerStatusLabel}</Text>
         </View>
@@ -65,12 +103,17 @@ export function SpeakingAnswerArea({
         <View style={styles.row}>
           {!isRecording ? (
             <PrimaryButton
+              accent={isSpanish ? identity.accent : undefined}
               disabled={!recordingSupported}
-              label="Start recording"
+              label={t.startRecording}
               onPress={onStartRecording}
             />
           ) : (
-            <PrimaryButton label="Stop recording" onPress={onStopRecording} />
+            <PrimaryButton
+              accent={isSpanish ? identity.accent : undefined}
+              label={t.stopRecording}
+              onPress={onStopRecording}
+            />
           )}
         </View>
       ) : null}
@@ -81,37 +124,38 @@ export function SpeakingAnswerArea({
             {isPlaying ? (
               <SecondaryButton
                 disabled={!playbackSupported}
-                label="Stop"
+                label={t.stop}
                 onPress={onStopPlayback}
               />
             ) : (
               <SecondaryButton
                 disabled={!playbackSupported || isPlaying}
-                label="Listen"
+                label={t.listen}
                 onPress={onTogglePlayback}
               />
             )}
-            <SecondaryButton label="Discard recording" onPress={onDiscard} />
+            <SecondaryButton label={t.discardRecording} onPress={onDiscard} />
           </View>
 
           {canUpload ? (
             <View style={styles.row}>
               <PrimaryButton
+                accent={isSpanish ? identity.accent : undefined}
                 disabled={isUploading}
-                label={isUploading ? 'Submitting…' : 'Submit answer'}
+                label={isUploading ? t.submitting : t.submitAnswer}
                 onPress={onUpload}
               />
             </View>
           ) : null}
-
         </>
       ) : null}
 
       {canRequestEvaluation ? (
         <View style={styles.row}>
           <SecondaryButton
+            accent={isSpanish ? identity.accent : undefined}
             disabled={isEvaluating}
-            label={isEvaluating ? 'Requesting feedback…' : 'Get feedback'}
+            label={isEvaluating ? t.requestingFeedback : t.getFeedback}
             onPress={onRequestEvaluation}
           />
         </View>
