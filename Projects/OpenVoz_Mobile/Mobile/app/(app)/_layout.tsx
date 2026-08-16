@@ -19,6 +19,7 @@ export default function AppLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="practice/b2-speaking" />
+      <Stack.Screen name="practice/practice-es" />
       <Stack.Screen name="practice/[part]" />
     </Stack>
   );
