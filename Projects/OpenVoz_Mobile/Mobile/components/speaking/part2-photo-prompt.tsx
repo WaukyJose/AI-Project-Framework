@@ -5,6 +5,7 @@ import type { Part2PhotoPrompt as Part2PhotoPromptType } from '../../types/speak
 
 interface Part2PhotoPromptProps {
   followUpMode?: boolean;
+  language?: 'en' | 'es';
   photo: Part2PhotoPromptType | null;
   scaleToFitWidth?: boolean;
   style?: ViewStyle;
@@ -17,6 +18,7 @@ interface NaturalSize {
 
 export function Part2PhotoPrompt({
   followUpMode = false,
+  language = 'en',
   photo,
   scaleToFitWidth = false,
   style,
@@ -27,6 +29,25 @@ export function Part2PhotoPrompt({
   if (!photo) {
     return null;
   }
+
+  const t = {
+    en: {
+      unavailable: 'Photograph unavailable.',
+      tryAgain: 'Please try again.',
+      part2Label: 'Part 2 speaking photograph',
+      part3Label: 'Part 3 speaking scenario',
+      followUpCue: 'Answer the examiner briefly.',
+      readyCue: "Press Start recording when you're ready.",
+    },
+    es: {
+      unavailable: 'Fotografía no disponible.',
+      tryAgain: 'Inténtalo de nuevo.',
+      part2Label: 'Fotografía de la Parte 2 de expresión oral',
+      part3Label: 'Situación de la Parte 3 de expresión oral',
+      followUpCue: 'Responde brevemente al examinador.',
+      readyCue: 'Pulsa Iniciar grabación cuando estés listo.',
+    },
+  }[language];
 
   // Derive wrapper height from the image's natural aspect ratio so
   // resizeMode="contain" fills the available width regardless of
@@ -43,13 +64,13 @@ export function Part2PhotoPrompt({
           {hasError ? (
             <View style={[styles.errorPlaceholder, { minHeight }]}>
               <Text style={styles.errorIcon}>⚠</Text>
-              <Text style={styles.errorText}>Photograph unavailable.</Text>
-              <Text style={styles.errorHint}>Please try again.</Text>
+              <Text style={styles.errorText}>{t.unavailable}</Text>
+              <Text style={styles.errorHint}>{t.tryAgain}</Text>
             </View>
           ) : scaleToFitWidth ? (
             <View style={styles.imageFrameFitWidth}>
               <Image
-                accessibilityLabel="Part 3 speaking scenario"
+                accessibilityLabel={t.part3Label}
                 onError={() => setHasError(true)}
                 onLoad={(e) => {
                   setHasError(false);
@@ -66,7 +87,7 @@ export function Part2PhotoPrompt({
           ) : (
             <View style={[styles.imageFrame, { aspectRatio, minHeight }]}>
               <Image
-                accessibilityLabel="Part 2 speaking photograph"
+                accessibilityLabel={t.part2Label}
                 onError={() => setHasError(true)}
                 onLoad={(e) => {
                   setHasError(false);
@@ -86,9 +107,7 @@ export function Part2PhotoPrompt({
         {!hasError ? (
           <View style={styles.copyGroup}>
             <Text style={styles.cue}>
-              {followUpMode
-                ? 'Answer the examiner briefly.'
-                : "Press Start recording when you're ready."}
+              {followUpMode ? t.followUpCue : t.readyCue}
             </Text>
           </View>
         ) : null}

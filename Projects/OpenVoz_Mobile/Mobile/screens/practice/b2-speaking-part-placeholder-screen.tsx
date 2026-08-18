@@ -369,6 +369,7 @@ export function B2SpeakingPartScreen({
         {showPhoto ? (
           <Part2PhotoPrompt
             followUpMode={isFollowUpPhase}
+            language={language}
             photo={isPart2 ? part2Photo : part3Scenario}
             scaleToFitWidth={isPart3}
           />
