@@ -93,14 +93,56 @@ function buildAssessmentResultsModel(summary: SpeakingAssessmentSummary): Assess
   };
 }
 
-export function AssessmentResultsCard({ assessment }: { assessment: SpeakingAssessmentSummary }) {
+export function AssessmentResultsCard({
+  assessment,
+  language = "en",
+}: {
+  assessment: SpeakingAssessmentSummary;
+  language?: "en" | "es";
+}) {
+  const t = {
+    en: {
+      evaluationInProgress: "Evaluation in progress",
+      evaluationInProgressBody:
+        "The backend has accepted the request, but a final assessment result is not yet confirmed.",
+      evaluationUnavailable: "Evaluation unavailable",
+      evaluationUnavailableBody:
+        "The assessment could not be completed. Please try requesting evaluation again.",
+      assessmentResults: "Assessment Results",
+      basedOn: (count: number) => `Based on ${count} assessed criteria`,
+      practiceScore: "Practice score",
+      strengths: "What you did well",
+      improvements: "What to work on next",
+      detailedFeedback: "Detailed feedback",
+      band: "Band",
+      aboutFeedback: "About this feedback",
+      notAssessed: (names: string) => `${names} were not assessed in this activity.`,
+      practiceDisclaimer: "This is practice feedback, not an official Cambridge score.",
+    },
+    es: {
+      evaluationInProgress: "Evaluación en progreso",
+      evaluationInProgressBody:
+        "El backend ha aceptado la solicitud, pero todavía no se ha confirmado un resultado final.",
+      evaluationUnavailable: "Evaluación no disponible",
+      evaluationUnavailableBody:
+        "No se pudo completar la evaluación. Intenta solicitarla nuevamente.",
+      assessmentResults: "Resultados de la evaluación",
+      basedOn: (count: number) => `Basado en ${count} criterios evaluados`,
+      practiceScore: "Puntuación de práctica",
+      strengths: "Lo que hiciste bien",
+      improvements: "Qué puedes mejorar",
+      detailedFeedback: "Retroalimentación detallada",
+      band: "Banda",
+      aboutFeedback: "Sobre esta evaluación",
+      notAssessed: (names: string) => `${names} no se evaluaron en esta actividad.`,
+      practiceDisclaimer: "Esta es una evaluación de práctica, no una puntuación oficial.",
+    },
+  }[language];
   if (assessment.status === 'pending' || assessment.status === 'processing') {
     return (
       <View style={styles.card}>
-        <Text style={styles.title}>Evaluation in progress</Text>
-        <Text style={styles.body}>
-          The backend has accepted the request, but a final assessment result is not yet confirmed.
-        </Text>
+        <Text style={styles.title}>{t.evaluationInProgress}</Text>
+        <Text style={styles.body}>{t.evaluationInProgressBody}</Text>
       </View>
     );
   }
@@ -108,10 +150,8 @@ export function AssessmentResultsCard({ assessment }: { assessment: SpeakingAsse
   if (assessment.status === 'failed') {
     return (
       <View style={[styles.card, styles.errorCard]}>
-        <Text style={[styles.title, styles.errorTitle]}>Evaluation unavailable</Text>
-        <Text style={styles.body}>
-          The assessment could not be completed. Please try requesting evaluation again.
-        </Text>
+        <Text style={[styles.title, styles.errorTitle]}>{t.evaluationUnavailable}</Text>
+        <Text style={styles.body}>{t.evaluationUnavailableBody}</Text>
       </View>
     );
   }
@@ -122,7 +162,7 @@ export function AssessmentResultsCard({ assessment }: { assessment: SpeakingAsse
   return (
     <View style={styles.card}>
       <Text style={styles.title} accessibilityRole="header">
-        Assessment Results
+        {t.assessmentResults}
       </Text>
 
       {score ? (
@@ -130,8 +170,8 @@ export function AssessmentResultsCard({ assessment }: { assessment: SpeakingAsse
           <Text style={styles.scoreDisplay}>{score.display}</Text>
           <Text style={styles.scoreMeta}>
             {score.assessedCriterionCount != null
-              ? `Based on ${score.assessedCriterionCount} assessed criteria`
-              : 'Practice score'}
+              ? t.basedOn(score.assessedCriterionCount)
+              : t.practiceScore}
           </Text>
         </View>
       ) : null}
@@ -139,7 +179,7 @@ export function AssessmentResultsCard({ assessment }: { assessment: SpeakingAsse
       {model.strengths.length > 0 ? (
         <View style={styles.section}>
           <Text style={styles.sectionTitle} accessibilityRole="header">
-            What you did well
+            {t.strengths}
           </Text>
           {model.strengths.map((text, index) => (
             <Text key={`s-${index}`} style={styles.bullet}>
@@ -152,7 +192,7 @@ export function AssessmentResultsCard({ assessment }: { assessment: SpeakingAsse
       {model.improvements.length > 0 ? (
         <View style={styles.section}>
           <Text style={styles.sectionTitle} accessibilityRole="header">
-            What to work on next
+            {t.improvements}
           </Text>
           {model.improvements.map((text, index) => (
             <Text key={`i-${index}`} style={styles.bullet}>
@@ -165,13 +205,13 @@ export function AssessmentResultsCard({ assessment }: { assessment: SpeakingAsse
       {model.assessedCriteria.length > 0 ? (
         <View style={styles.section}>
           <Text style={styles.sectionTitle} accessibilityRole="header">
-            Detailed feedback
+            {t.detailedFeedback}
           </Text>
           {model.assessedCriteria.map((obs, index) => (
             <View key={`c-${index}`} style={styles.criterionRow}>
               <Text style={styles.criterionName}>
                 {obs.name}
-                {obs.band != null ? ` — Band ${obs.band}` : ''}
+                {obs.band != null ? ` — ${t.band} ${obs.band}` : ''}
               </Text>
               {obs.rationale ? (
                 <Text style={styles.criterionRationale}>{obs.rationale}</Text>
@@ -184,15 +224,15 @@ export function AssessmentResultsCard({ assessment }: { assessment: SpeakingAsse
       {(model.unavailableCriteria.length > 0 || model.compactLimitations.length > 0) ? (
         <View style={styles.section}>
           <Text style={styles.sectionTitle} accessibilityRole="header">
-            About this feedback
+            {t.aboutFeedback}
           </Text>
           {model.unavailableCriteria.length > 0 ? (
             <Text style={styles.notice}>
-              {model.unavailableCriteria.join(' and ')} were not assessed in this activity.
+              {t.notAssessed(model.unavailableCriteria.join(' and '))}
             </Text>
           ) : null}
           <Text style={styles.notice}>
-            This is practice feedback, not an official Cambridge score.
+            {t.practiceDisclaimer}
           </Text>
           {model.compactLimitations.map((text, index) => (
             <Text key={`n-${index}`} style={styles.notice}>

@@ -451,7 +451,9 @@ export function B2SpeakingPartScreen({
           />
         ) : null}
 
-        {assessment ? <AssessmentResultsCard assessment={assessment} /> : null}
+        {assessment ? (
+          <AssessmentResultsCard assessment={assessment} language={language} />
+        ) : null}
 
         {errorMessage ? (
           <View style={styles.errorGroup}>
