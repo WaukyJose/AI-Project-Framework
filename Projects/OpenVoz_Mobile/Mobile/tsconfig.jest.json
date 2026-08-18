@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["jest", "node"],
+    "noEmit": true,
+    "module": "commonjs"
+  },
+  "include": [
+    "tests/**/*.ts",
+    "tests/**/*.tsx",
+    "services/**/*.ts",
+    "store/**/*.ts",
+    "types/**/*.ts",
+    "utils/**/*.ts",
+    "components/**/*.ts",
+    "index.ts"
+  ],
+  "exclude": []
+}

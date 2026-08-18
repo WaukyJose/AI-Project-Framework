@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import { getCurrentApiEnvironment } from '../utils/env';
+import { useUiPreferencesStore } from './ui-preferences-store';
 import { ApiError, speakingApi } from '../services/api';
 import { speakingRecorder } from '../services/speaking/speaking-recorder';
 import { getSpeakingPartDefinition } from '../services/speaking/speaking-parts';
@@ -477,7 +478,8 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
 
     try {
       // Step 1: Create session on server
-      const created = await speakingApi.createSession(partId);
+      const language = useUiPreferencesStore.getState().uiLanguage;
+      const created = await speakingApi.createSession(partId, language);
 
       const draft = ensureSession(get().session, partId);
       set({

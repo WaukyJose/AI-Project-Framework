@@ -34,9 +34,9 @@ export const speakingApi = {
   /**
    * POST /api/v1/speaking/sessions/
    */
-  async createSession(part: string): Promise<CreateSessionResponse> {
+  async createSession(part: string, speakingLanguage: 'en' | 'es'): Promise<CreateSessionResponse> {
     return apiClient.request<CreateSessionResponse>('/speaking/sessions/', {
-      body: { part },
+      body: { part, speaking_language: speakingLanguage },
       method: 'POST',
     });
   },
