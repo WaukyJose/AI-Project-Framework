@@ -363,9 +363,10 @@ class SpeakingRecorderService {
       throw new Error('Cannot start recording while playback is active.');
     }
 
-    // 5. Clean up previous clip and player
+    // 5. Clean up previous clip and players
     this.releaseCurrentClip();
     this.removeNativePlayer();
+    this.stopExaminerAudio();
 
     // 6. Prepare and start
     this.lifecycleStatus = 'preparing';
@@ -403,6 +404,10 @@ class SpeakingRecorderService {
     try {
       await recorder.prepareToRecordAsync();
       recorder.record();
+
+      if (!recorder.isRecording) {
+        throw new Error("Native recording failed to start.");
+      }
     } catch (error) {
       this.lifecycleStatus = 'error';
       throw new Error(
@@ -430,6 +435,14 @@ class SpeakingRecorderService {
       return this.currentClip;
     }
 
+    const status = recorder.getStatus();
+    const durationMs =
+      status.isRecording && status.durationMillis > 0
+        ? status.durationMillis
+        : this.recordingStartedAt
+          ? Date.now() - this.recordingStartedAt
+          : null;
+
     this.nativeRecorder = null;
 
     try {
@@ -449,9 +462,6 @@ class SpeakingRecorderService {
       this.lifecycleStatus = 'error';
       throw new Error('Recording finished but no audio file was produced.');
     }
-
-    const durationMs =
-      this.recordingStartedAt ? Date.now() - this.recordingStartedAt : null;
 
     this.currentClip = {
       durationMs,
@@ -556,7 +566,10 @@ class SpeakingRecorderService {
 
     // Create, store, and play — reference is retained so iOS GC won't
     // trigger sharedObjectWillRelease → teardownPlayer → pause
-    const player = createAudioPlayer({ uri });
+    const player = createAudioPlayer(
+      { uri },
+      { keepAudioSessionActive: true }
+    );
     this.examinerPlayer = player;
     player.play();
   }
