@@ -4,5 +4,5 @@ import { B2SpeakingLandingScreen } from '../../../screens/practice/b2-speaking-l
 
 export default function B2SpeakingLandingRoute() {
   const { lang } = useLocalSearchParams();
-  return <B2SpeakingLandingScreen language={lang === 'es' ? 'es' : 'en'} />;
+  return <B2SpeakingLandingScreen language={lang === 'es' ? 'es' : undefined} />;
 }

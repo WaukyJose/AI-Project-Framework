@@ -1,5 +1,5 @@
-import { PracticeScreen } from '../../../screens/practice/practice-screen';
+import { B2SpeakingLandingScreen } from '../../../screens/practice/b2-speaking-landing-screen';
 
 export default function PracticeRoute() {
-  return <PracticeScreen />;
+  return <B2SpeakingLandingScreen />;
 }

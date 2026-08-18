@@ -1,8 +1,10 @@
 import { router } from 'expo-router';
+import { useEffect, useRef } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { ScreenContainer } from '../../components/ui/screen-container';
 import { languageIdentities } from '../../constants/language-identity';
+import { useUiPreferencesStore } from '../../store/ui-preferences-store';
 
 type Language = 'en' | 'es';
 
@@ -69,17 +71,30 @@ const content = {
   },
 } as const;
 
-export function PracticeScreen({ language = 'en' }: PracticeScreenProps) {
-  const t = content[language];
-  const activeLanguageCode = language.toUpperCase();
-  const identity = languageIdentities[language];
+export function PracticeScreen({ language }: PracticeScreenProps) {
+  const uiLanguage = useUiPreferencesStore((state) => state.uiLanguage);
+  const setUiLanguage = useUiPreferencesStore((state) => state.setUiLanguage);
+
+  // Compatibility bootstrap: an explicitly route-provided language (for
+  // example practice-es) seeds the global store once on mount. After that,
+  // the global store is the primary source of truth for the UI language.
+  const seededFromRoute = useRef(false);
+  useEffect(() => {
+    if (seededFromRoute.current) {
+      return;
+    }
+    seededFromRoute.current = true;
+    if (language) {
+      setUiLanguage(language);
+    }
+  }, [language, setUiLanguage]);
+
+  const t = content[uiLanguage];
+  const activeLanguageCode = uiLanguage.toUpperCase();
+  const identity = languageIdentities[uiLanguage];
 
   const handleLanguagePress = (code: string) => {
-    if (code === 'ES' && language === 'en') {
-      router.push('/(app)/practice/practice-es');
-    } else if (code === 'EN' && language === 'es') {
-      router.push('/(app)/(tabs)/dashboard');
-    }
+    setUiLanguage(code === 'ES' ? 'es' : 'en');
   };
 
   return (
@@ -97,7 +112,7 @@ export function PracticeScreen({ language = 'en' }: PracticeScreenProps) {
         <Pressable
           onPress={() =>
             router.push(
-              language === 'es'
+              uiLanguage === 'es'
                 ? '/(app)/practice/b2-speaking?lang=es'
                 : '/(app)/practice/b2-speaking'
             )

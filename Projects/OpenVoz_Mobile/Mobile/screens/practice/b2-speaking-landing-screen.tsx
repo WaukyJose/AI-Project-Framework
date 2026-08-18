@@ -1,9 +1,11 @@
 import { router } from 'expo-router';
+import { useEffect, useRef } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { ScreenContainer } from '../../components/ui/screen-container';
 import { speakingParts } from '../../services/speaking/speaking-parts';
 import { languageIdentities } from '../../constants/language-identity';
+import { useUiPreferencesStore } from '../../store/ui-preferences-store';
 
 const featuredPartId = 'part-1';
 
@@ -84,9 +86,26 @@ const content = {
   },
 } as const;
 
-export function B2SpeakingLandingScreen({ language = 'en' }: B2SpeakingLandingScreenProps) {
-  const t = content[language];
-  const identity = languageIdentities[language];
+export function B2SpeakingLandingScreen({ language }: B2SpeakingLandingScreenProps) {
+  const uiLanguage = useUiPreferencesStore((state) => state.uiLanguage);
+  const setUiLanguage = useUiPreferencesStore((state) => state.setUiLanguage);
+
+  // Compatibility bootstrap: a legacy ?lang=es route param seeds the global
+  // store once on mount. After that, the store is the primary UI-language
+  // source of truth and the prop is never used to override it.
+  const seededFromRoute = useRef(false);
+  useEffect(() => {
+    if (seededFromRoute.current) {
+      return;
+    }
+    seededFromRoute.current = true;
+    if (language) {
+      setUiLanguage(language);
+    }
+  }, [language, setUiLanguage]);
+
+  const t = content[uiLanguage];
+  const identity = languageIdentities[uiLanguage];
   const featuredPartOriginal =
     speakingParts.find((part) => part.id === featuredPartId) ?? speakingParts[0];
   const remainingPartsOriginal = speakingParts.filter(
@@ -118,7 +137,7 @@ export function B2SpeakingLandingScreen({ language = 'en' }: B2SpeakingLandingSc
         <Pressable
           onPress={() =>
             router.push(
-              language === 'es'
+              uiLanguage === 'es'
                 ? `/(app)/practice/${featuredPart.id}?lang=es`
                 : `/(app)/practice/${featuredPart.id}`
             )
@@ -154,7 +173,7 @@ export function B2SpeakingLandingScreen({ language = 'en' }: B2SpeakingLandingSc
             key={part.id}
             onPress={() =>
               router.push(
-                language === 'es'
+                uiLanguage === 'es'
                   ? `/(app)/practice/${part.id}?lang=es`
                   : `/(app)/practice/${part.id}`
               )
