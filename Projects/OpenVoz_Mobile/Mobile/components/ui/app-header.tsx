@@ -1,17 +1,20 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 interface AppHeaderProps {
+  accent?: string;
   eyebrow?: string;
   subtitle?: string;
   title: string;
   trailing?: React.ReactNode;
 }
 
-export function AppHeader({ eyebrow, subtitle, title, trailing }: AppHeaderProps) {
+export function AppHeader({ accent, eyebrow, subtitle, title, trailing }: AppHeaderProps) {
   return (
     <View style={styles.container}>
       <View style={styles.copy}>
-        {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
+        {eyebrow ? (
+          <Text style={[styles.eyebrow, accent ? { color: accent } : null]}>{eyebrow}</Text>
+        ) : null}
         <Text style={styles.title}>{title}</Text>
         {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
       </View>

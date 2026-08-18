@@ -22,6 +22,7 @@ interface StatCardProps {
 
 interface ProgressCardProps extends BaseCardProps {
   accentValue?: string;
+  accentValueColor?: string;
 }
 
 export function PracticeCard({
@@ -52,11 +53,19 @@ export function PracticeCard({
   );
 }
 
-export function ProgressCard({ accentValue, caption, description, title }: ProgressCardProps) {
+export function ProgressCard({
+  accentValue,
+  accentValueColor = '#0F4C5C',
+  caption,
+  description,
+  title,
+}: ProgressCardProps) {
   return (
     <View style={styles.card}>
       <Text style={styles.cardTitle}>{title}</Text>
-      {accentValue ? <Text style={styles.accentValue}>{accentValue}</Text> : null}
+      {accentValue ? (
+        <Text style={[styles.accentValue, { color: accentValueColor }]}>{accentValue}</Text>
+      ) : null}
       {caption ? <Text style={styles.caption}>{caption}</Text> : null}
       {description ? <Text style={styles.description}>{description}</Text> : null}
     </View>

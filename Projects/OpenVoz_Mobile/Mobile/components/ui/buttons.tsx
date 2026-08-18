@@ -1,31 +1,44 @@
 import { Pressable, StyleSheet, Text } from 'react-native';
 
 interface ButtonProps {
+  accent?: string;
   disabled?: boolean;
   label: string;
   onPress?: () => void;
 }
 
-export function PrimaryButton({ disabled = false, label, onPress }: ButtonProps) {
+export function PrimaryButton({ accent, disabled = false, label, onPress }: ButtonProps) {
   return (
     <Pressable
       disabled={disabled}
       onPress={onPress}
-      style={[styles.base, styles.primary, disabled && styles.disabled]}
+      style={[
+        styles.base,
+        styles.primary,
+        accent ? { backgroundColor: accent } : null,
+        disabled && styles.disabled,
+      ]}
     >
       <Text style={[styles.text, styles.primaryText]}>{label}</Text>
     </Pressable>
   );
 }
 
-export function SecondaryButton({ disabled = false, label, onPress }: ButtonProps) {
+export function SecondaryButton({ accent, disabled = false, label, onPress }: ButtonProps) {
   return (
     <Pressable
       disabled={disabled}
       onPress={onPress}
-      style={[styles.base, styles.secondary, disabled && styles.disabled]}
+      style={[
+        styles.base,
+        styles.secondary,
+        accent ? { borderColor: accent } : null,
+        disabled && styles.disabled,
+      ]}
     >
-      <Text style={[styles.text, styles.secondaryText]}>{label}</Text>
+      <Text style={[styles.text, styles.secondaryText, accent ? { color: accent } : null]}>
+        {label}
+      </Text>
     </Pressable>
   );
 }

@@ -1,47 +1,95 @@
-import { ScrollView } from 'react-native';
+import { router } from 'expo-router';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { AppHeader } from '../../components/ui/app-header';
+import { SecondaryButton } from '../../components/ui/buttons';
 import { ScreenContainer } from '../../components/ui/screen-container';
 import { SectionHeader } from '../../components/ui/section-header';
-import { SettingsRow } from '../../components/ui/listing';
+import { languageIdentities } from '../../constants/language-identity';
+import { useAuthStore } from '../../store/auth-store';
+import { useUiPreferencesStore } from '../../store/ui-preferences-store';
 import { shellStyles } from '../shared/shell-styles';
 
+const content = {
+  en: {
+    eyebrow: 'Settings',
+    subtitle:
+      'Most app behaviour follows your device defaults. Use this screen for session access and future app options.',
+    title: 'Settings',
+    appAccess: 'App Access',
+    appAccessDescription:
+      'App-level preferences will appear here when they become useful and configurable inside OpenVoz.',
+    noSettingsTitle: 'No additional settings yet',
+    noSettingsText:
+      'Speaking permissions are requested when needed, and appearance and language continue to use your device settings.',
+    session: 'Session',
+    logOut: 'Log Out',
+  },
+  es: {
+    eyebrow: 'Configuración',
+    subtitle:
+      'La mayoría del comportamiento de la aplicación sigue los ajustes predeterminados de tu dispositivo. Usa esta pantalla para el acceso a la sesión y las próximas opciones de la aplicación.',
+    title: 'Configuración',
+    appAccess: 'Acceso a la aplicación',
+    appAccessDescription:
+      'Las preferencias de la aplicación aparecerán aquí cuando resulten útiles y configurables dentro de OpenVoz.',
+    noSettingsTitle: 'Aún no hay ajustes adicionales',
+    noSettingsText:
+      'Los permisos de uso del micrófono se solicitan cuando es necesario, y la apariencia y el idioma continúan usando los ajustes de tu dispositivo.',
+    session: 'Sesión',
+    logOut: 'Cerrar sesión',
+  },
+} as const;
+
 export function SettingsScreen() {
+  const uiLanguage = useUiPreferencesStore((state) => state.uiLanguage);
+  const identity = languageIdentities[uiLanguage];
+  const t = content[uiLanguage];
+  const accentColor = uiLanguage === 'es' ? identity.accent : undefined;
+
+  const logout = useAuthStore((state) => state.logout);
+
+  async function handleLogout() {
+    await logout();
+    router.replace('/(auth)/login');
+  }
+
   return (
     <ScreenContainer>
       <ScrollView contentContainerStyle={shellStyles.content}>
-        <AppHeader
-          eyebrow="Settings"
-          subtitle="Settings placeholders establish the long-term shell without implementing preferences yet."
-          title="Settings"
-        />
+        <AppHeader accent={accentColor} eyebrow={t.eyebrow} subtitle={t.subtitle} title={t.title} />
 
-        <SectionHeader title="Application Preferences" />
-        <SettingsRow
-          description="Theme and visual behavior will remain lightweight and accessible."
-          title="Appearance"
-        />
-        <SettingsRow
-          description="Language selection will follow the shared content and account model."
-          title="Language"
-        />
-        <SettingsRow
-          description="Notification preferences remain out of scope for this sprint."
-          title="Notifications"
-        />
-        <SettingsRow
-          description="Microphone permissions will be surfaced when speaking features begin."
-          title="Microphone"
-        />
-        <SettingsRow
-          description="Privacy and data handling references will align with backend-owned account policies."
-          title="Privacy"
-        />
-        <SettingsRow
-          description="Application versioning and framework references will appear here."
-          title="About"
-        />
+        <SectionHeader description={t.appAccessDescription} title={t.appAccess} />
+        <View style={styles.infoCard}>
+          <Text style={styles.infoTitle}>{t.noSettingsTitle}</Text>
+          <Text style={styles.infoText}>{t.noSettingsText}</Text>
+        </View>
+
+        <SectionHeader title={t.session} />
+        <SecondaryButton label={t.logOut} onPress={() => void handleLogout()} />
       </ScrollView>
     </ScreenContainer>
   );
 }
+
+const styles = StyleSheet.create({
+  infoCard: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#D9E2EC',
+    borderRadius: 22,
+    borderWidth: 1,
+    gap: 8,
+    padding: 18,
+  },
+  infoText: {
+    color: '#52606D',
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  infoTitle: {
+    color: '#102A43',
+    fontSize: 20,
+    fontWeight: '700',
+    lineHeight: 26,
+  },
+});
