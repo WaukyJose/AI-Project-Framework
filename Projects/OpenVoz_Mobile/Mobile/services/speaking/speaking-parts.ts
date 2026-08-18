@@ -18,11 +18,6 @@ export const speakingParts: SpeakingPartDefinition[] = [
     title: 'Part 2',
   },
   {
-    description: 'Short examiner follow-up exchange linked to the Part 2 response.',
-    id: 'follow-up',
-    title: 'Follow-up',
-  },
-  {
     description: 'Collaborative discussion structure and longer comparative interaction.',
     id: 'part-3',
     title: 'Part 3',

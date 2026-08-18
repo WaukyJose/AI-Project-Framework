@@ -6,6 +6,7 @@ import type { Part2PhotoPrompt as Part2PhotoPromptType } from '../../types/speak
 interface Part2PhotoPromptProps {
   followUpMode?: boolean;
   photo: Part2PhotoPromptType | null;
+  scaleToFitWidth?: boolean;
   style?: ViewStyle;
 }
 
@@ -14,7 +15,12 @@ interface NaturalSize {
   height: number;
 }
 
-export function Part2PhotoPrompt({ followUpMode = false, photo, style }: Part2PhotoPromptProps) {
+export function Part2PhotoPrompt({
+  followUpMode = false,
+  photo,
+  scaleToFitWidth = false,
+  style,
+}: Part2PhotoPromptProps) {
   const [hasError, setHasError] = useState(false);
   const [naturalSize, setNaturalSize] = useState<NaturalSize | null>(null);
 
@@ -39,6 +45,23 @@ export function Part2PhotoPrompt({ followUpMode = false, photo, style }: Part2Ph
               <Text style={styles.errorIcon}>⚠</Text>
               <Text style={styles.errorText}>Photograph unavailable.</Text>
               <Text style={styles.errorHint}>Please try again.</Text>
+            </View>
+          ) : scaleToFitWidth ? (
+            <View style={styles.imageFrameFitWidth}>
+              <Image
+                accessibilityLabel="Part 3 speaking scenario"
+                onError={() => setHasError(true)}
+                onLoad={(e) => {
+                  setHasError(false);
+                  const { width, height } = e.nativeEvent.source;
+                  if (width > 0 && height > 0) {
+                    setNaturalSize({ width, height });
+                  }
+                }}
+                resizeMode="contain"
+                source={{ uri: photo.photoUrl }}
+                style={[styles.imageFitWidth, { aspectRatio }]}
+              />
             </View>
           ) : (
             <View style={[styles.imageFrame, { aspectRatio, minHeight }]}>
@@ -122,9 +145,17 @@ const styles = StyleSheet.create({
     height: '100%',
     width: '100%',
   },
+  imageFitWidth: {
+    borderRadius: 16,
+    width: '100%',
+  },
   imageFrame: {
     borderRadius: 16,
     overflow: 'hidden',
+    width: '100%',
+  },
+  imageFrameFitWidth: {
+    borderRadius: 16,
     width: '100%',
   },
   imageWrapper: {
