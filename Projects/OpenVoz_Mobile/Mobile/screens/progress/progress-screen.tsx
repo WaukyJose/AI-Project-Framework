@@ -73,7 +73,7 @@ export function ProgressScreen() {
   const identity = languageIdentities[uiLanguage];
   const t = content[uiLanguage];
   const accentColor = uiLanguage === 'es' ? identity.accent : undefined;
-  const { data } = useDashboardData();
+  const { data } = useDashboardData(uiLanguage);
   const stats = data?.dashboard.stats;
 
   return (

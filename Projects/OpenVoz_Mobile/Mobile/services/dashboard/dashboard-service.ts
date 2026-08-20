@@ -66,8 +66,8 @@ function normalizeSubscription(
 }
 
 export const dashboardService = {
-  async getDashboard() {
-    const response = await dashboardApi.getDashboard();
+  async getDashboard(language: 'en' | 'es') {
+    const response = await dashboardApi.getDashboard(language);
     const payload = (await response.json()) as MobileDashboardResponse;
 
     if (

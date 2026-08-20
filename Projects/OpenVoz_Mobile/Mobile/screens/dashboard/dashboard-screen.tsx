@@ -126,8 +126,9 @@ export function DashboardScreen() {
   const navigateToProgress = () => router.push('/(app)/progress');
   const navigateToProfile = () => router.push('/(app)/profile');
   const logout = useAuthStore((state) => state.logout);
+  const uiLanguage = useUiPreferencesStore((state) => state.uiLanguage);
   const setUiLanguage = useUiPreferencesStore((state) => state.setUiLanguage);
-  const { data } = useDashboardData();
+  const { data } = useDashboardData(uiLanguage);
   const user = data?.user;
   const stats = data?.dashboard.stats;
   const recentActivity = data?.dashboard.recentActivity ?? [];
