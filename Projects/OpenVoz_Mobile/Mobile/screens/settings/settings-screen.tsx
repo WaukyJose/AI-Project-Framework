@@ -34,6 +34,10 @@ const content = {
       'Options for AI improvement and research consent will appear later. This page is only a transparency summary for now.',
     consentLearnMore:
       'Learn more: you will control future AI data-sharing preferences, and consent options will be available later.',
+    governanceTitle: 'Governance',
+    governanceLead: 'OpenVoz follows responsible AI practices.',
+    governanceData: 'You can review how your data is used.',
+    governanceFuture: 'Future versions will provide data-sharing preferences.',
     transparencyTitle: 'Data transparency',
     audioLabel: 'Audio recordings',
     audioValue: 'Transcription and speaking assessment',
@@ -67,6 +71,10 @@ const content = {
       'Más adelante aparecerán opciones de consentimiento para mejora de IA e investigación. Esta página solo ofrece transparencia por ahora.',
     consentLearnMore:
       'Más información: tú controlarás las futuras preferencias de compartición de datos de IA, y las opciones de consentimiento estarán disponibles más adelante.',
+    governanceTitle: 'Gobernanza',
+    governanceLead: 'OpenVoz sigue prácticas responsables de IA.',
+    governanceData: 'Puedes revisar cómo se usan tus datos.',
+    governanceFuture: 'Las versiones futuras incluirán preferencias de compartición de datos.',
     transparencyTitle: 'Transparencia de datos',
     audioLabel: 'Grabaciones de audio',
     audioValue: 'Transcripción y evaluación oral',
@@ -119,6 +127,15 @@ export function SettingsScreen() {
             <Text style={styles.infoTitle}>{t.consentTitle}</Text>
             <Text style={styles.infoText}>{t.consentText}</Text>
             <Text style={styles.learnMoreText}>{t.consentLearnMore}</Text>
+          </View>
+        </View>
+
+        <SectionHeader title={t.governanceTitle} />
+        <View style={styles.infoCard}>
+          <View style={styles.block}>
+            <Text style={styles.infoTitle}>{t.governanceLead}</Text>
+            <Text style={styles.infoText}>{t.governanceData}</Text>
+            <Text style={styles.infoText}>{t.governanceFuture}</Text>
           </View>
         </View>
 
