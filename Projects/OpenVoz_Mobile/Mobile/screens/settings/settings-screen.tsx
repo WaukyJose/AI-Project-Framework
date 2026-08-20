@@ -32,6 +32,15 @@ const content = {
     consentTitle: 'Future consent controls',
     consentText:
       'Options for AI improvement and research consent will appear later. This page is only a transparency summary for now.',
+    consentLearnMore:
+      'Learn more: you will control future AI data-sharing preferences, and consent options will be available later.',
+    transparencyTitle: 'Data transparency',
+    audioLabel: 'Audio recordings',
+    audioValue: 'Transcription and speaking assessment',
+    responsesLabel: 'Responses',
+    responsesValue: 'AI feedback generation',
+    personalInfoLabel: 'Personal information',
+    personalInfoValue: 'Not used for assessment decisions',
     session: 'Session',
     logOut: 'Log Out',
   },
@@ -56,6 +65,15 @@ const content = {
     consentTitle: 'Controles de consentimiento futuros',
     consentText:
       'Más adelante aparecerán opciones de consentimiento para mejora de IA e investigación. Esta página solo ofrece transparencia por ahora.',
+    consentLearnMore:
+      'Más información: tú controlarás las futuras preferencias de compartición de datos de IA, y las opciones de consentimiento estarán disponibles más adelante.',
+    transparencyTitle: 'Transparencia de datos',
+    audioLabel: 'Grabaciones de audio',
+    audioValue: 'Transcripción y evaluación oral',
+    responsesLabel: 'Respuestas',
+    responsesValue: 'Generación de comentarios con IA',
+    personalInfoLabel: 'Información personal',
+    personalInfoValue: 'No se usa para decisiones de evaluación',
     session: 'Sesión',
     logOut: 'Cerrar sesión',
   },
@@ -100,6 +118,25 @@ export function SettingsScreen() {
           <View style={styles.block}>
             <Text style={styles.infoTitle}>{t.consentTitle}</Text>
             <Text style={styles.infoText}>{t.consentText}</Text>
+            <Text style={styles.learnMoreText}>{t.consentLearnMore}</Text>
+          </View>
+        </View>
+
+        <SectionHeader title={t.transparencyTitle} />
+        <View style={styles.infoCard}>
+          <View style={styles.transparencyRow}>
+            <Text style={styles.transparencyLabel}>{t.audioLabel}</Text>
+            <Text style={styles.transparencyValue}>{t.audioValue}</Text>
+          </View>
+          <View style={styles.blockDivider} />
+          <View style={styles.transparencyRow}>
+            <Text style={styles.transparencyLabel}>{t.responsesLabel}</Text>
+            <Text style={styles.transparencyValue}>{t.responsesValue}</Text>
+          </View>
+          <View style={styles.blockDivider} />
+          <View style={styles.transparencyRow}>
+            <Text style={styles.transparencyLabel}>{t.personalInfoLabel}</Text>
+            <Text style={styles.transparencyValue}>{t.personalInfoValue}</Text>
           </View>
         </View>
 
@@ -131,10 +168,30 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
   },
+  learnMoreText: {
+    color: '#1D7A6B',
+    fontSize: 13,
+    fontWeight: '700',
+    lineHeight: 18,
+  },
   infoTitle: {
     color: '#102A43',
     fontSize: 20,
     fontWeight: '700',
     lineHeight: 26,
+  },
+  transparencyLabel: {
+    color: '#102A43',
+    fontSize: 15,
+    fontWeight: '700',
+    lineHeight: 21,
+  },
+  transparencyRow: {
+    gap: 6,
+  },
+  transparencyValue: {
+    color: '#52606D',
+    fontSize: 14,
+    lineHeight: 20,
   },
 });
