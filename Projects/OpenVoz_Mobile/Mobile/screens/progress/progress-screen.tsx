@@ -6,7 +6,7 @@ import { ListItem } from '../../components/ui/listing';
 import { ScreenContainer } from '../../components/ui/screen-container';
 import { SectionHeader } from '../../components/ui/section-header';
 import { languageIdentities } from '../../constants/language-identity';
-import { useDashboardData } from '../../hooks/use-dashboard-data';
+import { useProgressData } from '../../hooks/use-progress-data';
 import { useUiPreferencesStore } from '../../store/ui-preferences-store';
 import { shellStyles } from '../shared/shell-styles';
 
@@ -16,8 +16,8 @@ const content = {
     subtitle: 'Track your speaking practice, assessment results, and next areas to improve.',
     title: 'Progress',
     streakLabel: 'Streak',
-    questionsLabel: 'Questions',
-    accuracyLabel: 'Accuracy',
+    questionsLabel: 'Sessions',
+    accuracyLabel: 'Assessments',
     developmentTitle: 'Speaking Development',
     developmentAccentValue: 'Practice activity',
     developmentCaption: 'Speaking Development',
@@ -44,8 +44,8 @@ const content = {
       'Haz seguimiento de tu práctica oral, tus resultados de evaluación y las próximas áreas por mejorar.',
     title: 'Progreso',
     streakLabel: 'Racha',
-    questionsLabel: 'Preguntas',
-    accuracyLabel: 'Precisión',
+    questionsLabel: 'Sesiones',
+    accuracyLabel: 'Evaluaciones',
     developmentTitle: 'Desarrollo de expresión oral',
     developmentAccentValue: 'Actividad de práctica',
     developmentCaption: 'Desarrollo de expresión oral',
@@ -73,9 +73,7 @@ export function ProgressScreen() {
   const identity = languageIdentities[uiLanguage];
   const t = content[uiLanguage];
   const accentColor = uiLanguage === 'es' ? identity.accent : undefined;
-  const { data } = useDashboardData(uiLanguage);
-  const stats = data?.dashboard.stats;
-
+  const { data } = useProgressData(uiLanguage);
   return (
     <ScreenContainer>
       <ScrollView contentContainerStyle={shellStyles.content}>
@@ -84,21 +82,21 @@ export function ProgressScreen() {
         <View style={styles.metricsPanel}>
           <View style={styles.metric}>
             <Text style={[styles.metricValue, accentColor ? { color: accentColor } : null]}>
-              {stats?.streak ?? 0}
+              {data?.streak.current_days ?? 0}
             </Text>
             <Text style={styles.metricLabel}>{t.streakLabel}</Text>
           </View>
           <View style={styles.metricDivider} />
           <View style={styles.metric}>
             <Text style={[styles.metricValue, accentColor ? { color: accentColor } : null]}>
-              {stats?.questionsAnswered ?? 0}
+              {data?.completedSessions ?? 0}
             </Text>
             <Text style={styles.metricLabel}>{t.questionsLabel}</Text>
           </View>
           <View style={styles.metricDivider} />
           <View style={styles.metric}>
             <Text style={[styles.metricValue, accentColor ? { color: accentColor } : null]}>
-              {stats && stats.questionsAnswered > 0 ? `${stats.accuracy}%` : '—'}
+              {data?.assessedSessions ?? 0}
             </Text>
             <Text style={styles.metricLabel}>{t.accuracyLabel}</Text>
           </View>
@@ -131,6 +129,7 @@ export function ProgressScreen() {
 const styles = StyleSheet.create({
   metric: {
     flex: 1,
+    minwidth: 0,
     gap: 6,
   },
   metricDivider: {
@@ -155,8 +154,8 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     borderWidth: 1,
     flexDirection: 'row',
-    gap: 16,
-    paddingHorizontal: 18,
+    gap: 10,
+    paddingHorizontal: 14,
     paddingVertical: 18,
   },
 });
