@@ -22,6 +22,16 @@ const content = {
     noSettingsTitle: 'No additional settings yet',
     noSettingsText:
       'Speaking permissions are requested when needed, and appearance and language continue to use your device settings.',
+    privacyAiTitle: 'Privacy & AI',
+    recordingsTitle: 'Speaking recordings',
+    recordingsText:
+      'Your speaking recordings are used to run the session, generate feedback, and keep your practice history available in the app.',
+    aiTitle: 'AI assessment',
+    aiText:
+      'AI assessment reviews your speaking session against the current criteria and returns feedback, bands, and progress signals.',
+    consentTitle: 'Future consent controls',
+    consentText:
+      'Options for AI improvement and research consent will appear later. This page is only a transparency summary for now.',
     session: 'Session',
     logOut: 'Log Out',
   },
@@ -36,6 +46,16 @@ const content = {
     noSettingsTitle: 'Aún no hay ajustes adicionales',
     noSettingsText:
       'Los permisos de uso del micrófono se solicitan cuando es necesario, y la apariencia y el idioma continúan usando los ajustes de tu dispositivo.',
+    privacyAiTitle: 'Privacidad e IA',
+    recordingsTitle: 'Grabaciones orales',
+    recordingsText:
+      'Tus grabaciones orales se usan para ejecutar la sesión, generar comentarios y mantener disponible tu historial de práctica en la aplicación.',
+    aiTitle: 'Evaluación con IA',
+    aiText:
+      'La evaluación con IA revisa tu sesión oral según los criterios actuales y devuelve comentarios, bandas y señales de progreso.',
+    consentTitle: 'Controles de consentimiento futuros',
+    consentText:
+      'Más adelante aparecerán opciones de consentimiento para mejora de IA e investigación. Esta página solo ofrece transparencia por ahora.',
     session: 'Sesión',
     logOut: 'Cerrar sesión',
   },
@@ -65,6 +85,24 @@ export function SettingsScreen() {
           <Text style={styles.infoText}>{t.noSettingsText}</Text>
         </View>
 
+        <SectionHeader title={t.privacyAiTitle} />
+        <View style={styles.infoCard}>
+          <View style={styles.block}>
+            <Text style={styles.infoTitle}>{t.recordingsTitle}</Text>
+            <Text style={styles.infoText}>{t.recordingsText}</Text>
+          </View>
+          <View style={styles.blockDivider} />
+          <View style={styles.block}>
+            <Text style={styles.infoTitle}>{t.aiTitle}</Text>
+            <Text style={styles.infoText}>{t.aiText}</Text>
+          </View>
+          <View style={styles.blockDivider} />
+          <View style={styles.block}>
+            <Text style={styles.infoTitle}>{t.consentTitle}</Text>
+            <Text style={styles.infoText}>{t.consentText}</Text>
+          </View>
+        </View>
+
         <SectionHeader title={t.session} />
         <SecondaryButton label={t.logOut} onPress={() => void handleLogout()} />
       </ScrollView>
@@ -78,8 +116,15 @@ const styles = StyleSheet.create({
     borderColor: '#D9E2EC',
     borderRadius: 22,
     borderWidth: 1,
-    gap: 8,
     padding: 18,
+  },
+  block: {
+    gap: 8,
+  },
+  blockDivider: {
+    backgroundColor: '#D9E2EC',
+    height: 1,
+    marginVertical: 14,
   },
   infoText: {
     color: '#52606D',
