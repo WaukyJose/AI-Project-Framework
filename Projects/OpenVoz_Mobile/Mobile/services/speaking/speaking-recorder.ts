@@ -555,9 +555,21 @@ class SpeakingRecorderService {
   // Examiner TTS playback (persistent reference — must survive JS GC)
   // =====================================================================
 
-  playExaminerAudio(uri: string): void {
+  async playExaminerAudio(uri: string): Promise<void> {
     if (Platform.OS === 'web') {
       return;
+    }
+
+    // Switch the iOS audio session back to playback before creating the
+    // examiner player — the recording session leaves TTS output silent.
+    try {
+      await setAudioModeAsync({
+        allowsRecording: false,
+        playsInSilentMode: true,
+      });
+      this.audioSessionConfigured = false;
+    } catch {
+      // Best effort: still attempt playback so the examiner isn't skipped.
     }
 
     // Stop and release any previous examiner player
