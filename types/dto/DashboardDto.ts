@@ -10,6 +10,7 @@ export interface DashboardStatsDto {
   accuracy: number;
   study_minutes: number;
   streak: number;
+  assessments_completed: number;
 }
 
 /**

@@ -20,6 +20,7 @@ function mapStats(dto: DashboardStatsDto): LearningStats {
     'accuracy',
     'study_minutes',
     'streak',
+    'assessments_completed',
   ];
 
   for (const field of numericFields) {
@@ -38,6 +39,7 @@ function mapStats(dto: DashboardStatsDto): LearningStats {
     accuracy: dto.accuracy,
     studyMinutes: dto.study_minutes,
     streak: dto.streak,
+    assessmentsCompleted: dto.assessments_completed,
   };
 }
 

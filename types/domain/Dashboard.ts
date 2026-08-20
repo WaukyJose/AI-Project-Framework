@@ -7,6 +7,7 @@ export interface LearningStats {
   readonly accuracy: number;
   readonly studyMinutes: number;
   readonly streak: number;
+  readonly assessmentsCompleted: number;
 }
 
 export interface ActivityItem {
