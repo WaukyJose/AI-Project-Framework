@@ -1,11 +1,12 @@
 import { router } from 'expo-router';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { AppHeader } from '../../components/ui/app-header';
 import { SecondaryButton } from '../../components/ui/buttons';
 import { ScreenContainer } from '../../components/ui/screen-container';
 import { SectionHeader } from '../../components/ui/section-header';
 import { languageIdentities } from '../../constants/language-identity';
+import { useConsent } from '../../hooks/use-consent';
 import { useAuthStore } from '../../store/auth-store';
 import { useUiPreferencesStore } from '../../store/ui-preferences-store';
 import { shellStyles } from '../shared/shell-styles';
@@ -92,8 +93,18 @@ export function SettingsScreen() {
   const identity = languageIdentities[uiLanguage];
   const t = content[uiLanguage];
   const accentColor = uiLanguage === 'es' ? identity.accent : undefined;
+  const consentQuery = useConsent();
 
   const logout = useAuthStore((state) => state.logout);
+  const consent = consentQuery.consent;
+
+  async function handleConsentChange(consentType: 'analytics' | 'ai_improvement', value: boolean) {
+    try {
+      await consentQuery.updateConsent(consentType, value);
+    } catch {
+      // Leave the current values visible and let the user retry.
+    }
+  }
 
   async function handleLogout() {
     await logout();
@@ -136,6 +147,72 @@ export function SettingsScreen() {
             <Text style={styles.infoTitle}>{t.governanceLead}</Text>
             <Text style={styles.infoText}>{t.governanceData}</Text>
             <Text style={styles.infoText}>{t.governanceFuture}</Text>
+          </View>
+        </View>
+
+        <SectionHeader title={t.privacyAiTitle} />
+        <View style={styles.infoCard}>
+          <View style={styles.consentRow}>
+            <View style={styles.consentCopy}>
+              <Text style={styles.infoTitle}>{t.aiTitle}</Text>
+              <Text style={styles.infoText}>
+                {consentQuery.isLoading
+                  ? uiLanguage === 'es'
+                    ? 'Cargando estado de consentimiento...'
+                    : 'Loading consent status...'
+                  : uiLanguage === 'es'
+                    ? 'Siempre activo para ejecutar la evaluación de tu práctica oral.'
+                    : 'Always on to run your speaking assessment.'}
+              </Text>
+            </View>
+            <Switch
+              accessibilityLabel={t.aiTitle}
+              disabled
+              value={true}
+            />
+          </View>
+          <View style={styles.blockDivider} />
+          <View style={styles.consentRow}>
+            <View style={styles.consentCopy}>
+              <Text style={styles.infoTitle}>{uiLanguage === 'es' ? 'Analítica' : 'Analytics'}</Text>
+              <Text style={styles.infoText}>
+                {uiLanguage === 'es'
+                  ? 'Ayuda a OpenVoz a entender el uso general de la app.'
+                  : 'Helps OpenVoz understand overall app usage.'}
+              </Text>
+              {consentQuery.error ? (
+                <Text style={styles.errorText}>
+                  {uiLanguage === 'es'
+                    ? 'No se pudieron actualizar los ajustes. Inténtalo de nuevo.'
+                    : 'Could not update settings. Please try again.'}
+                </Text>
+              ) : null}
+            </View>
+            <Switch
+              accessibilityLabel={uiLanguage === 'es' ? 'Analítica' : 'Analytics'}
+              disabled={consentQuery.isLoading}
+              onValueChange={(value) => void handleConsentChange('analytics', value)}
+              value={consent?.analytics ?? false}
+            />
+          </View>
+          <View style={styles.blockDivider} />
+          <View style={styles.consentRow}>
+            <View style={styles.consentCopy}>
+              <Text style={styles.infoTitle}>
+                {uiLanguage === 'es' ? 'Mejora de IA' : 'AI improvement'}
+              </Text>
+              <Text style={styles.infoText}>
+                {uiLanguage === 'es'
+                  ? 'Ayuda a mejorar OpenVoz con el tiempo.'
+                  : 'Helps improve OpenVoz over time.'}
+              </Text>
+            </View>
+            <Switch
+              accessibilityLabel={uiLanguage === 'es' ? 'Mejora de IA' : 'AI improvement'}
+              disabled={consentQuery.isLoading}
+              onValueChange={(value) => void handleConsentChange('ai_improvement', value)}
+              value={consent?.aiImprovement ?? false}
+            />
           </View>
         </View>
 
@@ -185,6 +262,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
   },
+  errorText: {
+    color: '#B21E35',
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 18,
+  },
   learnMoreText: {
     color: '#1D7A6B',
     fontSize: 13,
@@ -196,6 +279,16 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     lineHeight: 26,
+  },
+  consentCopy: {
+    flex: 1,
+    gap: 8,
+  },
+  consentRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 16,
+    justifyContent: 'space-between',
   },
   transparencyLabel: {
     color: '#102A43',
