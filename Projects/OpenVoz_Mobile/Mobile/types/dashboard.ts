@@ -3,6 +3,7 @@ import { SubscriptionStatus } from './subscription';
 
 export interface DashboardStats {
   accuracy: number;
+  assessmentsCompleted: number;
   correctAnswers: number;
   questionsAnswered: number;
   streak: number;

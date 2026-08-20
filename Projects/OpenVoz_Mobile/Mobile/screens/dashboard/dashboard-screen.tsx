@@ -135,9 +135,6 @@ export function DashboardScreen() {
   const recentSessions = buildRecentSessionRows(recentActivity);
   const latestSession = recentSessions[0] ?? null;
   const sessionCount = recentActivity.length;
-  const bestValue =
-    recentSessions.find((session) => session.badge)?.badge ??
-    (stats && stats.questionsAnswered > 0 ? `${stats.accuracy}%` : '—');
   const initials = getInitials(user?.fullName, user?.username);
 
   async function handleLogout() {
@@ -398,8 +395,8 @@ export function DashboardScreen() {
               <Text style={styles.statLabel}>Streak</Text>
             </View>
             <View style={styles.statCard}>
-              <Text style={styles.statValue}>{bestValue}</Text>
-              <Text style={styles.statLabel}>Best</Text>
+              <Text style={styles.statValue}>{stats?.assessmentsCompleted ?? 0}</Text>
+              <Text style={styles.statLabel}>Assessments</Text>
             </View>
           </View>
 

@@ -10,6 +10,7 @@ interface MobileDashboardResponse {
     stats: {
       accuracy: number;
       correct_answers: number;
+      assessments_completed: number;
       questions_answered: number;
       streak: number;
       study_minutes: number;
@@ -90,6 +91,7 @@ export const dashboardService = {
         recentActivity: payload.dashboard.recent_activity,
         stats: {
           accuracy: payload.dashboard.stats.accuracy,
+          assessmentsCompleted: payload.dashboard.stats.assessments_completed,
           correctAnswers: payload.dashboard.stats.correct_answers,
           questionsAnswered: payload.dashboard.stats.questions_answered,
           streak: payload.dashboard.stats.streak,
