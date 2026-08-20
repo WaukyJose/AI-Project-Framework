@@ -10,6 +10,21 @@ import { useProgressData } from '../../hooks/use-progress-data';
 import { useUiPreferencesStore } from '../../store/ui-preferences-store';
 import { shellStyles } from '../shared/shell-styles';
 
+const milestoneLabels = {
+  en: {
+    first_session: 'First speaking session',
+    five_sessions: '5 speaking sessions completed',
+    ten_sessions: '10 speaking sessions completed',
+    twenty_sessions: '20 speaking sessions completed',
+  },
+  es: {
+    first_session: 'Primera sesión oral',
+    five_sessions: '5 sesiones orales completadas',
+    ten_sessions: '10 sesiones orales completadas',
+    twenty_sessions: '20 sesiones orales completadas',
+  },
+} as const;
+
 const content = {
   en: {
     eyebrow: 'Progress',
@@ -29,14 +44,19 @@ const content = {
     assessmentDescription:
       'Request feedback after a completed speaking session to begin tracking your assessment results.',
     recentActivityTitle: 'Recent Activity',
-    recentActivityDescription:
-      'Use your recent speaking activity to build consistency and keep your practice moving.',
+    recentActivityDescription: 'Review your latest speaking sessions and assessment results.',
     historyTitle: 'History',
     historyCaption:
       'Your recent speaking sessions and assessment history will appear here after your first completed session.',
     milestonesTitle: 'Milestones',
-    milestonesCaption:
-      'Complete your first speaking session to begin building visible progress milestones.',
+    milestonesCaption: 'Keep practising to unlock more speaking milestones.',
+    milestoneAchieved: 'Completed',
+    milestoneLocked: 'Keep practising',
+    criterionTitle: 'Criterion Progress',
+    criterionDescription: 'Track your Cambridge speaking criteria development.',
+    criterionBandLabel: 'Band',
+    criterionAverageLabel: 'Average band',
+    criterionAssessmentsLabel: 'assessments',
   },
   es: {
     eyebrow: 'Progreso',
@@ -58,13 +78,19 @@ const content = {
       'Solicita una evaluación después de completar una sesión de práctica oral para comenzar a registrar tus resultados.',
     recentActivityTitle: 'Actividad reciente',
     recentActivityDescription:
-      'Utiliza tu actividad reciente de práctica oral para mantener la constancia y continuar avanzando.',
+      'Revisa tus sesiones orales más recientes y tus resultados de evaluación.',
     historyTitle: 'Historial',
     historyCaption:
       'Tus sesiones recientes de práctica oral y tu historial de evaluaciones aparecerán aquí después de tu primera sesión completada.',
     milestonesTitle: 'Hitos',
-    milestonesCaption:
-      'Completa tu primera sesión de práctica oral para comenzar a crear hitos de progreso visibles.',
+    milestonesCaption: 'Sigue practicando para desbloquear más hitos orales.',
+    milestoneAchieved: 'Completado',
+    milestoneLocked: 'Sigue practicando',
+    criterionTitle: 'Progreso por criterio',
+    criterionDescription: 'Sigue tu desarrollo en los criterios de expresión oral de Cambridge.',
+    criterionBandLabel: 'Banda',
+    criterionAverageLabel: 'Banda promedio',
+    criterionAssessmentsLabel: 'evaluaciones', 
   },
 } as const;
 
@@ -72,6 +98,7 @@ export function ProgressScreen() {
   const uiLanguage = useUiPreferencesStore((state) => state.uiLanguage);
   const identity = languageIdentities[uiLanguage];
   const t = content[uiLanguage];
+  const milestoneText = milestoneLabels[uiLanguage];
   const accentColor = uiLanguage === 'es' ? identity.accent : undefined;
   const { data } = useProgressData(uiLanguage);
   return (
@@ -82,7 +109,7 @@ export function ProgressScreen() {
         <View style={styles.metricsPanel}>
           <View style={styles.metric}>
             <Text style={[styles.metricValue, accentColor ? { color: accentColor } : null]}>
-              {data?.streak.current_days ?? 0}
+              {data?.streak.currentDays ?? 0}
             </Text>
             <Text style={styles.metricLabel}>{t.streakLabel}</Text>
           </View>
@@ -118,9 +145,41 @@ export function ProgressScreen() {
           title={t.assessmentTitle}
         />
 
+        <SectionHeader title={t.criterionTitle} description={t.criterionDescription} />
+        {data?.criterionProgress.map((criterion) => (
+          <ListItem
+            key={criterion.criterion}
+            title={criterion.criterionName}
+            caption={`${t.criterionAverageLabel} ${criterion.averageBand} · ${criterion.assessmentsCount} ${t.criterionAssessmentsLabel}`}
+            trailingLabel={`${t.criterionBandLabel} ${criterion.latestBand}`}
+          />
+        ))}
+
         <SectionHeader description={t.recentActivityDescription} title={t.recentActivityTitle} />
-        <ListItem caption={t.historyCaption} title={t.historyTitle} />
-        <ListItem caption={t.milestonesCaption} title={t.milestonesTitle} />
+        <SectionHeader description={t.historyCaption} title={t.historyTitle} />
+
+        {data?.recentAssessments.map((assessment) => (
+          <ListItem
+            key={assessment.assessmentId}
+            title={
+              assessment.speakingPart
+                ? `${uiLanguage === 'es' ? 'Parte' : 'Part'} ${assessment.speakingPart}`
+                : t.historyTitle
+            }
+            caption={new Date(assessment.assessmentTimestamp).toLocaleDateString()}
+            trailingLabel={assessment.assessmentStatus.replaceAll('_', ' ')}
+          />
+        ))}
+        <SectionHeader description={t.milestonesCaption} title={t.milestonesTitle} />
+
+        {data?.milestones.map((milestone) => (
+          <ListItem
+            key={milestone.id}
+            title={milestoneText[milestone.id as keyof typeof milestoneText] ?? milestone.id}
+            caption={milestone.achieved ? t.milestoneAchieved : t.milestoneLocked}
+            trailingLabel={milestone.achieved ? '✓' : '🔒'}
+          />
+        ))}
       </ScrollView>
     </ScreenContainer>
   );
@@ -129,7 +188,7 @@ export function ProgressScreen() {
 const styles = StyleSheet.create({
   metric: {
     flex: 1,
-    minwidth: 0,
+    minWidth: 0,
     gap: 6,
   },
   metricDivider: {
