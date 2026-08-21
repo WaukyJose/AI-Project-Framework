@@ -7,6 +7,7 @@ import { ScreenContainer } from '../../components/ui/screen-container';
 import { SectionHeader } from '../../components/ui/section-header';
 import { languageIdentities } from '../../constants/language-identity';
 import { useProgressData } from '../../hooks/use-progress-data';
+import type { Part1HistoryItem } from '../../services/progress/progress-service';
 import { useUiPreferencesStore } from '../../store/ui-preferences-store';
 import { shellStyles } from '../shared/shell-styles';
 
@@ -22,6 +23,19 @@ const milestoneLabels = {
     five_sessions: '5 sesiones orales completadas',
     ten_sessions: '10 sesiones orales completadas',
     twenty_sessions: '20 sesiones orales completadas',
+  },
+} as const;
+
+const part1AttemptLabels = {
+  en: {
+    normal: 'First practice',
+    repeat: 'Repeat practice',
+    new: 'New questions',
+  },
+  es: {
+    normal: 'Primera práctica',
+    repeat: 'Práctica repetida',
+    new: 'Preguntas nuevas',
   },
 } as const;
 
@@ -52,6 +66,9 @@ const content = {
     milestonesCaption: 'Keep practising to unlock more speaking milestones.',
     milestoneAchieved: 'Completed',
     milestoneLocked: 'Keep practising',
+    part1HistoryTitle: 'Part 1 Progress History',
+    part1HistoryDescription: 'Review your completed Part 1 attempts, scores, and feedback.',
+    part1HistoryEmpty: 'No completed Part 1 attempts yet.',
     criterionTitle: 'Criterion Progress',
     criterionDescription: 'Track your Cambridge speaking criteria development.',
     criterionBandLabel: 'Band',
@@ -86,6 +103,10 @@ const content = {
     milestonesCaption: 'Sigue practicando para desbloquear más hitos orales.',
     milestoneAchieved: 'Completado',
     milestoneLocked: 'Sigue practicando',
+    part1HistoryTitle: 'Historial de progreso de la Parte 1',
+    part1HistoryDescription:
+      'Revisa tus intentos completados de la Parte 1, tus puntuaciones y tu retroalimentación.',
+    part1HistoryEmpty: 'Aún no hay intentos completados de la Parte 1.',
     criterionTitle: 'Progreso por criterio',
     criterionDescription: 'Sigue tu desarrollo en los criterios de expresión oral de Cambridge.',
     criterionBandLabel: 'Banda',
@@ -99,8 +120,31 @@ export function ProgressScreen() {
   const identity = languageIdentities[uiLanguage];
   const t = content[uiLanguage];
   const milestoneText = milestoneLabels[uiLanguage];
+  const part1AttemptText = part1AttemptLabels[uiLanguage];
   const accentColor = uiLanguage === 'es' ? identity.accent : undefined;
   const { data } = useProgressData(uiLanguage);
+
+  const formatPart1HistoryCaption = (historyItem: Part1HistoryItem) => {
+    const lines = [];
+    const score = formatSummaryValue(historyItem.scoreSummary);
+    const feedback = formatSummaryValue(historyItem.feedbackSummary);
+    const timestamp = historyItem.assessmentTimestamp
+      ? new Date(historyItem.assessmentTimestamp).toLocaleString()
+      : null;
+
+    if (score) {
+      lines.push(score);
+    }
+    if (feedback) {
+      lines.push(feedback);
+    }
+    if (timestamp) {
+      lines.push(timestamp);
+    }
+
+    return lines.join('\n');
+  };
+
   return (
     <ScreenContainer>
       <ScrollView contentContainerStyle={shellStyles.content}>
@@ -170,6 +214,25 @@ export function ProgressScreen() {
             trailingLabel={assessment.assessmentStatus.replaceAll('_', ' ')}
           />
         ))}
+
+        <SectionHeader
+          description={t.part1HistoryDescription}
+          title={t.part1HistoryTitle}
+        />
+
+        {data?.part1History?.length ? (
+          data.part1History.map((attempt) => (
+            <ListItem
+              key={attempt.conversationId}
+              title={part1AttemptText[attempt.practiceMode]}
+              caption={formatPart1HistoryCaption(attempt)}
+              trailingLabel={attempt.replayOfSessionId ? '↩' : undefined}
+            />
+          ))
+        ) : (
+          <ListItem title={t.part1HistoryEmpty} />
+        )}
+
         <SectionHeader description={t.milestonesCaption} title={t.milestonesTitle} />
 
         {data?.milestones.map((milestone) => (
@@ -218,3 +281,25 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
   },
 });
+
+function formatSummaryValue(summary: Record<string, unknown> | null | undefined) {
+  if (!summary || typeof summary !== 'object') {
+    return null;
+  }
+
+  const display = summary.display;
+  if (typeof display === 'string' && display.trim()) {
+    return display;
+  }
+
+  const score = summary.score;
+  const maximum = summary.maximum;
+  if (
+    (typeof score === 'number' || typeof score === 'string') &&
+    (typeof maximum === 'number' || typeof maximum === 'string')
+  ) {
+    return `${score} / ${maximum}`;
+  }
+
+  return null;
+}

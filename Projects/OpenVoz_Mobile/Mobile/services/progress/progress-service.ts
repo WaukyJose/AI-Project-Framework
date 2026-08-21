@@ -26,12 +26,22 @@ interface RecentAssessmentResponse {
   criterion_results: Record<string, unknown>[];
 }
 
+interface Part1HistoryResponse {
+  conversation_id: string;
+  practice_mode: 'normal' | 'repeat' | 'new';
+  replay_of_session_id: string | null;
+  score_summary: Record<string, unknown> | null;
+  feedback_summary: Record<string, unknown> | null;
+  assessment_timestamp: string | null;
+}
+
 interface MobileProgressResponse {
   language: 'en' | 'es';
   completed_sessions: number;
   assessed_sessions: number;
   criterion_progress: CriterionProgressResponse[];
   recent_assessments: RecentAssessmentResponse[];
+  part1_history: Part1HistoryResponse[];
   activity: Record<string, unknown>;
   streak: {
     current_days: number;
@@ -40,8 +50,51 @@ interface MobileProgressResponse {
   milestones: MilestoneResponse[];
 }
 
+export interface Part1HistoryItem {
+  conversationId: string;
+  practiceMode: 'normal' | 'repeat' | 'new';
+  replayOfSessionId: string | null;
+  scoreSummary: Record<string, unknown> | null;
+  feedbackSummary: Record<string, unknown> | null;
+  assessmentTimestamp: string | null;
+}
+
+export interface ProgressData {
+  language: 'en' | 'es';
+  completedSessions: number;
+  assessedSessions: number;
+  criterionProgress: {
+    criterion: string;
+    criterionName: string;
+    latestBand: number;
+    averageBand: number;
+    assessmentsCount: number;
+  }[];
+  recentAssessments: {
+    assessmentId: string;
+    conversationId: string;
+    speakingPart: number | null;
+    assessmentStatus: string;
+    assessmentTimestamp: string;
+    criterionResults: Record<string, unknown>[];
+  }[];
+  part1History: Part1HistoryItem[];
+  activity: Record<string, unknown>;
+  streak: {
+    currentDays: number;
+    longestDays: number;
+  };
+  milestones: {
+    id: string;
+    achieved: boolean;
+    achievedAt: string | null;
+    current: number;
+    target: number;
+  }[];
+}
+
 export const progressService = {
-  async getProgress(language: 'en' | 'es') {
+  async getProgress(language: 'en' | 'es'): Promise<ProgressData> {
     const response = await progressApi.getProgress(language);
     const payload = (await response.json()) as MobileProgressResponse;
 
@@ -78,6 +131,14 @@ export const progressService = {
         assessmentStatus: assessment.assessment_status,
         assessmentTimestamp: assessment.assessment_timestamp,
         criterionResults: assessment.criterion_results,
+      })),
+      part1History: payload.part1_history.map((attempt) => ({
+        conversationId: attempt.conversation_id,
+        practiceMode: attempt.practice_mode,
+        replayOfSessionId: attempt.replay_of_session_id,
+        scoreSummary: attempt.score_summary,
+        feedbackSummary: attempt.feedback_summary,
+        assessmentTimestamp: attempt.assessment_timestamp,
       })),
       activity: payload.activity,
 
