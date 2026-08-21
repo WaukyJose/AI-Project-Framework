@@ -92,6 +92,15 @@ const content = {
     part2LoadingText: 'Your photographs and task will appear in a moment.',
     part2CompleteTitle: 'Part 2 complete',
     part2CompleteText: 'You have completed the long turn and follow-up.',
+    part1CompleteTitle: 'Part 1 Complete 🎉',
+    part1CompleteSubtitle: 'What would you like to do?',
+    continueToPart2: 'Continue to Part 2',
+    getFeedback: 'Get feedback',
+    practicePart1Title: 'Practice Part 1',
+    repeatThisPracticeTitle: 'Repeat this practice',
+    repeatThisPracticeText: 'Try the same questions again and improve your performance.',
+    tryNewPart1QuestionsTitle: 'Try new Part 1 questions',
+    tryNewPart1QuestionsText: 'Practise with a different Part 1 scenario.',
     part3CompleteTitle: 'Part 3 complete',
     part3CompleteText: 'You have completed the discussion and decision phase.',
     part4CompleteTitle: 'Part 4 complete',
@@ -171,6 +180,15 @@ const content = {
     part2LoadingText: 'Tus fotografías y la tarea aparecerán en un momento.',
     part2CompleteTitle: 'Parte 2 completada',
     part2CompleteText: 'Completaste el turno largo y la pregunta de seguimiento.',
+    part1CompleteTitle: 'Parte 1 completada 🎉',
+    part1CompleteSubtitle: '¿Qué te gustaría hacer?',
+    continueToPart2: 'Continuar a la Parte 2',
+    getFeedback: 'Obtener evaluación',
+    practicePart1Title: 'Practicar la Parte 1',
+    repeatThisPracticeTitle: 'Repetir esta práctica',
+    repeatThisPracticeText: 'Intenta las mismas preguntas otra vez y mejora tu rendimiento.',
+    tryNewPart1QuestionsTitle: 'Probar nuevas preguntas de la Parte 1',
+    tryNewPart1QuestionsText: 'Practica con un escenario diferente de la Parte 1.',
     part3CompleteTitle: 'Parte 3 completada',
     part3CompleteText: 'Completaste la discusión y la fase de decisión final.',
     part4CompleteTitle: 'Parte 4 completada',
@@ -246,6 +264,7 @@ export function B2SpeakingPartScreen({
   const isPart3Complete = isPart3 && part3Complete && part3Phase === 'complete';
   const isPart3Decision = isPart3 && part3Phase === 'decision';
   const isPart4Complete = isPart4 && part4Complete && part4Phase === 'complete';
+  const isPart1Complete = isPart1 && session?.part1Complete === true;
   const canStartPart4 = isPart4 && Boolean(sourcePart3SessionId);
   const hasStartedTask = Boolean(session?.remoteSessionId);
   const isTaskLoading = !hasStartedTask && (isCreatingSession || isStartingSession);
@@ -291,6 +310,12 @@ export function B2SpeakingPartScreen({
         : t.status.ready;
   const transitionMessage = isFollowUpPhase ? t.transitionMessage : null;
   const backLabel = hasStartedTask ? t.leaveScreen : t.backToB2Speaking;
+  const repeatThisPractice = () => {
+    void startSession(undefined, session?.remoteSessionId ?? undefined);
+  };
+  const tryNewPart1Questions = () => {
+    void startSession(undefined, undefined, { practiceMode: 'new' });
+  };
 
   return (
     <ScreenContainer>
@@ -382,6 +407,61 @@ export function B2SpeakingPartScreen({
           </View>
         ) : null}
 
+        {isPart1Complete ? (
+          <View style={styles.nextStepCard}>
+            <View style={styles.nextStepHeader}>
+              <View style={styles.nextStepHeadingGroup}>
+                <Text style={styles.nextStepTitle}>{t.part1CompleteTitle}</Text>
+                <Text style={styles.nextStepSubtitle}>{t.part1CompleteSubtitle}</Text>
+              </View>
+              <Text style={styles.nextStepRecommended}>{t.continueToPart2}</Text>
+            </View>
+
+            <PrimaryButton
+              accent={isSpanish ? identity.accent : undefined}
+              label={t.continueToPart2}
+              onPress={() =>
+                router.push({
+                  pathname: '/(app)/practice/[part]',
+                  params: {
+                    part: 'part-2',
+                    ...(language === 'es' ? { lang: 'es' } : {}),
+                  },
+                })
+              }
+            />
+
+            {canRequestEvaluation ? (
+              <PrimaryButton
+                accent={isSpanish ? identity.accent : undefined}
+                disabled={isEvaluating}
+                label={isEvaluating ? t.requestingFeedback : t.getFeedback}
+                onPress={requestEvaluation}
+              />
+            ) : null}
+
+            <View style={styles.practiceSection}>
+              <Text style={styles.practiceSectionTitle}>{t.practicePart1Title}</Text>
+
+              <View style={styles.practiceOption}>
+                <View style={styles.practiceOptionTextGroup}>
+                  <Text style={styles.practiceOptionTitle}>{t.repeatThisPracticeTitle}</Text>
+                  <Text style={styles.practiceOptionText}>{t.repeatThisPracticeText}</Text>
+                </View>
+                <SecondaryButton label={t.repeatThisPracticeTitle} onPress={repeatThisPractice} />
+              </View>
+
+              <View style={styles.practiceOption}>
+                <View style={styles.practiceOptionTextGroup}>
+                  <Text style={styles.practiceOptionTitle}>{t.tryNewPart1QuestionsTitle}</Text>
+                  <Text style={styles.practiceOptionText}>{t.tryNewPart1QuestionsText}</Text>
+                </View>
+                <SecondaryButton label={t.tryNewPart1QuestionsTitle} onPress={tryNewPart1Questions} />
+              </View>
+            </View>
+          </View>
+        ) : null}
+
         {isPart3Complete ? (
           <View style={styles.completionBanner}>
             <Text style={styles.completionTitle}>{t.part3CompleteTitle}</Text>
@@ -426,7 +506,7 @@ export function B2SpeakingPartScreen({
           </View>
         ) : null}
 
-        {hasStartedTask && !isPart3Complete && !isPart4Complete ? (
+        {hasStartedTask && !isPart1Complete && !isPart3Complete && !isPart4Complete ? (
           <SpeakingAnswerArea
             canRequestEvaluation={canRequestEvaluation}
             canUpload={canUpload}
@@ -491,6 +571,40 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textAlign: 'center',
   },
+  nextStepCard: {
+    backgroundColor: '#0F172A',
+    borderColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 22,
+    borderWidth: 1,
+    gap: 18,
+    marginTop: 20,
+    padding: 18,
+  },
+  nextStepHeader: {
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  nextStepHeadingGroup: {
+    gap: 4,
+  },
+  nextStepRecommended: {
+    color: '#7DD3FC',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  nextStepSubtitle: {
+    color: '#CBD5E1',
+    fontSize: 15,
+    lineHeight: 21,
+  },
+  nextStepTitle: {
+    color: '#FFFFFF',
+    fontSize: 24,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+  },
   errorGroup: {
     gap: 12,
   },
@@ -512,6 +626,40 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     lineHeight: 24,
+  },
+  practiceSection: {
+    borderTopColor: 'rgba(255,255,255,0.08)',
+    borderTopWidth: 1,
+    gap: 12,
+    paddingTop: 16,
+  },
+  practiceSectionTitle: {
+    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+  },
+  practiceOption: {
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 18,
+    borderWidth: 1,
+    gap: 12,
+    padding: 14,
+  },
+  practiceOptionTextGroup: {
+    gap: 4,
+  },
+  practiceOptionText: {
+    color: '#CBD5E1',
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  practiceOptionTitle: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: -0.1,
   },
   supportingCopy: {
     color: '#52606D',

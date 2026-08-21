@@ -82,7 +82,11 @@ interface SpeakingStoreState {
   session: SpeakingDraftSession | null;
   setDurationSeconds: (seconds: number) => void;
   startRecording: () => Promise<void>;
-  startSession: (sourcePart3SessionId?: string) => Promise<void>;
+  startSession: (
+    sourcePart3SessionId?: string,
+    sourceSessionId?: string,
+    options?: { practiceMode?: 'new' | 'repeat' },
+  ) => Promise<void>;
   startTimer: () => void;
   stopPlayback: () => void;
   stopRecording: () => Promise<void>;
@@ -116,6 +120,12 @@ function createDraftSession(partId: SpeakingPartId): SpeakingDraftSession {
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
+    if (error.code === 'unknown' && error.status === 409) {
+      const details = error.details as { error?: { code?: string; message?: string } } | undefined;
+      if (details?.error?.code === 'new_part1_practice_limit_reached') {
+        return 'Great work! You have completed 3 different Part 1 practices. You can still repeat your previous practices or continue to Part 2.';
+      }
+    }
     return error.getUserMessage();
   }
   if (error instanceof Error) {
@@ -456,8 +466,10 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
   // Session lifecycle (aligned with frozen backend)
   // -----------------------------------------------------------------------
 
-  async startSession(sourcePart3SessionId) {
+  async startSession(sourcePart3SessionId, sourceSessionId, options) {
     const { partId, session } = get();
+    const isNewPart1Practice = partId === 'part-1' && options?.practiceMode === 'new';
+    const isCompletedPart1Session = Boolean(session?.part1Complete);
 
     if (partId === 'part-4' && !sourcePart3SessionId) {
       set({ errorMessage: 'Complete Part 3 before starting Part 4.' });
@@ -465,9 +477,20 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
     }
 
     // Prevent duplicate creation
-    if (session?.remoteSessionId) {
+    if (session?.remoteSessionId && !sourceSessionId && !(isNewPart1Practice && isCompletedPart1Session)) {
       set({ errorMessage: 'A session is already active. Discard and start fresh if needed.' });
       return;
+    }
+
+    if (isNewPart1Practice && isCompletedPart1Session) {
+      set({
+        assessment: null,
+        clip: null,
+        errorMessage: null,
+        examinerAudioUrl: null,
+        examinerText: null,
+        session: null,
+      });
     }
 
     set({
@@ -479,7 +502,13 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
     try {
       // Step 1: Create session on server
       const language = useUiPreferencesStore.getState().uiLanguage;
-      const created = await speakingApi.createSession(partId, language);
+      const created = await speakingApi.createSession(partId, language, {
+        sourceSessionId: partId === 'part-1' ? sourceSessionId : undefined,
+        clientContext:
+          partId === 'part-1' && options?.practiceMode
+            ? { practice_mode: options.practiceMode }
+            : undefined,
+      });
 
       const draft = ensureSession(get().session, partId);
       set({

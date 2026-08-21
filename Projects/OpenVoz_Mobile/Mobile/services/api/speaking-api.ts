@@ -26,6 +26,11 @@ interface StartSessionOptions {
   sourcePart3SessionId?: string;
 }
 
+interface CreateSessionOptions {
+  sourceSessionId?: string;
+  clientContext?: Record<string, unknown>;
+}
+
 // ---------------------------------------------------------------------------
 // Public API — exact match with frozen sprint-5.1 backend
 // ---------------------------------------------------------------------------
@@ -34,9 +39,24 @@ export const speakingApi = {
   /**
    * POST /api/v1/speaking/sessions/
    */
-  async createSession(part: string, speakingLanguage: 'en' | 'es'): Promise<CreateSessionResponse> {
+  async createSession(
+    part: string,
+    speakingLanguage: 'en' | 'es',
+    options?: CreateSessionOptions,
+  ): Promise<CreateSessionResponse> {
+    const body: Record<string, unknown> = {
+      part,
+      speaking_language: speakingLanguage,
+    };
+    if (options?.sourceSessionId) {
+      body.source_session_id = options.sourceSessionId;
+    }
+    if (options?.clientContext) {
+      body.client_context = options.clientContext;
+    }
+
     return apiClient.request<CreateSessionResponse>('/speaking/sessions/', {
-      body: { part, speaking_language: speakingLanguage },
+      body,
       method: 'POST',
     });
   },

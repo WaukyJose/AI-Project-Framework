@@ -297,7 +297,26 @@ export class ApiClient {
       const statusError = classifyStatusError(processedResponse, context.fullUrl);
 
       if (statusError) {
-        throw statusError;
+        let errorDetails: unknown = undefined;
+        try {
+          const rawErrorBody = await processedResponse.clone().text();
+          if (rawErrorBody) {
+            try {
+              errorDetails = JSON.parse(rawErrorBody);
+            } catch {
+              errorDetails = rawErrorBody;
+            }
+          }
+        } catch {
+          errorDetails = undefined;
+        }
+
+        throw new ApiError(statusError.message, {
+          code: statusError.code,
+          details: errorDetails,
+          status: statusError.status,
+          url: statusError.url,
+        });
       }
 
       logger.info('api.request.success', {
