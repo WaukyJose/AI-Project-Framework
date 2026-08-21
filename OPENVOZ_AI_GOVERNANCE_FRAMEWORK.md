@@ -121,23 +121,46 @@ Deletion principles:
 
 Retention periods must be defined before any automated deletion workflow is enabled.
 
-## 11. Human Oversight
+## 11. Governance Monitoring
 
-## 12. Privacy Principles
+OpenVoz includes an internal staff governance dashboard for read-only monitoring of:
+- total AI activity
+- event counts by type and purpose
+- consent summary counts
+- recent metadata-only AI usage events
+- governance health checks
+
+Monitoring is metadata-only and does not expose audio, transcripts, answers, prompts, or feedback content.
+
+## 12. Evidence Reporting
+
+OpenVoz includes a governance report builder that composes:
+- AI activity summary
+- consent summary
+- governance health summary
+
+The staff export endpoint generates a CSV evidence package from this report for internal review. The export is metadata-only and is intended for governance evidence handling, not learner content review.
+
+## 13. Human Oversight
+
+Governance evidence is reviewed by staff through the internal dashboard and CSV export.
+The review process is read-only and is limited to governance metadata, consent state, and audit health checks.
+
+## 14. Privacy Principles
 
 - Data minimisation
 - Purpose limitation
 - Access control
 - Retention policy
 
-## 13. Security Controls
+## 15. Security Controls
 
 Authentication
 Authorization
 Audit logging
 Secrets management
 
-## 14. Future Compliance Mapping
+## 16. Future Compliance Mapping
 
 Possible alignment:
 
@@ -146,6 +169,6 @@ Possible alignment:
 - ISO/IEC 42001
 - NIST AI RMF
 
-## 15. Governance Roadmap
+## 17. Governance Roadmap
 Phase 1...
 Phase 2...
