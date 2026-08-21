@@ -1,11 +1,13 @@
 import { router } from 'expo-router';
-import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { useState } from 'react';
 
 import { AppHeader } from '../../components/ui/app-header';
 import { SecondaryButton } from '../../components/ui/buttons';
 import { ScreenContainer } from '../../components/ui/screen-container';
 import { SectionHeader } from '../../components/ui/section-header';
 import { languageIdentities } from '../../constants/language-identity';
+import { dataDeletionRequestApi } from '../../services/api';
 import { useConsent } from '../../hooks/use-consent';
 import { useAuthStore } from '../../store/auth-store';
 import { useUiPreferencesStore } from '../../store/ui-preferences-store';
@@ -60,6 +62,12 @@ const content = {
     rightsReview: 'Review how your data is used.',
     rightsWithdraw: 'Withdraw optional consent.',
     rightsDelete: 'Request deletion of your data.',
+    rightsAction: 'Request data deletion',
+    rightsConfirmTitle: 'Request data deletion?',
+    rightsConfirmText:
+      'We will create a deletion request for review. This does not delete your data immediately.',
+    rightsSuccess: 'Your deletion request was submitted.',
+    rightsError: 'Could not submit your deletion request. Please try again.',
     howAiTitle: 'How AI is used',
     howAiPoint1: 'AI evaluates speaking performance using defined criteria.',
     howAiPoint2: 'AI assists assessment and feedback generation.',
@@ -115,6 +123,12 @@ const content = {
     rightsReview: 'Revisa cómo se usan tus datos.',
     rightsWithdraw: 'Retira el consentimiento opcional.',
     rightsDelete: 'Solicita la eliminación de tus datos.',
+    rightsAction: 'Solicitar eliminación de datos',
+    rightsConfirmTitle: '¿Solicitar eliminación de datos?',
+    rightsConfirmText:
+      'Crearemos una solicitud para revisión. Esto no elimina tus datos de inmediato.',
+    rightsSuccess: 'Tu solicitud de eliminación fue enviada.',
+    rightsError: 'No se pudo enviar tu solicitud. Inténtalo de nuevo.',
     howAiTitle: 'Cómo se usa la IA',
     howAiPoint1: 'La IA evalúa el rendimiento oral usando criterios definidos.',
     howAiPoint2: 'La IA ayuda en la evaluación y generación de comentarios.',
@@ -130,6 +144,15 @@ export function SettingsScreen() {
   const t = content[uiLanguage];
   const accentColor = uiLanguage === 'es' ? identity.accent : undefined;
   const consentQuery = useConsent();
+  const [dataDeletionState, setDataDeletionState] = useState<{
+    error: string | null;
+    isSubmitting: boolean;
+    success: string | null;
+  }>({
+    error: null,
+    isSubmitting: false,
+    success: null,
+  });
 
   const logout = useAuthStore((state) => state.logout);
   const consent = consentQuery.consent;
@@ -145,6 +168,56 @@ export function SettingsScreen() {
   async function handleLogout() {
     await logout();
     router.replace('/(auth)/login');
+  }
+
+  async function submitDataDeletionRequest() {
+    if (dataDeletionState.isSubmitting) {
+      return;
+    }
+
+    setDataDeletionState({
+      error: null,
+      isSubmitting: true,
+      success: null,
+    });
+
+    try {
+      const response = await dataDeletionRequestApi.create();
+      const payload = (await response.json()) as {
+        created: boolean;
+        reason: string;
+        status: 'requested' | 'processing' | 'completed' | 'rejected';
+      };
+
+      setDataDeletionState({
+        error: null,
+        isSubmitting: false,
+        success:
+          payload.status === 'requested' || payload.status === 'processing'
+            ? t.rightsSuccess
+            : t.rightsSuccess,
+      });
+    } catch {
+      setDataDeletionState({
+        error: t.rightsError,
+        isSubmitting: false,
+        success: null,
+      });
+    }
+  }
+
+  function handleRequestDeletion() {
+    Alert.alert(t.rightsAction, t.rightsConfirmText, [
+      {
+        text: uiLanguage === 'es' ? 'Cancelar' : 'Cancel',
+        style: 'cancel',
+      },
+      {
+        text: t.rightsAction,
+        style: 'destructive',
+        onPress: () => void submitDataDeletionRequest(),
+      },
+    ]);
   }
 
   return (
@@ -197,6 +270,19 @@ export function SettingsScreen() {
             <Text style={styles.infoText}>{t.rightsReview}</Text>
             <Text style={styles.infoText}>{t.rightsWithdraw}</Text>
             <Text style={styles.infoText}>{t.rightsDelete}</Text>
+            <View style={styles.requestActionWrap}>
+              <SecondaryButton
+                disabled={dataDeletionState.isSubmitting}
+                label={dataDeletionState.isSubmitting ? t.rightsAction : t.rightsAction}
+                onPress={handleRequestDeletion}
+              />
+            </View>
+            {dataDeletionState.success ? (
+              <Text style={styles.successText}>{dataDeletionState.success}</Text>
+            ) : null}
+            {dataDeletionState.error ? (
+              <Text style={styles.errorText}>{dataDeletionState.error}</Text>
+            ) : null}
           </View>
           <View style={styles.blockDivider} />
           <View style={styles.block}>
@@ -292,6 +378,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     lineHeight: 18,
   },
+  successText: {
+    color: '#1D7A6B',
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 18,
+  },
   learnMoreText: {
     color: '#1D7A6B',
     fontSize: 13,
@@ -320,6 +412,9 @@ const styles = StyleSheet.create({
   consentCopy: {
     flex: 1,
     gap: 8,
+  },
+  requestActionWrap: {
+    marginTop: 4,
   },
   consentRow: {
     alignItems: 'center',
