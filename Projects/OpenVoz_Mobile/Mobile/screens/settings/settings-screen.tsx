@@ -30,11 +30,21 @@ const content = {
     aiTitle: 'AI assessment',
     aiText:
       'AI assessment reviews your speaking session against the current criteria and returns feedback, bands, and progress signals.',
-    consentTitle: 'Future consent controls',
+    consentTitle: 'Data sharing preferences',
     consentText:
-      'Options for AI improvement and research consent will appear later. This page is only a transparency summary for now.',
+      'Optional data uses can be controlled here. Assessment processing is required for speaking evaluation.',
     consentLearnMore:
-      'Learn more: you will control future AI data-sharing preferences, and consent options will be available later.',
+      'Learn more: future AI data-sharing preferences will appear here as optional controls.',
+    requiredTitle: 'Required for OpenVoz',
+    speakingAssessmentTitle: 'Speaking assessment',
+    speakingAssessmentText:
+      'Recordings are processed to run speaking sessions. Speech is transcribed and evaluated. Feedback and progress signals are generated.',
+    requiredStatus: 'Enabled / Required',
+    optionalTitle: 'Optional choices',
+    analyticsDescription:
+      'Helps improve app performance and understand overall usage.',
+    aiImprovementDescription:
+      'Controls optional AI improvement and research use.',
     governanceTitle: 'Governance',
     governanceLead: 'OpenVoz follows responsible AI practices.',
     governanceData: 'You can review how your data is used.',
@@ -46,6 +56,14 @@ const content = {
     responsesValue: 'AI feedback generation',
     personalInfoLabel: 'Personal information',
     personalInfoValue: 'Not used for assessment decisions',
+    rightsTitle: 'Your data rights',
+    rightsReview: 'Review how your data is used.',
+    rightsWithdraw: 'Withdraw optional consent.',
+    rightsDelete: 'Request deletion of your data.',
+    howAiTitle: 'How AI is used',
+    howAiPoint1: 'AI evaluates speaking performance using defined criteria.',
+    howAiPoint2: 'AI assists assessment and feedback generation.',
+    howAiPoint3: 'AI is not used for unrelated decisions.',
     session: 'Session',
     logOut: 'Log Out',
   },
@@ -67,11 +85,21 @@ const content = {
     aiTitle: 'Evaluación con IA',
     aiText:
       'La evaluación con IA revisa tu sesión oral según los criterios actuales y devuelve comentarios, bandas y señales de progreso.',
-    consentTitle: 'Controles de consentimiento futuros',
+    consentTitle: 'Preferencias de compartición de datos',
     consentText:
-      'Más adelante aparecerán opciones de consentimiento para mejora de IA e investigación. Esta página solo ofrece transparencia por ahora.',
+      'Las opciones de uso opcional de datos se pueden controlar aquí. El procesamiento de la evaluación es necesario para la evaluación oral.',
     consentLearnMore:
-      'Más información: tú controlarás las futuras preferencias de compartición de datos de IA, y las opciones de consentimiento estarán disponibles más adelante.',
+      'Más información: aquí aparecerán futuras preferencias opcionales de compartición de datos de IA.',
+    requiredTitle: 'Necesario para OpenVoz',
+    speakingAssessmentTitle: 'Evaluación oral',
+    speakingAssessmentText:
+      'Las grabaciones se procesan para ejecutar las sesiones orales. El habla se transcribe y evalúa. Se generan comentarios y señales de progreso.',
+    requiredStatus: 'Activado / Necesario',
+    optionalTitle: 'Opciones opcionales',
+    analyticsDescription:
+      'Ayuda a mejorar el rendimiento de la app y entender el uso general.',
+    aiImprovementDescription:
+      'Controla el uso opcional de mejora e investigación de IA.',
     governanceTitle: 'Gobernanza',
     governanceLead: 'OpenVoz sigue prácticas responsables de IA.',
     governanceData: 'Puedes revisar cómo se usan tus datos.',
@@ -83,6 +111,14 @@ const content = {
     responsesValue: 'Generación de comentarios con IA',
     personalInfoLabel: 'Información personal',
     personalInfoValue: 'No se usa para decisiones de evaluación',
+    rightsTitle: 'Tus derechos sobre los datos',
+    rightsReview: 'Revisa cómo se usan tus datos.',
+    rightsWithdraw: 'Retira el consentimiento opcional.',
+    rightsDelete: 'Solicita la eliminación de tus datos.',
+    howAiTitle: 'Cómo se usa la IA',
+    howAiPoint1: 'La IA evalúa el rendimiento oral usando criterios definidos.',
+    howAiPoint2: 'La IA ayuda en la evaluación y generación de comentarios.',
+    howAiPoint3: 'La IA no se usa para decisiones no relacionadas.',
     session: 'Sesión',
     logOut: 'Cerrar sesión',
   },
@@ -122,22 +158,26 @@ export function SettingsScreen() {
           <Text style={styles.infoText}>{t.noSettingsText}</Text>
         </View>
 
-        <SectionHeader title={t.privacyAiTitle} />
+        <SectionHeader description={t.consentLearnMore} title={t.consentTitle} />
         <View style={styles.infoCard}>
           <View style={styles.block}>
-            <Text style={styles.infoTitle}>{t.recordingsTitle}</Text>
-            <Text style={styles.infoText}>{t.recordingsText}</Text>
+            <Text style={styles.sectionEyebrow}>{t.requiredTitle}</Text>
+            <Text style={styles.infoTitle}>{t.speakingAssessmentTitle}</Text>
+            <Text style={styles.infoText}>{t.speakingAssessmentText}</Text>
+            <Text style={styles.requiredStatus}>{t.requiredStatus}</Text>
           </View>
           <View style={styles.blockDivider} />
           <View style={styles.block}>
-            <Text style={styles.infoTitle}>{t.aiTitle}</Text>
-            <Text style={styles.infoText}>{t.aiText}</Text>
+            <Text style={styles.sectionEyebrow}>{t.optionalTitle}</Text>
+            <Text style={styles.infoTitle}>{uiLanguage === 'es' ? 'Analítica' : 'Analytics'}</Text>
+            <Text style={styles.infoText}>{t.analyticsDescription}</Text>
           </View>
           <View style={styles.blockDivider} />
           <View style={styles.block}>
-            <Text style={styles.infoTitle}>{t.consentTitle}</Text>
-            <Text style={styles.infoText}>{t.consentText}</Text>
-            <Text style={styles.learnMoreText}>{t.consentLearnMore}</Text>
+            <Text style={styles.infoTitle}>
+              {uiLanguage === 'es' ? 'Mejora de IA' : 'AI improvement'}
+            </Text>
+            <Text style={styles.infoText}>{t.aiImprovementDescription}</Text>
           </View>
         </View>
 
@@ -150,11 +190,25 @@ export function SettingsScreen() {
           </View>
         </View>
 
-        <SectionHeader title={t.privacyAiTitle} />
+        <SectionHeader title={t.transparencyTitle} />
         <View style={styles.infoCard}>
+          <View style={styles.block}>
+            <Text style={styles.infoTitle}>{t.rightsTitle}</Text>
+            <Text style={styles.infoText}>{t.rightsReview}</Text>
+            <Text style={styles.infoText}>{t.rightsWithdraw}</Text>
+            <Text style={styles.infoText}>{t.rightsDelete}</Text>
+          </View>
+          <View style={styles.blockDivider} />
+          <View style={styles.block}>
+            <Text style={styles.infoTitle}>{t.howAiTitle}</Text>
+            <Text style={styles.infoText}>{t.howAiPoint1}</Text>
+            <Text style={styles.infoText}>{t.howAiPoint2}</Text>
+            <Text style={styles.infoText}>{t.howAiPoint3}</Text>
+          </View>
+          <View style={styles.blockDivider} />
           <View style={styles.consentRow}>
             <View style={styles.consentCopy}>
-              <Text style={styles.infoTitle}>{t.aiTitle}</Text>
+              <Text style={styles.infoTitle}>{uiLanguage === 'es' ? 'Analítica' : 'Analytics'}</Text>
               <Text style={styles.infoText}>
                 {consentQuery.isLoading
                   ? uiLanguage === 'es'
@@ -165,21 +219,13 @@ export function SettingsScreen() {
                     : 'Always on to run your speaking assessment.'}
               </Text>
             </View>
-            <Switch
-              accessibilityLabel={t.aiTitle}
-              disabled
-              value={true}
-            />
+            <Switch accessibilityLabel={t.speakingAssessmentTitle} disabled value={true} />
           </View>
           <View style={styles.blockDivider} />
           <View style={styles.consentRow}>
             <View style={styles.consentCopy}>
               <Text style={styles.infoTitle}>{uiLanguage === 'es' ? 'Analítica' : 'Analytics'}</Text>
-              <Text style={styles.infoText}>
-                {uiLanguage === 'es'
-                  ? 'Ayuda a OpenVoz a entender el uso general de la app.'
-                  : 'Helps OpenVoz understand overall app usage.'}
-              </Text>
+              <Text style={styles.infoText}>{t.analyticsDescription}</Text>
               {consentQuery.error ? (
                 <Text style={styles.errorText}>
                   {uiLanguage === 'es'
@@ -201,11 +247,7 @@ export function SettingsScreen() {
               <Text style={styles.infoTitle}>
                 {uiLanguage === 'es' ? 'Mejora de IA' : 'AI improvement'}
               </Text>
-              <Text style={styles.infoText}>
-                {uiLanguage === 'es'
-                  ? 'Ayuda a mejorar OpenVoz con el tiempo.'
-                  : 'Helps improve OpenVoz over time.'}
-              </Text>
+              <Text style={styles.infoText}>{t.aiImprovementDescription}</Text>
             </View>
             <Switch
               accessibilityLabel={uiLanguage === 'es' ? 'Mejora de IA' : 'AI improvement'}
@@ -213,24 +255,6 @@ export function SettingsScreen() {
               onValueChange={(value) => void handleConsentChange('ai_improvement', value)}
               value={consent?.aiImprovement ?? false}
             />
-          </View>
-        </View>
-
-        <SectionHeader title={t.transparencyTitle} />
-        <View style={styles.infoCard}>
-          <View style={styles.transparencyRow}>
-            <Text style={styles.transparencyLabel}>{t.audioLabel}</Text>
-            <Text style={styles.transparencyValue}>{t.audioValue}</Text>
-          </View>
-          <View style={styles.blockDivider} />
-          <View style={styles.transparencyRow}>
-            <Text style={styles.transparencyLabel}>{t.responsesLabel}</Text>
-            <Text style={styles.transparencyValue}>{t.responsesValue}</Text>
-          </View>
-          <View style={styles.blockDivider} />
-          <View style={styles.transparencyRow}>
-            <Text style={styles.transparencyLabel}>{t.personalInfoLabel}</Text>
-            <Text style={styles.transparencyValue}>{t.personalInfoValue}</Text>
           </View>
         </View>
 
@@ -279,6 +303,19 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     lineHeight: 26,
+  },
+  requiredStatus: {
+    color: '#1D7A6B',
+    fontSize: 13,
+    fontWeight: '700',
+    lineHeight: 18,
+  },
+  sectionEyebrow: {
+    color: '#627D98',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
   },
   consentCopy: {
     flex: 1,
