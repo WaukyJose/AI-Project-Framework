@@ -99,23 +99,45 @@ Not stored for provenance or consent records:
 - prompts
 - private learner content
 
-## 10. Human Oversight
+## 10. Data Retention and Lifecycle
 
-## 11. Privacy Principles
+OpenVoz retains data only for the period needed to support the approved product, governance, and legal purposes for which it was collected.
+
+Retention categories:
+- audio
+- transcripts
+- assessment records
+- AIUsageEvent audit records
+
+Retention purpose:
+- support learner practice and assessment delivery
+- preserve assessment and governance auditability
+- maintain consent and provenance history where needed
+
+Deletion principles:
+- delete or anonymize data when it is no longer needed for its approved purpose
+- apply the least-data principle when defining retention workflows
+- avoid automatic deletion until a retention period is explicitly defined and approved
+
+Retention periods must be defined before any automated deletion workflow is enabled.
+
+## 11. Human Oversight
+
+## 12. Privacy Principles
 
 - Data minimisation
 - Purpose limitation
 - Access control
 - Retention policy
 
-## 12. Security Controls
+## 13. Security Controls
 
 Authentication
 Authorization
 Audit logging
 Secrets management
 
-## 13. Future Compliance Mapping
+## 14. Future Compliance Mapping
 
 Possible alignment:
 
@@ -124,6 +146,6 @@ Possible alignment:
 - ISO/IEC 42001
 - NIST AI RMF
 
-## 14. Governance Roadmap
+## 15. Governance Roadmap
 Phase 1...
 Phase 2...
