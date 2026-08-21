@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Alert, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useState } from 'react';
 
 import { AppHeader } from '../../components/ui/app-header';
@@ -12,6 +12,10 @@ import { useConsent } from '../../hooks/use-consent';
 import { useAuthStore } from '../../store/auth-store';
 import { useUiPreferencesStore } from '../../store/ui-preferences-store';
 import { shellStyles } from '../shared/shell-styles';
+
+const PRIVACY_POLICY_URL = 'https://openvoz.example/privacy';
+const TERMS_OF_SERVICE_URL = 'https://openvoz.example/terms';
+const PRIVACY_POLICY_VERSION = '1.0';
 
 const content = {
   en: {
@@ -33,31 +37,15 @@ const content = {
     aiText:
       'AI assessment reviews your speaking session against the current criteria and returns feedback, bands, and progress signals.',
     consentTitle: 'Data sharing preferences',
-    consentText:
-      'Optional data uses can be controlled here. Assessment processing is required for speaking evaluation.',
-    consentLearnMore:
-      'Learn more: future AI data-sharing preferences will appear here as optional controls.',
     requiredTitle: 'Required for OpenVoz',
     speakingAssessmentTitle: 'Speaking assessment',
-    speakingAssessmentText:
-      'Recordings are processed to run speaking sessions. Speech is transcribed and evaluated. Feedback and progress signals are generated.',
+    speakingAssessmentText: 'Required to provide speaking evaluation.',
     requiredStatus: 'Enabled / Required',
     optionalTitle: 'Optional choices',
     analyticsDescription:
       'Helps improve app performance and understand overall usage.',
     aiImprovementDescription:
       'Controls optional AI improvement and research use.',
-    governanceTitle: 'Governance',
-    governanceLead: 'OpenVoz follows responsible AI practices.',
-    governanceData: 'You can review how your data is used.',
-    governanceFuture: 'Future versions will provide data-sharing preferences.',
-    transparencyTitle: 'Data transparency',
-    audioLabel: 'Audio recordings',
-    audioValue: 'Transcription and speaking assessment',
-    responsesLabel: 'Responses',
-    responsesValue: 'AI feedback generation',
-    personalInfoLabel: 'Personal information',
-    personalInfoValue: 'Not used for assessment decisions',
     rightsTitle: 'Your data rights',
     rightsReview: 'Review how your data is used.',
     rightsWithdraw: 'Withdraw optional consent.',
@@ -68,6 +56,13 @@ const content = {
       'We will create a deletion request for review. This does not delete your data immediately.',
     rightsSuccess: 'Your deletion request was submitted.',
     rightsError: 'Could not submit your deletion request. Please try again.',
+    privacyPolicyTitle: 'Privacy Policy',
+    privacyPolicyText: 'Review how OpenVoz collects, uses, and protects your data.',
+    termsTitle: 'Terms of Service',
+    termsText: 'Review OpenVoz usage terms.',
+    policyVersionLabel: 'Privacy policy version: 1.0',
+    openPolicy: 'Open policy',
+    openTerms: 'Open terms',
     howAiTitle: 'How AI is used',
     howAiPoint1: 'AI evaluates speaking performance using defined criteria.',
     howAiPoint2: 'AI assists assessment and feedback generation.',
@@ -94,31 +89,15 @@ const content = {
     aiText:
       'La evaluación con IA revisa tu sesión oral según los criterios actuales y devuelve comentarios, bandas y señales de progreso.',
     consentTitle: 'Preferencias de compartición de datos',
-    consentText:
-      'Las opciones de uso opcional de datos se pueden controlar aquí. El procesamiento de la evaluación es necesario para la evaluación oral.',
-    consentLearnMore:
-      'Más información: aquí aparecerán futuras preferencias opcionales de compartición de datos de IA.',
     requiredTitle: 'Necesario para OpenVoz',
     speakingAssessmentTitle: 'Evaluación oral',
-    speakingAssessmentText:
-      'Las grabaciones se procesan para ejecutar las sesiones orales. El habla se transcribe y evalúa. Se generan comentarios y señales de progreso.',
+    speakingAssessmentText: 'Necesario para proporcionar evaluación oral.',
     requiredStatus: 'Activado / Necesario',
     optionalTitle: 'Opciones opcionales',
     analyticsDescription:
       'Ayuda a mejorar el rendimiento de la app y entender el uso general.',
     aiImprovementDescription:
       'Controla el uso opcional de mejora e investigación de IA.',
-    governanceTitle: 'Gobernanza',
-    governanceLead: 'OpenVoz sigue prácticas responsables de IA.',
-    governanceData: 'Puedes revisar cómo se usan tus datos.',
-    governanceFuture: 'Las versiones futuras incluirán preferencias de compartición de datos.',
-    transparencyTitle: 'Transparencia de datos',
-    audioLabel: 'Grabaciones de audio',
-    audioValue: 'Transcripción y evaluación oral',
-    responsesLabel: 'Respuestas',
-    responsesValue: 'Generación de comentarios con IA',
-    personalInfoLabel: 'Información personal',
-    personalInfoValue: 'No se usa para decisiones de evaluación',
     rightsTitle: 'Tus derechos sobre los datos',
     rightsReview: 'Revisa cómo se usan tus datos.',
     rightsWithdraw: 'Retira el consentimiento opcional.',
@@ -129,6 +108,13 @@ const content = {
       'Crearemos una solicitud para revisión. Esto no elimina tus datos de inmediato.',
     rightsSuccess: 'Tu solicitud de eliminación fue enviada.',
     rightsError: 'No se pudo enviar tu solicitud. Inténtalo de nuevo.',
+    privacyPolicyTitle: 'Política de privacidad',
+    privacyPolicyText: 'Revisa cómo OpenVoz recopila, usa y protege tus datos.',
+    termsTitle: 'Términos de servicio',
+    termsText: 'Revisa los términos de uso de OpenVoz.',
+    policyVersionLabel: 'Versión de la política de privacidad: 1.0',
+    openPolicy: 'Abrir política',
+    openTerms: 'Abrir términos',
     howAiTitle: 'Cómo se usa la IA',
     howAiPoint1: 'La IA evalúa el rendimiento oral usando criterios definidos.',
     howAiPoint2: 'La IA ayuda en la evaluación y generación de comentarios.',
@@ -153,6 +139,8 @@ export function SettingsScreen() {
     isSubmitting: false,
     success: null,
   });
+  const [isHowAiExpanded, setIsHowAiExpanded] = useState(false);
+  const [isRightsExpanded, setIsRightsExpanded] = useState(false);
 
   const logout = useAuthStore((state) => state.logout);
   const consent = consentQuery.consent;
@@ -168,6 +156,14 @@ export function SettingsScreen() {
   async function handleLogout() {
     await logout();
     router.replace('/(auth)/login');
+  }
+
+  async function openExternalUrl(url: string) {
+    try {
+      await Linking.openURL(url);
+    } catch {
+      // Ignore failures; the UI remains usable without opening the link.
+    }
   }
 
   async function submitDataDeletionRequest() {
@@ -231,116 +227,118 @@ export function SettingsScreen() {
           <Text style={styles.infoText}>{t.noSettingsText}</Text>
         </View>
 
-        <SectionHeader description={t.consentLearnMore} title={t.consentTitle} />
+        <SectionHeader title={t.privacyAiTitle} />
         <View style={styles.infoCard}>
-          <View style={styles.block}>
-            <Text style={styles.sectionEyebrow}>{t.requiredTitle}</Text>
-            <Text style={styles.infoTitle}>{t.speakingAssessmentTitle}</Text>
-            <Text style={styles.infoText}>{t.speakingAssessmentText}</Text>
-            <Text style={styles.requiredStatus}>{t.requiredStatus}</Text>
+          <View style={styles.settingsSection}>
+            <Text style={styles.sectionLabel}>{t.requiredTitle}</Text>
+            <View style={styles.row}>
+              <View style={styles.rowText}>
+                <Text style={styles.rowTitle}>{t.speakingAssessmentTitle}</Text>
+                <Text style={styles.rowDescription}>{t.speakingAssessmentText}</Text>
+              </View>
+              <Text style={styles.rowStatus}>{t.requiredStatus}</Text>
+            </View>
           </View>
-          <View style={styles.blockDivider} />
-          <View style={styles.block}>
-            <Text style={styles.sectionEyebrow}>{t.optionalTitle}</Text>
-            <Text style={styles.infoTitle}>{uiLanguage === 'es' ? 'Analítica' : 'Analytics'}</Text>
-            <Text style={styles.infoText}>{t.analyticsDescription}</Text>
-          </View>
-          <View style={styles.blockDivider} />
-          <View style={styles.block}>
-            <Text style={styles.infoTitle}>
-              {uiLanguage === 'es' ? 'Mejora de IA' : 'AI improvement'}
-            </Text>
-            <Text style={styles.infoText}>{t.aiImprovementDescription}</Text>
-          </View>
-        </View>
-
-        <SectionHeader title={t.governanceTitle} />
-        <View style={styles.infoCard}>
-          <View style={styles.block}>
-            <Text style={styles.infoTitle}>{t.governanceLead}</Text>
-            <Text style={styles.infoText}>{t.governanceData}</Text>
-            <Text style={styles.infoText}>{t.governanceFuture}</Text>
-          </View>
-        </View>
-
-        <SectionHeader title={t.transparencyTitle} />
-        <View style={styles.infoCard}>
-          <View style={styles.block}>
-            <Text style={styles.infoTitle}>{t.rightsTitle}</Text>
-            <Text style={styles.infoText}>{t.rightsReview}</Text>
-            <Text style={styles.infoText}>{t.rightsWithdraw}</Text>
-            <Text style={styles.infoText}>{t.rightsDelete}</Text>
-            <View style={styles.requestActionWrap}>
-              <SecondaryButton
-                disabled={dataDeletionState.isSubmitting}
-                label={dataDeletionState.isSubmitting ? t.rightsAction : t.rightsAction}
-                onPress={handleRequestDeletion}
+          <View style={styles.sectionDivider} />
+          <View style={styles.settingsSection}>
+            <Text style={styles.sectionLabel}>{t.optionalTitle}</Text>
+            <View style={styles.row}>
+              <View style={styles.rowText}>
+                <Text style={styles.rowTitle}>{uiLanguage === 'es' ? 'Analítica' : 'Analytics'}</Text>
+                <Text style={styles.rowDescription}>{t.analyticsDescription}</Text>
+              </View>
+              <Switch
+                accessibilityLabel={uiLanguage === 'es' ? 'Analítica' : 'Analytics'}
+                disabled={consentQuery.isLoading}
+                onValueChange={(value) => void handleConsentChange('analytics', value)}
+                value={consent?.analytics ?? false}
               />
             </View>
-            {dataDeletionState.success ? (
-              <Text style={styles.successText}>{dataDeletionState.success}</Text>
-            ) : null}
-            {dataDeletionState.error ? (
-              <Text style={styles.errorText}>{dataDeletionState.error}</Text>
-            ) : null}
-          </View>
-          <View style={styles.blockDivider} />
-          <View style={styles.block}>
-            <Text style={styles.infoTitle}>{t.howAiTitle}</Text>
-            <Text style={styles.infoText}>{t.howAiPoint1}</Text>
-            <Text style={styles.infoText}>{t.howAiPoint2}</Text>
-            <Text style={styles.infoText}>{t.howAiPoint3}</Text>
-          </View>
-          <View style={styles.blockDivider} />
-          <View style={styles.consentRow}>
-            <View style={styles.consentCopy}>
-              <Text style={styles.infoTitle}>{uiLanguage === 'es' ? 'Analítica' : 'Analytics'}</Text>
-              <Text style={styles.infoText}>
-                {consentQuery.isLoading
-                  ? uiLanguage === 'es'
-                    ? 'Cargando estado de consentimiento...'
-                    : 'Loading consent status...'
-                  : uiLanguage === 'es'
-                    ? 'Siempre activo para ejecutar la evaluación de tu práctica oral.'
-                    : 'Always on to run your speaking assessment.'}
-              </Text>
-            </View>
-            <Switch accessibilityLabel={t.speakingAssessmentTitle} disabled value={true} />
-          </View>
-          <View style={styles.blockDivider} />
-          <View style={styles.consentRow}>
-            <View style={styles.consentCopy}>
-              <Text style={styles.infoTitle}>{uiLanguage === 'es' ? 'Analítica' : 'Analytics'}</Text>
-              <Text style={styles.infoText}>{t.analyticsDescription}</Text>
-              {consentQuery.error ? (
-                <Text style={styles.errorText}>
-                  {uiLanguage === 'es'
-                    ? 'No se pudieron actualizar los ajustes. Inténtalo de nuevo.'
-                    : 'Could not update settings. Please try again.'}
+            <View style={styles.row}>
+              <View style={styles.rowText}>
+                <Text style={styles.rowTitle}>
+                  {uiLanguage === 'es' ? 'Mejora de IA' : 'AI improvement'}
                 </Text>
-              ) : null}
+                <Text style={styles.rowDescription}>{t.aiImprovementDescription}</Text>
+              </View>
+              <Switch
+                accessibilityLabel={uiLanguage === 'es' ? 'Mejora de IA' : 'AI improvement'}
+                disabled={consentQuery.isLoading}
+                onValueChange={(value) => void handleConsentChange('ai_improvement', value)}
+                value={consent?.aiImprovement ?? false}
+              />
             </View>
-            <Switch
-              accessibilityLabel={uiLanguage === 'es' ? 'Analítica' : 'Analytics'}
-              disabled={consentQuery.isLoading}
-              onValueChange={(value) => void handleConsentChange('analytics', value)}
-              value={consent?.analytics ?? false}
-            />
           </View>
-          <View style={styles.blockDivider} />
-          <View style={styles.consentRow}>
-            <View style={styles.consentCopy}>
-              <Text style={styles.infoTitle}>
-                {uiLanguage === 'es' ? 'Mejora de IA' : 'AI improvement'}
-              </Text>
-              <Text style={styles.infoText}>{t.aiImprovementDescription}</Text>
+          <View style={styles.sectionDivider} />
+          <View style={styles.settingsSection}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ expanded: isHowAiExpanded }}
+              onPress={() => setIsHowAiExpanded((current) => !current)}
+              style={styles.disclosureRow}
+            >
+              <Text style={styles.rowTitle}>{t.howAiTitle}</Text>
+              <Text style={styles.disclosureChevron}>{isHowAiExpanded ? '⌄' : '›'}</Text>
+            </Pressable>
+            {isHowAiExpanded ? (
+              <View style={styles.expandedCopy}>
+                <Text style={styles.infoText}>{t.howAiPoint1}</Text>
+                <Text style={styles.infoText}>{t.howAiPoint2}</Text>
+                <Text style={styles.infoText}>{t.howAiPoint3}</Text>
+              </View>
+            ) : null}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ expanded: isRightsExpanded }}
+              onPress={() => setIsRightsExpanded((current) => !current)}
+              style={styles.disclosureRow}
+            >
+              <Text style={styles.rowTitle}>{t.rightsTitle}</Text>
+              <Text style={styles.disclosureChevron}>{isRightsExpanded ? '⌄' : '›'}</Text>
+            </Pressable>
+            {isRightsExpanded ? (
+              <View style={styles.expandedCopy}>
+                <Text style={styles.infoText}>{t.rightsReview}</Text>
+                <Text style={styles.infoText}>{t.rightsWithdraw}</Text>
+                <Text style={styles.infoText}>{t.rightsDelete}</Text>
+                <View style={styles.requestActionWrap}>
+                  <SecondaryButton
+                    disabled={dataDeletionState.isSubmitting}
+                    label={t.rightsAction}
+                    onPress={handleRequestDeletion}
+                  />
+                </View>
+                {dataDeletionState.success ? (
+                  <Text style={styles.successText}>{dataDeletionState.success}</Text>
+                ) : null}
+                {dataDeletionState.error ? (
+                  <Text style={styles.errorText}>{dataDeletionState.error}</Text>
+                ) : null}
+              </View>
+            ) : null}
+          </View>
+          <View style={styles.sectionDivider} />
+          <View style={styles.settingsSection}>
+            <Text style={styles.sectionLabel}>{uiLanguage === 'es' ? 'Legal' : 'Legal'}</Text>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => void openExternalUrl(PRIVACY_POLICY_URL)}
+              style={styles.disclosureRow}
+            >
+              <Text style={styles.rowTitle}>{t.privacyPolicyTitle}</Text>
+              <Text style={styles.disclosureChevron}>›</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => void openExternalUrl(TERMS_OF_SERVICE_URL)}
+              style={styles.disclosureRow}
+            >
+              <Text style={styles.rowTitle}>{t.termsTitle}</Text>
+              <Text style={styles.disclosureChevron}>›</Text>
+            </Pressable>
+            <View style={styles.row}>
+              <Text style={styles.rowTitle}>{t.policyVersionLabel}</Text>
             </View>
-            <Switch
-              accessibilityLabel={uiLanguage === 'es' ? 'Mejora de IA' : 'AI improvement'}
-              disabled={consentQuery.isLoading}
-              onValueChange={(value) => void handleConsentChange('ai_improvement', value)}
-              value={consent?.aiImprovement ?? false}
-            />
           </View>
         </View>
 
@@ -359,13 +357,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 18,
   },
-  block: {
-    gap: 8,
-  },
-  blockDivider: {
+  sectionDivider: {
     backgroundColor: '#D9E2EC',
     height: 1,
-    marginVertical: 14,
+    marginVertical: 12,
   },
   infoText: {
     color: '#52606D',
@@ -402,38 +397,61 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     lineHeight: 18,
   },
-  sectionEyebrow: {
+  sectionLabel: {
     color: '#627D98',
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 0.6,
     textTransform: 'uppercase',
   },
-  consentCopy: {
-    flex: 1,
-    gap: 8,
-  },
-  requestActionWrap: {
-    marginTop: 4,
-  },
-  consentRow: {
+  row: {
     alignItems: 'center',
     flexDirection: 'row',
     gap: 16,
     justifyContent: 'space-between',
+    paddingVertical: 6,
   },
-  transparencyLabel: {
+  rowText: {
+    flex: 1,
+    gap: 4,
+  },
+  rowTitle: {
     color: '#102A43',
-    fontSize: 15,
-    fontWeight: '700',
-    lineHeight: 21,
+    fontSize: 17,
+    fontWeight: '600',
+    lineHeight: 22,
   },
-  transparencyRow: {
-    gap: 6,
-  },
-  transparencyValue: {
+  rowDescription: {
     color: '#52606D',
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  rowStatus: {
+    color: '#1D7A6B',
+    fontSize: 13,
+    fontWeight: '700',
+    lineHeight: 18,
+  },
+  disclosureRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+  },
+  disclosureChevron: {
+    color: '#627D98',
+    fontSize: 22,
+    lineHeight: 22,
+  },
+  expandedCopy: {
+    gap: 8,
+    paddingBottom: 4,
+    paddingLeft: 4,
+  },
+  requestActionWrap: {
+    marginTop: 8,
+  },
+  settingsSection: {
+    gap: 2,
   },
 });
