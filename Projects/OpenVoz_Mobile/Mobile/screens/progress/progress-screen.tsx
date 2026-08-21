@@ -39,6 +39,25 @@ const part1AttemptLabels = {
   },
 } as const;
 
+const part1InsightLabels = {
+  en: {
+    title: 'Your Part 1 Progress',
+    attemptsCompleted: 'Attempts completed',
+    bestScore: 'Best score',
+    progress: 'Progress',
+    unavailable: 'Unavailable',
+    noData: 'No completed Part 1 attempts yet.',
+  },
+  es: {
+    title: 'Tu progreso de la Parte 1',
+    attemptsCompleted: 'Intentos completados',
+    bestScore: 'Mejor puntuación',
+    progress: 'Progreso',
+    unavailable: 'No disponible',
+    noData: 'Aún no hay intentos completados de la Parte 1.',
+  },
+} as const;
+
 const content = {
   en: {
     eyebrow: 'Progress',
@@ -121,8 +140,10 @@ export function ProgressScreen() {
   const t = content[uiLanguage];
   const milestoneText = milestoneLabels[uiLanguage];
   const part1AttemptText = part1AttemptLabels[uiLanguage];
+  const part1InsightText = part1InsightLabels[uiLanguage];
   const accentColor = uiLanguage === 'es' ? identity.accent : undefined;
   const { data } = useProgressData(uiLanguage);
+  const part1Insights = buildPart1Insights(data?.part1History ?? []);
 
   const formatPart1HistoryCaption = (historyItem: Part1HistoryItem) => {
     const lines = [];
@@ -215,6 +236,32 @@ export function ProgressScreen() {
           />
         ))}
 
+        <SectionHeader title={part1InsightText.title} description="" />
+        {part1Insights.hasAttempts ? (
+          <View style={styles.insightPanel}>
+            <View style={styles.insightRow}>
+              <Text style={styles.insightLabel}>{part1InsightText.attemptsCompleted}</Text>
+              <Text style={styles.insightValue}>{part1Insights.attemptsCompleted}</Text>
+            </View>
+            <View style={styles.insightDivider} />
+            <View style={styles.insightRow}>
+              <Text style={styles.insightLabel}>{part1InsightText.bestScore}</Text>
+              <Text style={styles.insightValue}>
+                {part1Insights.bestScore ?? part1InsightText.unavailable}
+              </Text>
+            </View>
+            <View style={styles.insightDivider} />
+            <View style={styles.insightRow}>
+              <Text style={styles.insightLabel}>{part1InsightText.progress}</Text>
+              <Text style={styles.insightValue}>
+                {part1Insights.progressSummary ?? part1InsightText.unavailable}
+              </Text>
+            </View>
+          </View>
+        ) : (
+          <ListItem title={part1InsightText.noData} />
+        )}
+
         <SectionHeader
           description={t.part1HistoryDescription}
           title={t.part1HistoryTitle}
@@ -280,6 +327,32 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 18,
   },
+  insightDivider: {
+    backgroundColor: '#D7E6ED',
+    height: 1,
+  },
+  insightLabel: {
+    color: '#486581',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  insightPanel: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#D9E2EC',
+    borderRadius: 18,
+    borderWidth: 1,
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+  },
+  insightRow: {
+    gap: 6,
+  },
+  insightValue: {
+    color: '#0F4C5C',
+    fontSize: 16,
+    fontWeight: '800',
+  },
 });
 
 function formatSummaryValue(summary: Record<string, unknown> | null | undefined) {
@@ -299,6 +372,58 @@ function formatSummaryValue(summary: Record<string, unknown> | null | undefined)
     (typeof maximum === 'number' || typeof maximum === 'string')
   ) {
     return `${score} / ${maximum}`;
+  }
+
+  return null;
+}
+
+function buildPart1Insights(part1History: Part1HistoryItem[]) {
+  const attemptsCompleted = part1History.length;
+
+  if (!attemptsCompleted) {
+    return {
+      hasAttempts: false,
+      attemptsCompleted: 0,
+      bestScore: null as string | null,
+      progressSummary: null as string | null,
+    };
+  }
+
+  const scores = part1History
+    .map((item) => extractScoreBand(item.scoreSummary))
+    .filter((score): score is number => score !== null);
+
+  const bestScore = scores.length ? Math.max(...scores) : null;
+  const firstScore = scores.length ? scores[scores.length - 1] : null;
+  const latestScore = scores.length ? scores[0] : null;
+
+  return {
+    hasAttempts: true,
+    attemptsCompleted,
+    bestScore: bestScore !== null ? `Band ${bestScore}` : null,
+    progressSummary:
+      firstScore !== null && latestScore !== null
+        ? `Band ${firstScore} → Band ${latestScore}`
+        : null,
+  };
+}
+
+function extractScoreBand(summary: Record<string, unknown> | null | undefined) {
+  if (!summary || typeof summary !== 'object') {
+    return null;
+  }
+
+  const display = summary.display;
+  if (typeof display === 'string') {
+    const match = display.match(/Band\s+(\d+(?:\.\d+)?)/i);
+    if (match) {
+      return Number(match[1]);
+    }
+  }
+
+  const score = summary.score;
+  if (typeof score === 'number') {
+    return score;
   }
 
   return null;
