@@ -570,9 +570,9 @@ export function B2SpeakingPartScreen({
         ) : null}
 
         {isPart3Complete ? (
-          <View style={styles.completionBanner}>
-            <Text style={styles.completionTitle}>{t.part3CompleteTitle}</Text>
-            <Text style={styles.completionSubtitle}>{t.part3CompleteText}</Text>
+          <View style={[styles.completionBanner, styles.part3CompletionBanner]}>
+            <Text style={styles.part3CompletionTitle}>{t.part3CompleteTitle}</Text>
+            <Text style={styles.part3CompletionSubtitle}>{t.part3CompleteText}</Text>
             {canRequestEvaluation ? (
               <SecondaryButton
                 disabled={isEvaluating}
@@ -692,6 +692,16 @@ const styles = StyleSheet.create({
     gap: 6,
     padding: 20,
   },
+  part3CompletionBanner: {
+    alignItems: 'flex-start',
+    backgroundColor: '#0F172A',
+    borderColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 22,
+    borderWidth: 1,
+    gap: 18,
+    marginTop: 20,
+    padding: 18,
+  },
   completionSubtitle: {
     color: '#166534',
     fontSize: 14,
@@ -703,6 +713,17 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     textAlign: 'center',
+  },
+  part3CompletionSubtitle: {
+    color: '#CBD5E1',
+    fontSize: 15,
+    lineHeight: 21,
+  },
+  part3CompletionTitle: {
+    color: '#FFFFFF',
+    fontSize: 24,
+    fontWeight: '800',
+    letterSpacing: -0.3,
   },
   nextStepCard: {
     backgroundColor: '#0F172A',
