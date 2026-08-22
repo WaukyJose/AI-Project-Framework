@@ -7,6 +7,7 @@ interface Part2PhotoPromptProps {
   followUpMode?: boolean;
   language?: 'en' | 'es';
   photo: Part2PhotoPromptType | null;
+  maxImageHeight?: number;
   scaleToFitWidth?: boolean;
   style?: ViewStyle;
 }
@@ -20,6 +21,7 @@ export function Part2PhotoPrompt({
   followUpMode = false,
   language = 'en',
   photo,
+  maxImageHeight,
   scaleToFitWidth = false,
   style,
 }: Part2PhotoPromptProps) {
@@ -81,7 +83,11 @@ export function Part2PhotoPrompt({
                 }}
                 resizeMode="contain"
                 source={{ uri: photo.photoUrl }}
-                style={[styles.imageFitWidth, { aspectRatio }]}
+                style={[
+                  styles.imageFitWidth,
+                  { aspectRatio },
+                  maxImageHeight ? { maxHeight: maxImageHeight } : null,
+                ]}
               />
             </View>
           ) : (

@@ -109,6 +109,9 @@ const content = {
     tryNewPart1QuestionsText: 'Practise with a different Part 1 scenario.',
     part3CompleteTitle: 'Part 3 complete',
     part3CompleteText: 'You have completed the discussion and decision phase.',
+    part3PracticeTitle: 'Practice Part 3',
+    repeatThisPart3Title: 'Repeat this Part 3',
+    repeatThisPart3Text: 'Practise the same scenario and questions again.',
     part4CompleteTitle: 'Part 4 complete',
     part4CompleteText: 'You have completed the final discussion.',
     requestingFeedback: 'Requesting feedback…',
@@ -203,6 +206,9 @@ const content = {
     tryNewPart1QuestionsText: 'Practica con un escenario diferente de la Parte 1.',
     part3CompleteTitle: 'Parte 3 completada',
     part3CompleteText: 'Completaste la discusión y la fase de decisión final.',
+    part3PracticeTitle: 'Practicar la Parte 3',
+    repeatThisPart3Title: 'Repetir esta Parte 3',
+    repeatThisPart3Text: 'Practica otra vez el mismo escenario y las mismas preguntas.',
     part4CompleteTitle: 'Parte 4 completada',
     part4CompleteText: 'Completaste la discusión final.',
     requestingFeedback: 'Solicitando evaluación…',
@@ -340,6 +346,9 @@ export function B2SpeakingPartScreen({
   const repeatThisPractice = () => {
     void startSession(undefined, session?.remoteSessionId ?? undefined);
   };
+  const repeatThisPart3 = () => {
+    void startSession(undefined, session?.remoteSessionId ?? undefined);
+  };
   const tryNewPart1Questions = () => {
     void startSession(undefined, undefined, { practiceMode: 'new' });
   };
@@ -423,6 +432,7 @@ export function B2SpeakingPartScreen({
             followUpMode={isFollowUpPhase}
             language={language}
             photo={isPart2 ? part2Photo : part3Scenario}
+            maxImageHeight={isPart3 ? 420 : undefined}
             scaleToFitWidth={isPart3}
           />
         ) : null}
@@ -569,6 +579,17 @@ export function B2SpeakingPartScreen({
                 }
               />
             ) : null}
+            <View style={styles.practiceSection}>
+              <Text style={styles.practiceSectionTitle}>{t.part3PracticeTitle}</Text>
+
+              <View style={styles.practiceOption}>
+                <View style={styles.practiceOptionTextGroup}>
+                  <Text style={styles.practiceOptionTitle}>{t.repeatThisPart3Title}</Text>
+                  <Text style={styles.practiceOptionText}>{t.repeatThisPart3Text}</Text>
+                </View>
+                <SecondaryButton label={t.repeatThisPart3Title} onPress={repeatThisPart3} />
+              </View>
+            </View>
           </View>
         ) : null}
 
