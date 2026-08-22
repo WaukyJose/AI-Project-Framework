@@ -9,9 +9,12 @@ import { SpeakingAnswerArea } from '../../components/speaking/speaking-answer-ar
 import { AppHeader } from '../../components/ui/app-header';
 import { PrimaryButton, SecondaryButton } from '../../components/ui/buttons';
 import { ErrorView } from '../../components/ui/feedback-views';
+import { RecordingWatchdogBanner } from '../../components/speaking/recording-watchdog-banner';
 import { ScreenContainer } from '../../components/ui/screen-container';
 import { useSpeakingTimer } from '../../hooks/use-speaking-timer';
+import { useRecordingWatchdog } from '../../hooks/use-recording-watchdog';
 import { useSpeakingStore } from '../../store/speaking-store';
+import { useSpeakingReliabilityStore } from '../../store/speaking-reliability-store';
 import { SpeakingPartId } from '../../types/speaking';
 import { shellStyles } from '../shared/shell-styles';
 import { languageIdentities } from '../../constants/language-identity';
@@ -278,6 +281,7 @@ export function B2SpeakingPartScreen({
   const uploadRecording = useSpeakingStore((state) => state.uploadRecording);
 
   useSpeakingTimer();
+  useRecordingWatchdog();
   useEffect(() => {
   initializePart((partId as SpeakingPartId) ?? 'part-1');
 }, [initializePart, partId]);
@@ -337,6 +341,12 @@ export function B2SpeakingPartScreen({
         : t.status.ready;
   const transitionMessage = isFollowUpPhase ? t.transitionMessage : null;
   const backLabel = hasStartedTask ? t.leaveScreen : t.backToB2Speaking;
+  const recordingElapsedSeconds = useSpeakingReliabilityStore(
+    (state) => state.recordingElapsedSeconds,
+  );
+  const recordingWarningLevel = useSpeakingReliabilityStore(
+    (state) => state.recordingWarningLevel,
+  );
   const repeatThisPart2 = () => {
   void startSession(undefined, session?.remoteSessionId ?? undefined);
   };
@@ -460,6 +470,13 @@ export function B2SpeakingPartScreen({
             photo={isPart2 ? part2Photo : part3Scenario}
             maxImageHeight={isPart3 ? 420 : undefined}
             scaleToFitWidth={isPart3}
+          />
+        ) : null}
+
+        {isRecording ? (
+          <RecordingWatchdogBanner
+            elapsedSeconds={recordingElapsedSeconds}
+            warningLevel={recordingWarningLevel}
           />
         ) : null}
 
