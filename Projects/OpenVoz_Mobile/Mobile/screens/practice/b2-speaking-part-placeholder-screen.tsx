@@ -92,6 +92,12 @@ const content = {
     part2LoadingText: 'Your photographs and task will appear in a moment.',
     part2CompleteTitle: 'Part 2 complete',
     part2CompleteText: 'You have completed the long turn and follow-up.',
+    continueToPart3: 'Continue to Part 3',
+    part2RepeatPracticeTitle: 'Repeat this Part 2',
+    part2RepeatPracticeText: 'Practise the same photographs and task again.',
+    part2PracticeTitle: 'Practice Part 2',
+    part2RepeatDifferentPhotosTitle: 'Repeat Part 2 Different photos',
+    part2RepeatDifferentPhotosText: 'Try the same task with a different photo pair.',
     part1CompleteTitle: 'Part 1 Complete 🎉',
     part1CompleteSubtitle: 'What would you like to do?',
     continueToPart2: 'Continue to Part 2',
@@ -180,6 +186,12 @@ const content = {
     part2LoadingText: 'Tus fotografías y la tarea aparecerán en un momento.',
     part2CompleteTitle: 'Parte 2 completada',
     part2CompleteText: 'Completaste el turno largo y la pregunta de seguimiento.',
+    continueToPart3: 'Continuar a la Parte 3',
+    part2RepeatPracticeTitle: 'Repetir esta Parte 2',
+    part2RepeatPracticeText: 'Practica otra vez las mismas fotografías y la misma tarea.',
+    part2PracticeTitle: 'Practicar la Parte 2',
+    part2RepeatDifferentPhotosTitle: 'Repetir la Parte 2 con fotos diferentes',
+    part2RepeatDifferentPhotosText: 'Prueba la misma tarea con un par de fotos diferente.',
     part1CompleteTitle: 'Parte 1 completada 🎉',
     part1CompleteSubtitle: '¿Qué te gustaría hacer?',
     continueToPart2: 'Continuar a la Parte 2',
@@ -250,10 +262,9 @@ export function B2SpeakingPartScreen({
   const uploadRecording = useSpeakingStore((state) => state.uploadRecording);
 
   useSpeakingTimer();
-
   useEffect(() => {
-    initializePart((partId as SpeakingPartId) ?? 'part-1');
-  }, [initializePart, partId]);
+  initializePart((partId as SpeakingPartId) ?? 'part-1');
+}, [initializePart, partId]);
 
   const isPart1 = (partId as SpeakingPartId) === 'part-1';
   const isPart2 = (partId as SpeakingPartId) === 'part-2';
@@ -310,6 +321,22 @@ export function B2SpeakingPartScreen({
         : t.status.ready;
   const transitionMessage = isFollowUpPhase ? t.transitionMessage : null;
   const backLabel = hasStartedTask ? t.leaveScreen : t.backToB2Speaking;
+  const repeatThisPart2 = () => {
+  void startSession(undefined, session?.remoteSessionId ?? undefined);
+  };
+  const repeatThisPart2DifferentPhotos = () => {
+    useSpeakingStore.setState({
+      assessment: null,
+      errorMessage: null,
+      examinerAudioUrl: null,
+      examinerText: null,
+      part2Complete: false,
+      part2Phase: null,
+      part2Photo: null,
+      session: null,
+    });
+    void startSession();
+  };
   const repeatThisPractice = () => {
     void startSession(undefined, session?.remoteSessionId ?? undefined);
   };
@@ -401,9 +428,62 @@ export function B2SpeakingPartScreen({
         ) : null}
 
         {isPart2Complete ? (
-          <View style={styles.completionBanner}>
-            <Text style={styles.completionTitle}>{t.part2CompleteTitle}</Text>
-            <Text style={styles.completionSubtitle}>{t.part2CompleteText}</Text>
+          <View style={styles.nextStepCard}>
+            <View style={styles.nextStepHeader}>
+              <View style={styles.nextStepHeadingGroup}>
+                <Text style={styles.nextStepTitle}>{t.part2CompleteTitle}</Text>
+                <Text style={styles.nextStepSubtitle}>{t.part2CompleteText}</Text>
+              </View>
+              <Text style={styles.nextStepRecommended}>{t.continueToPart3}</Text>
+            </View>
+
+            {session?.remoteSessionId ? (
+              <PrimaryButton
+                accent={isSpanish ? identity.accent : undefined}
+                label={t.continueToPart3}
+                onPress={() =>
+                  router.push({
+                    pathname: '/(app)/practice/[part]',
+                    params: {
+                      part: 'part-3',
+                      ...(language === 'es' ? { lang: 'es' } : {}),
+                    },
+                  })
+                }
+              />
+            ) : null}
+
+            {canRequestEvaluation ? (
+              <PrimaryButton
+                accent={isSpanish ? identity.accent : undefined}
+                disabled={isEvaluating}
+                label={isEvaluating ? t.requestingFeedback : t.getFeedback}
+                onPress={requestEvaluation}
+              />
+            ) : null}
+
+            <View style={styles.practiceSection}>
+              <Text style={styles.practiceSectionTitle}>{t.part2PracticeTitle}</Text>
+
+              <View style={styles.practiceOption}>
+                <View style={styles.practiceOptionTextGroup}>
+                  <Text style={styles.practiceOptionTitle}>{t.part2RepeatPracticeTitle}</Text>
+                  <Text style={styles.practiceOptionText}>{t.part2RepeatPracticeText}</Text>
+                </View>
+                <SecondaryButton label={t.part2RepeatPracticeTitle} onPress={repeatThisPart2} />
+              </View>
+
+              <View style={styles.practiceOption}>
+                <View style={styles.practiceOptionTextGroup}>
+                  <Text style={styles.practiceOptionTitle}>{t.part2RepeatDifferentPhotosTitle}</Text>
+                  <Text style={styles.practiceOptionText}>{t.part2RepeatDifferentPhotosText}</Text>
+                </View>
+                <SecondaryButton
+                  label={t.part2RepeatDifferentPhotosTitle}
+                  onPress={repeatThisPart2DifferentPhotos}
+                />
+              </View>
+            </View>
           </View>
         ) : null}
 
@@ -506,7 +586,7 @@ export function B2SpeakingPartScreen({
           </View>
         ) : null}
 
-        {hasStartedTask && !isPart1Complete && !isPart3Complete && !isPart4Complete ? (
+        {hasStartedTask && !isPart1Complete && !isPart2Complete && !isPart3Complete && !isPart4Complete ? (
           <SpeakingAnswerArea
             canRequestEvaluation={canRequestEvaluation}
             canUpload={canUpload}

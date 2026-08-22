@@ -197,9 +197,29 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
 
   initializePart(partId) {
     const part = getSpeakingPartDefinition(partId);
-    speakingRecorder.stopPlayback();
+    const current = get();
     const recorder = getRecorderSnapshot();
     const isPart2 = partId === 'part-2';
+    const shouldPreservePart2State =
+      isPart2 &&
+      current.session?.partId === 'part-2' &&
+      current.session?.remoteSessionId !== null &&
+      current.part2Photo !== null &&
+      current.part2Phase !== null;
+
+    if (shouldPreservePart2State) {
+      set({
+        capability: recorder.capability,
+        errorMessage: null,
+        partDescription: part.description,
+        partId,
+        partTitle: part.title,
+        recorderStatus: recorder.lifecycleStatus,
+      });
+      return;
+    }
+
+    speakingRecorder.stopPlayback();
     const initialDuration = isPart2
       ? PART2_TIMER_CONFIG.longTurnSeconds
       : DEFAULT_DURATION_SECONDS;
@@ -470,7 +490,6 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
     const { partId, session } = get();
     const isNewPart1Practice = partId === 'part-1' && options?.practiceMode === 'new';
     const isCompletedPart1Session = Boolean(session?.part1Complete);
-
     if (partId === 'part-4' && !sourcePart3SessionId) {
       set({ errorMessage: 'Complete Part 3 before starting Part 4.' });
       return;
@@ -482,15 +501,48 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
       return;
     }
 
+    const recorder = getRecorderSnapshot();
+    const initialDuration = partId === 'part-2'
+      ? PART2_TIMER_CONFIG.longTurnSeconds
+      : DEFAULT_DURATION_SECONDS;
+
+    set({
+      assessment: null,
+      capability: recorder.capability,
+      clip: null,
+      errorMessage: null,
+      examinerAudioUrl: null,
+      examinerText: null,
+      isCreatingSession: false,
+      isEvaluating: false,
+      isPlaying: false,
+      isRecording: false,
+      isStartingSession: false,
+      isUploading: false,
+      part2Complete: false,
+      part2Phase: null,
+      part2Photo: null,
+      part3CommentIndex: null,
+      part3Complete: false,
+      part3Phase: null,
+      part3Scenario: null,
+      part3ScenarioId: null,
+      part4Complete: false,
+      part4Phase: null,
+      part4ProgressionPending: false,
+      part4QuestionId: null,
+      part4QuestionIndex: null,
+      part4SetId: null,
+      recorderStatus: recorder.lifecycleStatus,
+      session: null,
+      sourcePart3SessionId: null,
+      secondsRemaining: initialDuration,
+      timerDurationSeconds: initialDuration,
+      timerStatus: 'idle',
+    });
+
     if (isNewPart1Practice && isCompletedPart1Session) {
-      set({
-        assessment: null,
-        clip: null,
-        errorMessage: null,
-        examinerAudioUrl: null,
-        examinerText: null,
-        session: null,
-      });
+      set({ session: null });
     }
 
     set({
@@ -502,8 +554,9 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
     try {
       // Step 1: Create session on server
       const language = useUiPreferencesStore.getState().uiLanguage;
+      const shouldForwardSourceSessionId = partId === 'part-1' || partId === 'part-2';
       const created = await speakingApi.createSession(partId, language, {
-        sourceSessionId: partId === 'part-1' ? sourceSessionId : undefined,
+        sourceSessionId: shouldForwardSourceSessionId ? sourceSessionId : undefined,
         clientContext:
           partId === 'part-1' && options?.practiceMode
             ? { practice_mode: options.practiceMode }
@@ -534,6 +587,7 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
       const isPart2 = partId === 'part-2';
       const isPart3 = partId === 'part-3';
       const isPart4 = partId === 'part-4';
+      
       set({
         examinerAudioUrl: started.examiner_turn.audio_url,
         examinerText: started.examiner_turn.text,

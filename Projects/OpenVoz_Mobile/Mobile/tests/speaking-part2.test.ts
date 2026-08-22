@@ -225,6 +225,31 @@ test('state transitions: set then reset', () => {
   assert.strictEqual(afterReset.part2Complete, false);
 });
 
+test('initializePart preserves active Part 2 replay state instead of clearing it', () => {
+  const source = readFileSync(
+    resolve(process.cwd(), 'store/speaking-store.ts'),
+    'utf8',
+  );
+
+  assert.match(source, /const shouldPreservePart2State =[\s\S]*current\.session\?\.partId === 'part-2'/);
+  assert.match(source, /if \(shouldPreservePart2State\) \{/);
+  assert.match(source, /partDescription: part\.description/);
+  assert.match(source, /partTitle: part\.title/);
+  assert.match(source, /return;/);
+});
+
+test('initializePart normal Part 2 reset still clears the replay fields when no active session exists', () => {
+  const source = readFileSync(
+    resolve(process.cwd(), 'store/speaking-store.ts'),
+    'utf8',
+  );
+
+  assert.match(source, /part2Photo: null/);
+  assert.match(source, /part2Phase: null/);
+  assert.match(source, /part2Complete: false/);
+  assert.match(source, /session: null/);
+});
+
 // -- 6. Part 2 state cannot leak into Part 1 -----------------------------
 
 test('Part 2 state does not leak into Part 1', () => {
@@ -523,6 +548,43 @@ test('Part 2 complete → session/timer controls are hidden', () => {
 
 test('Part 2 incomplete → session/timer controls remain visible', () => {
   assert.strictEqual(shouldShowSessionSetupControls(false), true);
+});
+
+test('Part 2 completion UI keeps Continue to Part 3 as the primary path', () => {
+  const screenSource = readFileSync(
+    resolve(process.cwd(), 'screens/practice/b2-speaking-part-placeholder-screen.tsx'),
+    'utf8',
+  );
+
+  assert.match(screenSource, /isPart2Complete \? \(/);
+  assert.match(screenSource, /continueToPart3: 'Continue to Part 3'/);
+  assert.match(screenSource, /label=\{t\.continueToPart3\}/);
+  assert.match(screenSource, /pathname: '\/\(app\)\/practice\/\[part\]'/);
+  assert.match(screenSource, /part: 'part-3'/);
+});
+
+test('Part 2 completion UI exposes repeat action using the completed session ID', () => {
+  const screenSource = readFileSync(
+    resolve(process.cwd(), 'screens/practice/b2-speaking-part-placeholder-screen.tsx'),
+    'utf8',
+  );
+
+  assert.match(screenSource, /part2RepeatPracticeTitle: 'Repeat this Part 2'/);
+  assert.match(screenSource, /part2RepeatPracticeText:/);
+  assert.match(screenSource, /const repeatThisPart2 = \(\) => \{/);
+  assert.match(screenSource, /startSession\(undefined, session\?\.remoteSessionId \?\? undefined\)/);
+  assert.match(screenSource, /label=\{t\.part2RepeatPracticeTitle\}/);
+});
+
+test('Part 2 replay forwards sourceSessionId through the speaking store', () => {
+  const storeSource = readFileSync(
+    resolve(process.cwd(), 'store/speaking-store.ts'),
+    'utf8',
+  );
+
+  assert.match(storeSource, /const shouldForwardSourceSessionId = partId === 'part-1' \|\| partId === 'part-2';/);
+  assert.match(storeSource, /sourceSessionId: shouldForwardSourceSessionId \? sourceSessionId : undefined,/);
+  assert.match(storeSource, /partId === 'part-1' && options\?\.practiceMode/);
 });
 
 // -- 13. Timer semantics --------------------------------------------------
