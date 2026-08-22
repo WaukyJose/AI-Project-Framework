@@ -112,6 +112,8 @@ const content = {
     part3PracticeTitle: 'Practice Part 3',
     repeatThisPart3Title: 'Repeat this Part 3',
     repeatThisPart3Text: 'Practise the same scenario and questions again.',
+    part3RepeatDifferentScenarioTitle: 'Try another Part 3',
+    part3RepeatDifferentScenarioText: 'Practise with a different scenario and questions.',
     part4CompleteTitle: 'Part 4 complete',
     part4CompleteText: 'You have completed the final discussion.',
     requestingFeedback: 'Requesting feedback…',
@@ -209,6 +211,8 @@ const content = {
     part3PracticeTitle: 'Practicar la Parte 3',
     repeatThisPart3Title: 'Repetir esta Parte 3',
     repeatThisPart3Text: 'Practica otra vez el mismo escenario y las mismas preguntas.',
+    part3RepeatDifferentScenarioTitle: 'Intentar otra Parte 3',
+    part3RepeatDifferentScenarioText: 'Practica con un escenario y preguntas diferentes.',
     part4CompleteTitle: 'Parte 4 completada',
     part4CompleteText: 'Completaste la discusión final.',
     requestingFeedback: 'Solicitando evaluación…',
@@ -348,6 +352,19 @@ export function B2SpeakingPartScreen({
   };
   const repeatThisPart3 = () => {
     void startSession(undefined, session?.remoteSessionId ?? undefined);
+  };
+  const repeatThisPart3DifferentScenario = () => {
+    useSpeakingStore.setState({
+      assessment: null,
+      errorMessage: null,
+      examinerAudioUrl: null,
+      examinerText: null,
+      part3Complete: false,
+      part3Phase: null,
+      part3Scenario: null,
+      session: null,
+    });
+    void startSession();
   };
   const tryNewPart1Questions = () => {
     void startSession(undefined, undefined, { practiceMode: 'new' });
@@ -588,6 +605,21 @@ export function B2SpeakingPartScreen({
                   <Text style={styles.practiceOptionText}>{t.repeatThisPart3Text}</Text>
                 </View>
                 <SecondaryButton label={t.repeatThisPart3Title} onPress={repeatThisPart3} />
+              </View>
+
+              <View style={styles.practiceOption}>
+                <View style={styles.practiceOptionTextGroup}>
+                  <Text style={styles.practiceOptionTitle}>
+                    {t.part3RepeatDifferentScenarioTitle}
+                  </Text>
+                  <Text style={styles.practiceOptionText}>
+                    {t.part3RepeatDifferentScenarioText}
+                  </Text>
+                </View>
+                <SecondaryButton
+                  label={t.part3RepeatDifferentScenarioTitle}
+                  onPress={repeatThisPart3DifferentScenario}
+                />
               </View>
             </View>
           </View>

@@ -554,7 +554,8 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
     try {
       // Step 1: Create session on server
       const language = useUiPreferencesStore.getState().uiLanguage;
-      const shouldForwardSourceSessionId = partId === 'part-1' || partId === 'part-2';
+      const shouldForwardSourceSessionId =
+        partId === 'part-1' || partId === 'part-2' || partId === 'part-3';
       const created = await speakingApi.createSession(partId, language, {
         sourceSessionId: shouldForwardSourceSessionId ? sourceSessionId : undefined,
         clientContext:
