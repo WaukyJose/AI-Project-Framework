@@ -116,6 +116,9 @@ const content = {
     part3RepeatDifferentScenarioText: 'Practise with a different scenario and questions.',
     part4CompleteTitle: 'Part 4 complete',
     part4CompleteText: 'You have completed the final discussion.',
+    part4PracticeTitle: 'Practice Part 4',
+    repeatThisPart4Title: 'Repeat this Part 4',
+    repeatThisPart4Text: 'Practise the same discussion questions again.',
     requestingFeedback: 'Requesting feedback…',
     viewPart3Feedback: 'View Part 3 feedback',
     viewPart4Feedback: 'View Part 4 feedback',
@@ -215,6 +218,9 @@ const content = {
     part3RepeatDifferentScenarioText: 'Practica con un escenario y preguntas diferentes.',
     part4CompleteTitle: 'Parte 4 completada',
     part4CompleteText: 'Completaste la discusión final.',
+    part4PracticeTitle: 'Practicar la Parte 4',
+    repeatThisPart4Title: 'Repetir esta Parte 4',
+    repeatThisPart4Text: 'Practica otra vez las mismas preguntas de discusión.',
     requestingFeedback: 'Solicitando evaluación…',
     viewPart3Feedback: 'Ver evaluación de la Parte 3',
     viewPart4Feedback: 'Ver evaluación de la Parte 4',
@@ -365,6 +371,9 @@ export function B2SpeakingPartScreen({
       session: null,
     });
     void startSession();
+  };
+  const repeatThisPart4 = () => {
+    void startSession(undefined, session?.remoteSessionId ?? undefined);
   };
   const tryNewPart1Questions = () => {
     void startSession(undefined, undefined, { practiceMode: 'new' });
@@ -626,9 +635,9 @@ export function B2SpeakingPartScreen({
         ) : null}
 
         {isPart4Complete ? (
-          <View style={styles.completionBanner}>
-            <Text style={styles.completionTitle}>{t.part4CompleteTitle}</Text>
-            <Text style={styles.completionSubtitle}>{t.part4CompleteText}</Text>
+          <View style={[styles.completionBanner, styles.part4CompletionBanner]}>
+            <Text style={styles.part4CompletionTitle}>{t.part4CompleteTitle}</Text>
+            <Text style={styles.part4CompletionSubtitle}>{t.part4CompleteText}</Text>
             {canRequestEvaluation ? (
               <SecondaryButton
                 disabled={isEvaluating}
@@ -636,6 +645,17 @@ export function B2SpeakingPartScreen({
                 onPress={requestEvaluation}
               />
             ) : null}
+            <View style={styles.practiceSection}>
+              <Text style={styles.practiceSectionTitle}>{t.part4PracticeTitle}</Text>
+
+              <View style={styles.practiceOption}>
+                <View style={styles.practiceOptionTextGroup}>
+                  <Text style={styles.practiceOptionTitle}>{t.repeatThisPart4Title}</Text>
+                  <Text style={styles.practiceOptionText}>{t.repeatThisPart4Text}</Text>
+                </View>
+                <SecondaryButton label={t.repeatThisPart4Title} onPress={repeatThisPart4} />
+              </View>
+            </View>
           </View>
         ) : null}
 
@@ -702,6 +722,16 @@ const styles = StyleSheet.create({
     marginTop: 20,
     padding: 18,
   },
+  part4CompletionBanner: {
+    alignItems: 'flex-start',
+    backgroundColor: '#0F172A',
+    borderColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 22,
+    borderWidth: 1,
+    gap: 18,
+    marginTop: 20,
+    padding: 18,
+  },
   completionSubtitle: {
     color: '#166534',
     fontSize: 14,
@@ -720,6 +750,17 @@ const styles = StyleSheet.create({
     lineHeight: 21,
   },
   part3CompletionTitle: {
+    color: '#FFFFFF',
+    fontSize: 24,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+  },
+  part4CompletionSubtitle: {
+    color: '#CBD5E1',
+    fontSize: 15,
+    lineHeight: 21,
+  },
+  part4CompletionTitle: {
     color: '#FFFFFF',
     fontSize: 24,
     fontWeight: '800',
