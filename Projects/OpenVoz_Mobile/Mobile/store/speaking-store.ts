@@ -490,7 +490,7 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
     const { partId, session } = get();
     const isNewPart1Practice = partId === 'part-1' && options?.practiceMode === 'new';
     const isCompletedPart1Session = Boolean(session?.part1Complete);
-    if (partId === 'part-4' && !sourcePart3SessionId) {
+    if (partId === 'part-4' && !sourcePart3SessionId && !sourceSessionId) {
       set({ errorMessage: 'Complete Part 3 before starting Part 4.' });
       return;
     }
@@ -555,7 +555,10 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
       // Step 1: Create session on server
       const language = useUiPreferencesStore.getState().uiLanguage;
       const shouldForwardSourceSessionId =
-        partId === 'part-1' || partId === 'part-2' || partId === 'part-3';
+        partId === 'part-1' ||
+        partId === 'part-2' ||
+        partId === 'part-3' ||
+        partId === 'part-4';
       const created = await speakingApi.createSession(partId, language, {
         sourceSessionId: shouldForwardSourceSessionId ? sourceSessionId : undefined,
         clientContext:
