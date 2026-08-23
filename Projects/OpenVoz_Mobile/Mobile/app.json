@@ -13,7 +13,11 @@
       "backgroundColor": "#F5F7FA"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.openvoz.mobile",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -22,7 +26,13 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -40,8 +50,8 @@
         "environments": {
           "development": {
             "label": "Development",
-            "siteUrl": "http://10.40.75.76:8000",
-            "apiBaseUrl": "http://10.40.75.76:8000/api/v1",
+            "siteUrl": "http://192.168.100.132:8000",
+            "apiBaseUrl": "http://192.168.100.132:8000/api/v1",
             "versionPath": "/api/version/"
           },
           "staging": {
@@ -59,6 +69,10 @@
             "versionPath": "/api/version/"
           }
         }
+      },
+      "router": {},
+      "eas": {
+        "projectId": "fa079bb3-27c2-45ee-a262-7145a16edc7d"
       }
     }
   }
