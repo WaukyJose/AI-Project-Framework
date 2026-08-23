@@ -65,8 +65,8 @@
             "label": "Production",
             "siteUrl": "https://www.openvoz.com",
             "apiBaseUrl": "https://www.openvoz.com/api/v1",
-            "connectivityPath": "/usersvoicechat/login/",
-            "versionPath": "/api/version/"
+            "connectivityPath": "/api/v1/auth/validate/",
+            "versionPath": "/api/v1/auth/validate/"
           }
         }
       },
