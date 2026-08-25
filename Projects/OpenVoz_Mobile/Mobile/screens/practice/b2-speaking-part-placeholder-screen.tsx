@@ -18,6 +18,7 @@ import { useSpeakingReliabilityStore } from '../../store/speaking-reliability-st
 import { SpeakingPartId } from '../../types/speaking';
 import { shellStyles } from '../shared/shell-styles';
 import { languageIdentities } from '../../constants/language-identity';
+import { getPart3SpanishImageSource } from '../../constants/part3-spanish-images';
 
 function formatCountdown(secondsRemaining: number) {
   const minutes = Math.floor(secondsRemaining / 60)
@@ -266,6 +267,7 @@ export function B2SpeakingPartScreen({
   const part3Complete = useSpeakingStore((state) => state.part3Complete);
   const part3Phase = useSpeakingStore((state) => state.part3Phase);
   const part3Scenario = useSpeakingStore((state) => state.part3Scenario);
+  const part3ScenarioId = useSpeakingStore((state) => state.part3ScenarioId);
   const part4Complete = useSpeakingStore((state) => state.part4Complete);
   const part4Phase = useSpeakingStore((state) => state.part4Phase);
   const requestEvaluation = useSpeakingStore((state) => state.requestEvaluation);
@@ -468,6 +470,7 @@ export function B2SpeakingPartScreen({
             followUpMode={isFollowUpPhase}
             language={language}
             photo={isPart2 ? part2Photo : part3Scenario}
+            imageSource={isPart3 && isSpanish ? getPart3SpanishImageSource(part3ScenarioId) ?? undefined : undefined}
             maxImageHeight={isPart3 ? 420 : undefined}
             scaleToFitWidth={isPart3}
           />
