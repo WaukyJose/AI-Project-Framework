@@ -1,5 +1,13 @@
 import { useState } from 'react';
-import { Image, StyleSheet, Text, View, ViewStyle } from 'react-native';
+import {
+  Image,
+  ImageSourcePropType,
+  LayoutChangeEvent,
+  StyleSheet,
+  Text,
+  View,
+  ViewStyle,
+} from 'react-native';
 
 import type { Part2PhotoPrompt as Part2PhotoPromptType } from '../../types/speaking';
 
@@ -7,6 +15,7 @@ interface Part2PhotoPromptProps {
   followUpMode?: boolean;
   language?: 'en' | 'es';
   photo: Part2PhotoPromptType | null;
+  imageSource?: ImageSourcePropType;
   maxImageHeight?: number;
   scaleToFitWidth?: boolean;
   style?: ViewStyle;
@@ -17,20 +26,39 @@ interface NaturalSize {
   height: number;
 }
 
+const DEFAULT_PART2_TOP_CROP = 0.12;
+
+const PART2_TOP_CROP_OVERRIDES: Record<string, number> = {
+  // Tune individual Part 2 image sets here if a future asset needs a
+  // slightly different crop line to preserve the full first photo.
+};
+
+function getPhotoCropKey(photoUrl: string) {
+  const withoutQuery = photoUrl.split('?')[0] ?? photoUrl;
+  const fileName = withoutQuery.split('/').pop() ?? withoutQuery;
+  return fileName.toLowerCase();
+}
+
 export function Part2PhotoPrompt({
   followUpMode = false,
   language = 'en',
   photo,
+  imageSource,
   maxImageHeight,
   scaleToFitWidth = false,
   style,
 }: Part2PhotoPromptProps) {
   const [hasError, setHasError] = useState(false);
   const [naturalSize, setNaturalSize] = useState<NaturalSize | null>(null);
+  const [layoutWidth, setLayoutWidth] = useState<number | null>(null);
 
   if (!photo) {
     return null;
   }
+
+  const resolvedImageSource = imageSource ?? { uri: photo.photoUrl };
+  const localAssetSource = typeof imageSource === 'number' ? imageSource : null;
+  const localAssetSize = localAssetSource ? Image.resolveAssetSource(localAssetSource) : null;
 
   const t = {
     en: {
@@ -58,6 +86,26 @@ export function Part2PhotoPrompt({
   // Minimum height based on a portrait-oriented fallback so the
   // placeholder reserves sensible space before the image loads.
   const minHeight = 280;
+  const cropKey = getPhotoCropKey(photo.photoUrl);
+  const topCrop = PART2_TOP_CROP_OVERRIDES[cropKey] ?? DEFAULT_PART2_TOP_CROP;
+  const effectiveWidth = layoutWidth ?? naturalSize?.width ?? 0;
+  const effectiveHeight = naturalSize ? naturalSize.height : 0;
+  const cropPx = effectiveHeight * topCrop;
+  const scaledHeight =
+    effectiveWidth > 0 && effectiveHeight > 0 ? (effectiveHeight * effectiveWidth) / naturalSize!.width : 0;
+  const visibleHeight = Math.max(0, scaledHeight - scaledHeight * topCrop);
+  const croppedImageHeight = scaledHeight > 0 ? scaledHeight : minHeight;
+  const fitWidthRenderedHeight =
+    layoutWidth && localAssetSize?.width && localAssetSize?.height
+      ? (layoutWidth * localAssetSize.height) / localAssetSize.width
+      : null;
+
+  function handleLayout(event: LayoutChangeEvent) {
+    const width = event.nativeEvent.layout.width;
+    if (width > 0) {
+      setLayoutWidth(width);
+    }
+  }
 
   return (
     <View style={[styles.container, style]}>
@@ -70,7 +118,7 @@ export function Part2PhotoPrompt({
               <Text style={styles.errorHint}>{t.tryAgain}</Text>
             </View>
           ) : scaleToFitWidth ? (
-            <View style={styles.imageFrameFitWidth}>
+            <View onLayout={handleLayout} style={styles.imageFrameFitWidth}>
               <Image
                 accessibilityLabel={t.part3Label}
                 onError={() => setHasError(true)}
@@ -82,16 +130,24 @@ export function Part2PhotoPrompt({
                   }
                 }}
                 resizeMode="contain"
-                source={{ uri: photo.photoUrl }}
+                source={resolvedImageSource}
                 style={[
                   styles.imageFitWidth,
-                  { aspectRatio },
+                  fitWidthRenderedHeight
+                    ? { height: fitWidthRenderedHeight, width: '100%' }
+                    : { aspectRatio },
                   maxImageHeight ? { maxHeight: maxImageHeight } : null,
                 ]}
               />
             </View>
           ) : (
-            <View style={[styles.imageFrame, { aspectRatio, minHeight }]}>
+            <View
+              onLayout={handleLayout}
+              style={[
+                styles.imageFrame,
+                layoutWidth ? { height: visibleHeight, minHeight: visibleHeight } : { aspectRatio, minHeight },
+              ]}
+            >
               <Image
                 accessibilityLabel={t.part2Label}
                 onError={() => setHasError(true)}
@@ -103,8 +159,17 @@ export function Part2PhotoPrompt({
                   }
                 }}
                 resizeMode="contain"
-                source={{ uri: photo.photoUrl }}
-                style={styles.image}
+                source={resolvedImageSource}
+                style={[
+                  styles.image,
+                  layoutWidth && naturalSize
+                    ? {
+                        height: croppedImageHeight,
+                        marginTop: -Math.round(cropPx * (layoutWidth / naturalSize.width)),
+                        width: '100%',
+                      }
+                    : null,
+                ]}
               />
             </View>
           )}
