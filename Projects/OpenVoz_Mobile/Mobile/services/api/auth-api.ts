@@ -9,6 +9,7 @@ export const authApi = {
       },
       method: 'POST',
       responseType: 'response',
+      skipAuthHeader: true,
       timeoutMs: 10000,
     });
   },

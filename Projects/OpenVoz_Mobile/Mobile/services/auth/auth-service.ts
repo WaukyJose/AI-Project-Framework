@@ -1,7 +1,7 @@
 import { AuthSession, AuthUser, LoginCredentials, LoginResult } from '../../types/auth';
 import { getApiEnvironment, getCurrentApiEnvironmentName } from '../../utils/env';
 import { logger } from '../../utils/logger';
-import { ApiError, registerAuthTokenProvider } from '../api';
+import { ApiError, registerAuthTokenProvider } from '../api/api-client';
 import { authApi } from '../api/auth-api';
 import { profileService } from '../profile/profile-service';
 import { authStorage } from './auth-storage';
@@ -104,6 +104,18 @@ export const authService = {
       );
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
+        if (error.details && typeof error.details === 'object') {
+          const backendCode = (error.details as { error?: { code?: unknown } }).error?.code;
+          if (backendCode === 'invalid_credentials') {
+            throw new ApiError('Invalid credentials', {
+              code: 'invalid_credentials',
+              details: error.details,
+              status: 401,
+              url: LOGIN_PATH,
+            });
+          }
+        }
+
         throw new ApiError('Invalid credentials', {
           code: 'authentication_expired',
           details: {

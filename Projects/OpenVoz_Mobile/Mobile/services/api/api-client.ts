@@ -10,6 +10,7 @@ export type ResponseType = 'json' | 'response' | 'text';
 
 export type ApiErrorCode =
   | 'authentication_expired'
+  | 'invalid_credentials'
   | 'forbidden'
   | 'invalid_json'
   | 'network_unavailable'
@@ -25,6 +26,7 @@ export interface ApiClientRequestOptions extends Omit<RequestInit, 'body' | 'hea
   method?: HttpMethod;
   responseType?: ResponseType;
   timeoutMs?: number;
+  skipAuthHeader?: boolean;
 }
 
 export interface ApiClientContext {
@@ -125,8 +127,8 @@ function buildHeaders(responseType: ResponseType, headers?: Record<string, strin
   };
 }
 
-async function withAuthHeader(headers: Record<string, string>) {
-  if (!authTokenProvider || headers.Authorization) {
+async function withAuthHeader(headers: Record<string, string>, skipAuthHeader?: boolean) {
+  if (skipAuthHeader || !authTokenProvider || headers.Authorization) {
     return headers;
   }
 
@@ -227,6 +229,109 @@ function classifyStatusError(response: Response, url: string) {
   return null;
 }
 
+async function readResponseErrorDetails(response: Response) {
+  try {
+    const rawErrorBody = await response.clone().text();
+    if (!rawErrorBody) {
+      return undefined;
+    }
+
+    try {
+      return JSON.parse(rawErrorBody);
+    } catch {
+      return rawErrorBody;
+    }
+  } catch {
+    return undefined;
+  }
+}
+
+function extractBackendErrorCode(details: unknown) {
+  if (!details || typeof details !== 'object') {
+    return null;
+  }
+
+  const error = (details as { error?: { code?: unknown } }).error;
+  if (!error || typeof error !== 'object') {
+    return null;
+  }
+
+  const code = error.code;
+  return typeof code === 'string' && code.trim() ? code.trim() : null;
+}
+
+function classifyErrorResponse(response: Response, url: string, details: unknown) {
+  const backendCode = extractBackendErrorCode(details);
+
+  if (response.status === 401) {
+    if (backendCode === 'invalid_credentials') {
+      return new ApiError('Invalid credentials', {
+        code: 'invalid_credentials',
+        details,
+        status: response.status,
+        url,
+      });
+    }
+
+    return new ApiError('Authentication expired', {
+      code: 'authentication_expired',
+      details,
+      status: response.status,
+      url,
+    });
+  }
+
+  if (backendCode === 'invalid_credentials') {
+    return new ApiError('Invalid credentials', {
+      code: 'invalid_credentials',
+      details,
+      status: response.status,
+      url,
+    });
+  }
+
+  if (response.status === 403) {
+    return new ApiError('Request forbidden', {
+      code: 'forbidden',
+      details,
+      status: response.status,
+      url,
+    });
+  }
+
+  if (response.status >= 500) {
+    return new ApiError('Server error', {
+      code: 'server_error',
+      details,
+      status: response.status,
+      url,
+    });
+  }
+
+  if (response.status >= 400) {
+    return new ApiError(`Request failed with status ${response.status}`, {
+      code: 'server_unavailable',
+      details,
+      status: response.status,
+      url,
+    });
+  }
+
+  return null;
+}
+
+function shouldLogAsError(apiError: ApiError) {
+  if (apiError.code === 'network_unavailable' || apiError.code === 'timeout' || apiError.code === 'unknown') {
+    return true;
+  }
+
+  if (typeof apiError.status === 'number') {
+    return apiError.status >= 500;
+  }
+
+  return true;
+}
+
 export class ApiClient {
   private readonly interceptors: ApiInterceptor[];
   private readonly timeoutMs: number;
@@ -260,7 +365,7 @@ export class ApiClient {
       headers['Content-Type'] = 'application/json';
     }
 
-    headers = await withAuthHeader(headers);
+    headers = await withAuthHeader(headers, options.skipAuthHeader);
     const body = serializeBody(options.body);
     const context = await this.runRequestInterceptors({
       fullUrl,
@@ -295,28 +400,17 @@ export class ApiClient {
       const processedResponse = await this.runResponseInterceptors(response, context);
 
       const statusError = classifyStatusError(processedResponse, context.fullUrl);
-
-      if (statusError) {
-        let errorDetails: unknown = undefined;
-        try {
-          const rawErrorBody = await processedResponse.clone().text();
-          if (rawErrorBody) {
-            try {
-              errorDetails = JSON.parse(rawErrorBody);
-            } catch {
-              errorDetails = rawErrorBody;
-            }
+      if (statusError || !processedResponse.ok) {
+        const errorDetails = await readResponseErrorDetails(processedResponse);
+        throw classifyErrorResponse(processedResponse, context.fullUrl, errorDetails) ?? statusError ?? new ApiError(
+          `Request failed with status ${processedResponse.status}`,
+          {
+            code: 'server_unavailable',
+            details: errorDetails,
+            status: processedResponse.status,
+            url: context.fullUrl,
           }
-        } catch {
-          errorDetails = undefined;
-        }
-
-        throw new ApiError(statusError.message, {
-          code: statusError.code,
-          details: errorDetails,
-          status: statusError.status,
-          url: statusError.url,
-        });
+        );
       }
 
       logger.info('api.request.success', {
@@ -347,12 +441,19 @@ export class ApiClient {
         classifyFetchFailure(error, context.fullUrl),
         context
       );
-      logger.error('api.request.failure', {
+
+      const logPayload = {
         code: apiError.code,
         message: apiError.message,
         status: apiError.status ?? null,
         url: context.fullUrl,
-      });
+      };
+
+      if (shouldLogAsError(apiError)) {
+        logger.error('api.request.failure', logPayload);
+      } else {
+        logger.warn('api.request.failure', logPayload);
+      }
       throw apiError;
     } finally {
       clearTimeout(timeoutId);

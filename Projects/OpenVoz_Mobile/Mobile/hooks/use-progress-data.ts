@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useEffect } from 'react';
-import { router } from 'expo-router';
+import { router, useIsFocused } from 'expo-router';
 
 import { ApiError } from '../services/api';
 import { progressService } from '../services/progress/progress-service';
@@ -10,9 +10,10 @@ import { useAuthStore } from '../store/auth-store';
 export function useProgressData(language: 'en' | 'es') {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const logout = useAuthStore((state) => state.logout);
+  const isFocused = useIsFocused();
 
   const query = useQuery({
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && isFocused,
     queryFn: () => progressService.getProgress(language),
     queryKey: queryKeys.progress(language),
     retry: false,
