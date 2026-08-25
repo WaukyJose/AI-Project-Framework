@@ -28,11 +28,11 @@ export default function AppTabsLayout() {
     <NativeTabs
       backgroundColor="#FFFFFF"
       disableTransparentOnScrollEdge
-      iconColor={{ default: '#64748B', selected: identity.accent }}
+      iconColor={{ default: '#94A3B8', selected: identity.accent }}
       labelStyle={{
         color: '#64748B',
-        fontSize: 12,
-        fontWeight: '700',
+        fontSize: 10,
+        fontWeight: '600',
       }}
       tintColor={identity.accent}
     >

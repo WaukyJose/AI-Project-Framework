@@ -15,8 +15,6 @@ const WAVE_HEIGHTS = [
 ];
 const PLAYED_COUNT = 11;
 
-const FREE_WAVE_HEIGHTS = [4, 8, 12, 8, 14, 10, 6, 12, 8];
-
 function extractText(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
@@ -76,6 +74,14 @@ function PlayCircleIcon() {
     <Svg width={16} height={16} viewBox="0 0 16 16">
       <Circle cx={8} cy={8} r={6.6} fill="none" stroke="#FFFFFF" strokeWidth={1.5} />
       <Path d="M6.8 5.4 11 8l-4.2 2.6Z" fill="#FFFFFF" />
+    </Svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <Svg width={10} height={10} viewBox="0 0 10 10">
+      <Path d="M3.9 7.1 1.9 5.1l-.8.8 2.8 2.8 5-5-.8-.8Z" fill="#FFFFFF" />
     </Svg>
   );
 }
@@ -154,10 +160,7 @@ export function DashboardScreen() {
       <ScrollView style={styles.dashboardScroll} contentContainerStyle={styles.scrollContent}>
         {/* Hero */}
         <View style={styles.hero}>
-          <View style={styles.heroGlowOuter} />
-          <View style={styles.heroGlowMid} />
-          <View style={styles.heroGlowInner} />
-          <View style={styles.heroArc} />
+          <View style={styles.heroGlow} />
 
           <View style={styles.heroHeader}>
             <View style={styles.logoRow}>
@@ -199,7 +202,7 @@ export function DashboardScreen() {
             </View>
 
             <Text style={styles.examinerPrompt}>
-              “Tell me about a time you had to learn something new. How did you approach it?”
+              “Tell me about something you enjoy learning about.”
             </Text>
 
             <View style={styles.responseStrip}>
@@ -227,19 +230,6 @@ export function DashboardScreen() {
             </View>
           </View>
 
-          {/* Part indicators */}
-          <View style={styles.partsRow}>
-            <View style={[styles.partPill, styles.partPillActive]}>
-              <View style={styles.partPillDot} />
-              <Text style={styles.partPillTextActive}>P1</Text>
-            </View>
-            {['P2', 'P3', 'P4'].map((part) => (
-              <View key={part} style={styles.partPill}>
-                <Text style={styles.partPillText}>{part}</Text>
-              </View>
-            ))}
-          </View>
-
           <Pressable
             onPress={navigateToPractice}
             style={({ pressed }) => [styles.heroCta, pressed && styles.heroCtaPressed]}
@@ -256,53 +246,25 @@ export function DashboardScreen() {
           </Pressable>
         </View>
 
-        {/* What you get */}
-        <View style={styles.featureSection}>
-          <Text style={styles.sectionEyebrow}>WHAT YOU GET</Text>
-          <Text style={styles.sectionHeading}>Everything in one place</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.featureScroll}
-            style={styles.featureBleed}
-          >
-            <View style={[styles.featureCard, styles.featureCardTeal]}>
-              <View style={styles.featureIcon}>
-                <FeatureIcon type="practice" />
-              </View>
-              <Text style={styles.featureCardTitle}>Practise Speaking</Text>
-              <Text style={styles.featureCardBody}>Parts 1–4 with guided examiner interaction</Text>
-            </View>
-            <View style={[styles.featureCard, styles.featureCardNavy]}>
-              <View style={styles.featureIcon}>
-                <FeatureIcon type="feedback" />
-              </View>
-              <Text style={styles.featureCardTitle}>AI Feedback</Text>
-              <Text style={styles.featureCardBody}>Feedback on your speaking performance</Text>
-            </View>
-            <View style={[styles.featureCard, styles.featureCardTeal]}>
-              <View style={styles.featureIcon}>
-                <FeatureIcon type="progress" />
-              </View>
-              <Text style={styles.featureCardTitle}>Track Progress</Text>
-              <Text style={styles.featureCardBody}>See your practice and improvement over time</Text>
-            </View>
-          </ScrollView>
-        </View>
-
         {/* Practice language */}
         <View style={styles.languageSection}>
           <Text style={styles.sectionEyebrow}>PRACTICE LANGUAGE</Text>
-          <Text style={styles.sectionHeading}>Practise in your language</Text>
+          <Text style={styles.sectionHeading}>Choose your language</Text>
           <View style={styles.languageGrid}>
             <Pressable
               onPress={() => handleLanguagePress('en')}
               style={({ pressed }) => [
                 styles.languageCard,
                 styles.languageCardEn,
+                uiLanguage === 'en' && styles.languageCardSelectedEn,
                 pressed && styles.cardPressed,
               ]}
             >
+              {uiLanguage === 'en' ? (
+                <View style={styles.selectedCheck}>
+                  <CheckIcon />
+                </View>
+              ) : null}
               <View style={[styles.flagCircle, styles.flagCircleEn]}>
                 <Text style={styles.flagGlyph}>🇬🇧</Text>
               </View>
@@ -319,9 +281,15 @@ export function DashboardScreen() {
               style={({ pressed }) => [
                 styles.languageCard,
                 styles.languageCardEs,
+                uiLanguage === 'es' && styles.languageCardSelectedEs,
                 pressed && styles.cardPressed,
               ]}
             >
+              {uiLanguage === 'es' ? (
+                <View style={[styles.selectedCheck, styles.selectedCheckEs]}>
+                  <CheckIcon />
+                </View>
+              ) : null}
               <View style={[styles.flagCircle, styles.flagCircleEs]}>
                 <Text style={styles.flagGlyph}>🇪🇸</Text>
               </View>
@@ -334,44 +302,50 @@ export function DashboardScreen() {
               </View>
             </Pressable>
           </View>
+          <Pressable
+            onPress={() => handleLanguagePress(uiLanguage)}
+            style={({ pressed }) => [
+              styles.secondaryCta,
+              uiLanguage === 'es' ? styles.secondaryCtaEs : styles.secondaryCtaEn,
+              pressed && styles.cardPressed,
+            ]}
+          >
+            <Text
+              style={[
+                styles.secondaryCtaText,
+                uiLanguage === 'es' ? styles.secondaryCtaTextEs : styles.secondaryCtaTextEn,
+              ]}
+            >
+              {uiLanguage === 'es' ? 'Empezar práctica en Español' : 'Start practising in English'}
+            </Text>
+          </Pressable>
         </View>
 
-        {/* Free speaking practice */}
-        <View style={styles.freeCard}>
-          <LinearGradient colors={['#1A2B4A', '#243659']} style={styles.freeBadge}>
-            <Text style={styles.freeBadgeText}>FREE</Text>
-          </LinearGradient>
-          <Text style={styles.freeHeading}>Free speaking practice</Text>
-          <Text style={styles.freeBody}>
-            Try all 4 parts of B2 First Speaking in English or Spanish — no account needed to get
-            started.
-          </Text>
-          <View style={styles.freeLangRow}>
-            <View style={styles.freeLangPill}>
-              <Text style={styles.freeLangText}>🇬🇧 English</Text>
+        {/* What you get */}
+        <View style={styles.featureSection}>
+          <Text style={styles.sectionEyebrow}>WHAT YOU GET</Text>
+          <Text style={styles.sectionHeading}>Everything in one place</Text>
+          <View style={styles.featureGrid}>
+            <View style={[styles.featureCard, styles.featureCardTeal]}>
+              <View style={styles.featureIcon}>
+                <FeatureIcon type="practice" />
+              </View>
+              <Text style={styles.featureCardTitle}>Speaking Practice</Text>
+              <Text style={styles.featureCardBody}>Parts 1–4 guided practice</Text>
             </View>
-            <View style={styles.freeLangPill}>
-              <Text style={styles.freeLangText}>🇪🇸 Español</Text>
+            <View style={[styles.featureCard, styles.featureCardNavy]}>
+              <View style={styles.featureIcon}>
+                <FeatureIcon type="feedback" />
+              </View>
+              <Text style={styles.featureCardTitle}>AI Feedback</Text>
+              <Text style={styles.featureCardBody}>Scored speaking feedback</Text>
             </View>
-          </View>
-          <View style={styles.freeCtaRow}>
-            <Pressable
-              onPress={navigateToPractice}
-              style={({ pressed }) => [styles.freeCta, pressed && styles.cardPressed]}
-            >
-              <LinearGradient
-                colors={['#1D7A6B', '#2A9B8A']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.freeCtaGradient}
-              >
-                <Text style={styles.freeCtaText}>Start practising</Text>
-              </LinearGradient>
-            </Pressable>
-            <View style={styles.freeWave}>
-              {FREE_WAVE_HEIGHTS.map((height, index) => (
-                <View key={index} style={[styles.freeWaveBar, { height }]} />
-              ))}
+            <View style={[styles.featureCard, styles.featureCardTeal]}>
+              <View style={styles.featureIcon}>
+                <FeatureIcon type="progress" />
+              </View>
+              <Text style={styles.featureCardTitle}>Progress</Text>
+              <Text style={styles.featureCardBody}>Track improvement</Text>
             </View>
           </View>
         </View>
@@ -437,7 +411,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     backgroundColor: '#F5F7FA',
-    paddingBottom: 20,
+    paddingBottom: 18,
   },
 
   // Hero
@@ -445,53 +419,25 @@ const styles = StyleSheet.create({
     backgroundColor: '#1A2B4A',
     marginHorizontal: -20,
     overflow: 'hidden',
-    paddingBottom: 28,
+    paddingBottom: 22,
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 18,
     position: 'relative',
   },
-  heroGlowOuter: {
-    backgroundColor: 'rgba(29,122,107,0.06)',
-    borderRadius: 160,
-    bottom: -80,
-    height: 320,
+  heroGlow: {
+    backgroundColor: 'rgba(42,155,138,0.12)',
+    borderRadius: 140,
+    bottom: -34,
+    height: 170,
     position: 'absolute',
-    right: -80,
-    width: 320,
-  },
-  heroGlowMid: {
-    backgroundColor: 'rgba(29,122,107,0.09)',
-    borderRadius: 110,
-    bottom: -30,
-    height: 220,
-    position: 'absolute',
-    right: -30,
-    width: 220,
-  },
-  heroGlowInner: {
-    backgroundColor: 'rgba(29,122,107,0.13)',
-    borderRadius: 70,
-    bottom: 10,
-    height: 140,
-    position: 'absolute',
-    right: 10,
-    width: 140,
-  },
-  heroArc: {
-    borderColor: 'rgba(42,155,138,0.14)',
-    borderRadius: 80,
-    borderWidth: 1,
-    height: 160,
-    left: -48,
-    position: 'absolute',
-    top: -48,
-    width: 160,
+    right: -28,
+    width: 170,
   },
   heroHeader: {
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 28,
+    marginBottom: 20,
   },
   logoRow: {
     alignItems: 'center',
@@ -500,31 +446,31 @@ const styles = StyleSheet.create({
   },
   logoMark: {
     alignItems: 'center',
-    borderRadius: 8,
-    height: 28,
+    borderRadius: 7,
+    height: 26,
     justifyContent: 'center',
-    width: 28,
+    width: 26,
   },
   wordmark: {
     color: '#FFFFFF',
     fontFamily: 'Lora-Bold',
-    fontSize: 16,
-    letterSpacing: -0.2,
+    fontSize: 15,
+    letterSpacing: -0.15,
   },
   avatarCircle: {
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.10)',
     borderColor: 'rgba(255,255,255,0.18)',
-    borderRadius: 16,
+    borderRadius: 15,
     borderWidth: 1,
-    height: 32,
+    height: 30,
     justifyContent: 'center',
-    width: 32,
+    width: 30,
   },
   avatarInitials: {
     color: '#FFFFFF',
     fontFamily: 'Inter-SemiBold',
-    fontSize: 13,
+    fontSize: 12,
   },
   heroPill: {
     alignItems: 'center',
@@ -535,9 +481,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     flexDirection: 'row',
     gap: 6,
-    marginBottom: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
+    marginBottom: 11,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
   },
   heroPillDot: {
     backgroundColor: '#2A9B8A',
@@ -548,32 +494,32 @@ const styles = StyleSheet.create({
   heroPillText: {
     color: '#2A9B8A',
     fontFamily: 'Inter-SemiBold',
-    fontSize: 10,
+    fontSize: 9.5,
     letterSpacing: 0.5,
   },
   heroHeadline: {
     color: '#FFFFFF',
     fontFamily: 'Lora-Bold',
-    fontSize: 30,
-    letterSpacing: -0.6,
-    lineHeight: 34.5,
-    marginBottom: 10,
+    fontSize: 28,
+    letterSpacing: -0.55,
+    lineHeight: 32,
+    marginBottom: 8,
   },
   heroSupportText: {
-    color: 'rgba(255,255,255,0.58)',
+    color: 'rgba(255,255,255,0.55)',
     fontFamily: 'Inter-Regular',
-    fontSize: 14,
-    lineHeight: 21.7,
-    marginBottom: 22,
+    fontSize: 13,
+    lineHeight: 19.5,
+    marginBottom: 16,
   },
 
   // Integrated AI Examiner card
   examinerCard: {
-    backgroundColor: 'rgba(255,255,255,0.055)',
-    borderColor: 'rgba(255,255,255,0.10)',
-    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 14,
     borderWidth: 1,
-    marginBottom: 22,
+    marginBottom: 16,
     overflow: 'hidden',
   },
   examinerHeader: {
@@ -582,9 +528,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingBottom: 10,
-    paddingHorizontal: 14,
-    paddingTop: 11,
+    paddingBottom: 8,
+    paddingHorizontal: 13,
+    paddingTop: 8,
   },
   examinerHeaderLeft: {
     alignItems: 'center',
@@ -593,13 +539,13 @@ const styles = StyleSheet.create({
   },
   examinerAvatar: {
     alignItems: 'center',
-    borderRadius: 11,
+    borderRadius: 10,
     height: 22,
     justifyContent: 'center',
     width: 22,
   },
   examinerLabel: {
-    color: 'rgba(255,255,255,0.70)',
+    color: 'rgba(255,255,255,0.65)',
     fontFamily: 'Inter-SemiBold',
     fontSize: 11,
     letterSpacing: 0.2,
@@ -618,17 +564,17 @@ const styles = StyleSheet.create({
   liveText: {
     color: '#2A9B8A',
     fontFamily: 'Inter-SemiBold',
-    fontSize: 10,
+    fontSize: 9.5,
     letterSpacing: 0.3,
   },
   examinerPrompt: {
-    color: 'rgba(255,255,255,0.82)',
+    color: 'rgba(255,255,255,0.78)',
     fontFamily: 'Lora-Italic',
-    fontSize: 13,
-    lineHeight: 20.15,
-    paddingBottom: 10,
-    paddingHorizontal: 14,
-    paddingTop: 12,
+    fontSize: 12.5,
+    lineHeight: 18.8,
+    paddingBottom: 8,
+    paddingHorizontal: 13,
+    paddingTop: 8,
   },
   responseStrip: {
     alignItems: 'center',
@@ -637,9 +583,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
     justifyContent: 'space-between',
-    paddingBottom: 12,
-    paddingHorizontal: 14,
-    paddingTop: 9,
+    paddingBottom: 9,
+    paddingHorizontal: 13,
+    paddingTop: 8,
   },
   responseLeft: {
     alignItems: 'center',
@@ -661,77 +607,34 @@ const styles = StyleSheet.create({
   waveformRow: {
     alignItems: 'flex-end',
     flexDirection: 'row',
-    gap: 3,
+    gap: 2.5,
   },
   waveBar: {
     borderRadius: 2,
-    width: 3,
-  },
-
-  // Part indicators
-  partsRow: {
-    flexDirection: 'row',
-    gap: 6,
-    marginBottom: 22,
-  },
-  partPill: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 20,
-    borderWidth: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  partPillActive: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(42,155,138,0.25)',
-    borderColor: 'rgba(42,155,138,0.50)',
-    flexDirection: 'row',
-    gap: 5,
-  },
-  partPillDot: {
-    backgroundColor: '#2A9B8A',
-    borderRadius: 2.5,
-    height: 5,
-    width: 5,
-  },
-  partPillText: {
-    color: 'rgba(255,255,255,0.30)',
-    fontFamily: 'Inter-Regular',
-    fontSize: 10,
-  },
-  partPillTextActive: {
-    color: '#2A9B8A',
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 10,
+    width: 2.5,
   },
 
   // Primary CTA
   heroCta: {
-    borderRadius: 14,
-    elevation: 6,
+    borderRadius: 13,
     overflow: 'hidden',
-    shadowColor: '#1D7A6B',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.38,
-    shadowRadius: 24,
   },
   heroCtaPressed: {
     opacity: 0.92,
   },
   heroCtaGradient: {
     alignItems: 'center',
-    borderRadius: 14,
+    borderRadius: 13,
     flexDirection: 'row',
     gap: 10,
     justifyContent: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 15,
+    paddingVertical: 14,
   },
   heroCtaText: {
     color: '#FFFFFF',
     fontFamily: 'Inter-Bold',
-    fontSize: 15,
+    fontSize: 14,
     letterSpacing: 0.1,
   },
 
@@ -754,24 +657,19 @@ const styles = StyleSheet.create({
 
   // What you get
   featureSection: {
-    paddingTop: 24,
+    paddingTop: 30,
   },
-  featureBleed: {
-    marginHorizontal: -20,
-  },
-  featureScroll: {
+  featureGrid: {
     flexDirection: 'row',
     gap: 10,
-    paddingBottom: 4,
-    paddingHorizontal: 20,
+    flexWrap: 'wrap',
   },
   featureCard: {
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1,
-    flexShrink: 0,
-    maxWidth: 140,
-    minWidth: 130,
-    paddingBottom: 16,
+    flexGrow: 1,
+    flexBasis: 0,
+    paddingBottom: 14,
     paddingHorizontal: 14,
     paddingTop: 14,
   },
@@ -780,7 +678,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(29,122,107,0.15)',
   },
   featureCardNavy: {
-    backgroundColor: '#EEF2F7',
+    backgroundColor: '#F1F5F9',
     borderColor: '#E4E9F0',
   },
   featureIcon: {
@@ -824,17 +722,41 @@ const styles = StyleSheet.create({
   },
   languageCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1,
     flex: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 16,
+    paddingHorizontal: 13,
+    paddingVertical: 13,
+    position: 'relative',
   },
   languageCardEn: {
     borderColor: 'rgba(29,122,107,0.30)',
   },
   languageCardEs: {
     borderColor: 'rgba(184,118,42,0.30)',
+  },
+  languageCardSelectedEn: {
+    backgroundColor: '#EAF4F2',
+    borderColor: 'rgba(29,122,107,0.55)',
+  },
+  languageCardSelectedEs: {
+    backgroundColor: '#FBF3E3',
+    borderColor: 'rgba(184,118,42,0.50)',
+  },
+  selectedCheck: {
+    alignItems: 'center',
+    backgroundColor: '#1D7A6B',
+    borderRadius: 8,
+    height: 16,
+    justifyContent: 'center',
+    position: 'absolute',
+    right: 10,
+    top: 10,
+    width: 16,
+    zIndex: 1,
+  },
+  selectedCheckEs: {
+    backgroundColor: '#B8762A',
   },
   flagCircle: {
     alignItems: 'center',
@@ -856,12 +778,12 @@ const styles = StyleSheet.create({
   languageName: {
     color: '#1A2B4A',
     fontFamily: 'Inter-Bold',
-    fontSize: 14,
+    fontSize: 13,
   },
   languageSubtitle: {
     color: '#64748B',
     fontFamily: 'Inter-Regular',
-    fontSize: 11,
+    fontSize: 10.5,
     marginTop: 2,
   },
   languagePill: {
@@ -892,100 +814,36 @@ const styles = StyleSheet.create({
     color: '#B8762A',
   },
 
-  // Free speaking practice
-  freeCard: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E4E9F0',
-    borderRadius: 18,
-    borderWidth: 1,
-    marginTop: 24,
-    paddingBottom: 20,
-    paddingHorizontal: 18,
-    paddingTop: 18,
-  },
-  freeBadge: {
-    alignSelf: 'flex-start',
-    borderRadius: 10,
-    marginBottom: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-  },
-  freeBadgeText: {
-    color: '#FFFFFF',
-    fontFamily: 'Inter-Bold',
-    fontSize: 10,
-    letterSpacing: 0.6,
-  },
-  freeHeading: {
-    color: '#1A2B4A',
-    fontFamily: 'Lora-Bold',
-    fontSize: 17,
-    marginBottom: 6,
-  },
-  freeBody: {
-    color: '#64748B',
-    fontFamily: 'Inter-Regular',
-    fontSize: 13,
-    lineHeight: 20.15,
-  },
-  freeLangRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 12,
-  },
-  freeLangPill: {
-    backgroundColor: '#F5F7FA',
-    borderColor: '#E4E9F0',
-    borderRadius: 20,
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  freeLangText: {
-    color: '#1A2B4A',
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 12,
-  },
-  freeCtaRow: {
+  secondaryCta: {
     alignItems: 'center',
-    borderTopColor: '#E4E9F0',
-    borderTopWidth: 1,
-    flexDirection: 'row',
-    gap: 12,
+    borderRadius: 12,
+    borderWidth: 1,
     marginTop: 14,
-    paddingTop: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
-  freeCta: {
-    borderRadius: 10,
-    flex: 1,
-    height: 36,
-    overflow: 'hidden',
+  secondaryCtaEn: {
+    backgroundColor: '#F7FBFA',
+    borderColor: 'rgba(29,122,107,0.18)',
   },
-  freeCtaGradient: {
-    alignItems: 'center',
-    borderRadius: 10,
-    flex: 1,
-    justifyContent: 'center',
+  secondaryCtaEs: {
+    backgroundColor: '#FFFBF4',
+    borderColor: 'rgba(184,118,42,0.18)',
   },
-  freeCtaText: {
-    color: '#FFFFFF',
+  secondaryCtaText: {
     fontFamily: 'Inter-SemiBold',
     fontSize: 12,
   },
-  freeWave: {
-    alignItems: 'flex-end',
-    flexDirection: 'row',
-    gap: 2.5,
+  secondaryCtaTextEn: {
+    color: '#1D7A6B',
   },
-  freeWaveBar: {
-    backgroundColor: 'rgba(29,122,107,0.4)',
-    borderRadius: 2,
-    width: 2.5,
+  secondaryCtaTextEs: {
+    color: '#B8762A',
   },
 
   // Your activity
   activitySection: {
-    marginTop: 24,
+    marginTop: 30,
   },
   activityHeader: {
     alignItems: 'center',
@@ -1011,7 +869,7 @@ const styles = StyleSheet.create({
   statCard: {
     backgroundColor: '#FFFFFF',
     borderColor: '#E4E9F0',
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
     flex: 1,
     paddingHorizontal: 10,
@@ -1020,7 +878,7 @@ const styles = StyleSheet.create({
   statValue: {
     color: '#1A2B4A',
     fontFamily: 'Lora-Bold',
-    fontSize: 17,
+    fontSize: 16,
   },
   statLabel: {
     color: '#64748B',
