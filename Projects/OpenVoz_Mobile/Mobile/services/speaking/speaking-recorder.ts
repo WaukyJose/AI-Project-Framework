@@ -7,6 +7,7 @@ import {
   setAudioModeAsync,
 } from 'expo-audio';
 import type { AudioRecorder, AudioPlayer, RecordingOptions } from 'expo-audio';
+import type { EventSubscription } from 'expo-modules-core';
 
 import {
   SpeakingAudioClip,
@@ -95,7 +96,9 @@ class SpeakingRecorderService {
   private nativeRecorder: AudioRecorder | null = null;
   private nativePlayer: AudioPlayer | null = null;
   private examinerPlayer: AudioPlayer | null = null;
+  private examinerPlaybackSubscription: EventSubscription | null = null;
   private audioSessionConfigured = false;
+  private examinerPlaybackListeners = new Set<(isPlaying: boolean) => void>();
 
   // =====================================================================
   // Public contract
@@ -114,6 +117,14 @@ class SpeakingRecorderService {
       capability: this.getCapability(),
       clip: this.currentClip,
       lifecycleStatus: this.lifecycleStatus,
+    };
+  }
+
+  subscribeExaminerPlayback(listener: (isPlaying: boolean) => void): () => void {
+    this.examinerPlaybackListeners.add(listener);
+    listener(Boolean(this.examinerPlayer?.playing));
+    return () => {
+      this.examinerPlaybackListeners.delete(listener);
     };
   }
 
@@ -157,8 +168,11 @@ class SpeakingRecorderService {
 
     // Also release examiner player on full discard
     if (Platform.OS !== 'web') {
+      this.examinerPlaybackSubscription?.remove();
+      this.examinerPlaybackSubscription = null;
       this.examinerPlayer?.remove();
       this.examinerPlayer = null;
+      this.notifyExaminerPlayback(false);
     }
 
     if (Platform.OS === 'web') {
@@ -170,6 +184,32 @@ class SpeakingRecorderService {
     }
 
     this.lifecycleStatus = 'idle';
+  }
+
+  private notifyExaminerPlayback(isPlaying: boolean): void {
+    for (const listener of this.examinerPlaybackListeners) {
+      try {
+        listener(isPlaying);
+      } catch {
+        // Keep other listeners alive.
+      }
+    }
+  }
+
+  private bindExaminerPlayer(player: AudioPlayer): void {
+    this.examinerPlaybackSubscription?.remove();
+    this.examinerPlaybackSubscription = player.addListener('playbackStatusUpdate', (status: {
+      didJustFinish?: boolean;
+      error?: string | null;
+      playing?: boolean;
+    }) => {
+      const isPlaying = status.playing === true && status.didJustFinish !== true && status.error === null;
+      this.notifyExaminerPlayback(isPlaying);
+
+      if (status.didJustFinish || status.error) {
+        this.notifyExaminerPlayback(false);
+      }
+    });
   }
 
   // =====================================================================
@@ -578,11 +618,15 @@ class SpeakingRecorderService {
 
     // Create, store, and play — reference is retained so iOS GC won't
     // trigger sharedObjectWillRelease → teardownPlayer → pause
+    this.examinerPlaybackSubscription?.remove();
+    this.examinerPlaybackSubscription = null;
     const player = createAudioPlayer(
       { uri },
       { keepAudioSessionActive: true }
     );
     this.examinerPlayer = player;
+    this.bindExaminerPlayer(player);
+    this.notifyExaminerPlayback(true);
     player.play();
   }
 
@@ -592,8 +636,11 @@ class SpeakingRecorderService {
     }
 
     this.examinerPlayer?.pause();
+    this.examinerPlaybackSubscription?.remove();
+    this.examinerPlaybackSubscription = null;
     this.examinerPlayer?.remove();
     this.examinerPlayer = null;
+    this.notifyExaminerPlayback(false);
   }
 }
 

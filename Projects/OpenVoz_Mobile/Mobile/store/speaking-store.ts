@@ -48,6 +48,7 @@ interface SpeakingStoreState {
   errorMessage: string | null;
   examinerAudioUrl: string | null;
   examinerText: string | null;
+  examinerSpeaking: boolean;
   initializePart: (partId: SpeakingPartId) => void;
   isCreatingSession: boolean;
   isEvaluating: boolean;
@@ -194,6 +195,7 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
   errorMessage: null,
   examinerAudioUrl: null,
   examinerText: null,
+  examinerSpeaking: false,
 
   initializePart(partId) {
     const part = getSpeakingPartDefinition(partId);
@@ -231,6 +233,7 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
       errorMessage: null,
       examinerAudioUrl: null,
       examinerText: null,
+      examinerSpeaking: false,
       isCreatingSession: false,
       isEvaluating: false,
       isPlaying: false,
@@ -670,6 +673,7 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
     const recorder = getRecorderSnapshot();
     set({
       isPlaying: false,
+      examinerSpeaking: false,
       recorderStatus: recorder.lifecycleStatus,
     });
   },
@@ -738,12 +742,14 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
         errorMessage: null,
         isPlaying,
         recorderStatus: recorder.lifecycleStatus,
+        examinerSpeaking: false,
       });
     } catch (error) {
       const recorder = getRecorderSnapshot();
       set({
         errorMessage: getErrorMessage(error),
         isPlaying: false,
+        examinerSpeaking: false,
         recorderStatus: recorder.lifecycleStatus,
       });
     }
@@ -881,6 +887,10 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
     }
   },
 }));
+
+speakingRecorder.subscribeExaminerPlayback((isSpeaking) => {
+  useSpeakingStore.setState({ examinerSpeaking: isSpeaking });
+});
 
 // ---------------------------------------------------------------------------
 // Internal helpers

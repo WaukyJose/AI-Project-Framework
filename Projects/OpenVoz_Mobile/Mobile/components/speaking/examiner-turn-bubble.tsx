@@ -8,6 +8,7 @@ type Language = 'en' | 'es';
 interface ExaminerTurnBubbleProps {
   examinerText: string;
   examinerAudioUrl: string | null;
+  isSpeaking?: boolean;
   language?: Language;
 }
 
@@ -25,6 +26,7 @@ const content = {
 export function ExaminerTurnBubble({
   examinerText,
   examinerAudioUrl,
+  isSpeaking = false,
   language = 'en',
 }: ExaminerTurnBubbleProps) {
   const t = content[language];
@@ -34,7 +36,7 @@ export function ExaminerTurnBubble({
   return (
     <View style={styles.section}>
       <View style={styles.avatarRow}>
-        <ExaminerAvatar state="idle" size={140} />
+        <ExaminerAvatar state={isSpeaking ? 'speaking' : 'idle'} size={140} isSpeaking={isSpeaking} />
       </View>
       <View style={styles.bubble}>
         <View style={styles.headerRow}>

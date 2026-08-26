@@ -254,6 +254,7 @@ export function B2SpeakingPartScreen({
   const errorMessage = useSpeakingStore((state) => state.errorMessage);
   const examinerAudioUrl = useSpeakingStore((state) => state.examinerAudioUrl);
   const examinerText = useSpeakingStore((state) => state.examinerText);
+  const examinerSpeaking = useSpeakingStore((state) => state.examinerSpeaking);
   const initializePart = useSpeakingStore((state) => state.initializePart);
   const isCreatingSession = useSpeakingStore((state) => state.isCreatingSession);
   const isEvaluating = useSpeakingStore((state) => state.isEvaluating);
@@ -440,6 +441,7 @@ export function B2SpeakingPartScreen({
           <ExaminerTurnBubble
             examinerAudioUrl={examinerAudioUrl}
             examinerText={examinerText}
+            isSpeaking={examinerSpeaking}
             language={language}
           />
         ) : null}
