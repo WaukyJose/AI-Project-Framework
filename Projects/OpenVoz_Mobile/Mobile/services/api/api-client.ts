@@ -171,7 +171,12 @@ function classifyFetchFailure(error: unknown, url: string) {
     return error;
   }
 
-  if (error instanceof Error && error.name === 'AbortError') {
+  // React Native may surface AbortController cancellations as a native
+  // FetchRequest cancellation instead of the browser AbortError name.
+  if (
+    error instanceof Error &&
+    (error.name === 'AbortError' || /\b(abort|cancel)\w*\b/i.test(error.message))
+  ) {
     return new ApiError('Request timed out', {
       code: 'timeout',
       url,
@@ -321,7 +326,11 @@ function classifyErrorResponse(response: Response, url: string, details: unknown
 }
 
 function shouldLogAsError(apiError: ApiError) {
-  if (apiError.code === 'network_unavailable' || apiError.code === 'timeout' || apiError.code === 'unknown') {
+  if (apiError.code === 'network_unavailable' || apiError.code === 'timeout') {
+    return false;
+  }
+
+  if (apiError.code === 'unknown') {
     return true;
   }
 
