@@ -7,7 +7,12 @@ import { ScreenContainer } from '../../components/ui/screen-container';
 import { SectionHeader } from '../../components/ui/section-header';
 import { languageIdentities } from '../../constants/language-identity';
 import { useProgressData } from '../../hooks/use-progress-data';
-import type { Part1HistoryItem } from '../../services/progress/progress-service';
+import type {
+  AssessmentSummary,
+  Part1HistoryItem,
+  SpeakingHistoryItem,
+  TaskIdentity,
+} from '../../services/progress/progress-service';
 import { useUiPreferencesStore } from '../../store/ui-preferences-store';
 import { shellStyles } from '../shared/shell-styles';
 
@@ -23,6 +28,23 @@ const milestoneLabels = {
     five_sessions: '5 sesiones orales completadas',
     ten_sessions: '10 sesiones orales completadas',
     twenty_sessions: '20 sesiones orales completadas',
+  },
+} as const;
+
+const speakingHistoryLabels = {
+  en: {
+    title: 'Speaking History',
+    empty: 'No completed speaking attempts yet.',
+    replay: 'Replay',
+    assessmentAvailable: 'Assessment available',
+    partSummary: 'attempts',
+  },
+  es: {
+    title: 'Historial de expresión oral',
+    empty: 'Aún no hay intentos orales completados.',
+    replay: 'Repetición',
+    assessmentAvailable: 'Evaluación disponible',
+    partSummary: 'intentos',
   },
 } as const;
 
@@ -141,9 +163,12 @@ export function ProgressScreen() {
   const milestoneText = milestoneLabels[uiLanguage];
   const part1AttemptText = part1AttemptLabels[uiLanguage];
   const part1InsightText = part1InsightLabels[uiLanguage];
+  const speakingHistoryText = speakingHistoryLabels[uiLanguage];
   const accentColor = uiLanguage === 'es' ? identity.accent : undefined;
   const { data } = useProgressData(uiLanguage);
   const part1Insights = buildPart1Insights(data?.part1History ?? []);
+  const speakingHistory = data?.speakingHistory ?? [];
+  const speakingHistorySummary = buildSpeakingHistorySummary(speakingHistory);
 
   const formatPart1HistoryCaption = (historyItem: Part1HistoryItem) => {
     const lines = [];
@@ -161,6 +186,26 @@ export function ProgressScreen() {
     }
     if (timestamp) {
       lines.push(timestamp);
+    }
+
+    return lines.join('\n');
+  };
+
+  const formatSpeakingHistoryCaption = (item: SpeakingHistoryItem) => {
+    const label = formatSpeakingTaskLabel(item.taskIdentity, item.speakingPart, uiLanguage);
+    const lines = [label];
+    const assessment = formatSpeakingAssessmentSummary(item.assessmentSummary);
+
+    if (item.isReplay) {
+      lines.push(speakingHistoryText.replay);
+    }
+    if (assessment) {
+      lines.push(assessment);
+    } else if (item.assessmentAvailable) {
+      lines.push(speakingHistoryText.assessmentAvailable);
+    }
+    if (item.completedAt) {
+      lines.push(new Date(item.completedAt).toLocaleString());
     }
 
     return lines.join('\n');
@@ -235,6 +280,24 @@ export function ProgressScreen() {
             trailingLabel={assessment.assessmentStatus.replaceAll('_', ' ')}
           />
         ))}
+
+        <SectionHeader
+          title={speakingHistoryText.title}
+          description={formatSpeakingHistorySummary(speakingHistorySummary, speakingHistoryText.partSummary)}
+        />
+
+        {speakingHistory.length ? (
+          speakingHistory.map((item) => (
+            <ListItem
+              key={item.sessionId}
+              title={`Part ${item.speakingPart}`}
+              caption={formatSpeakingHistoryCaption(item)}
+              trailingLabel={item.isReplay ? speakingHistoryText.replay : undefined}
+            />
+          ))
+        ) : (
+          <ListItem title={speakingHistoryText.empty} />
+        )}
 
         <SectionHeader title={part1InsightText.title} description="" />
         {part1Insights.hasAttempts ? (
@@ -375,6 +438,101 @@ function formatSummaryValue(summary: Record<string, unknown> | null | undefined)
   }
 
   return null;
+}
+
+function formatSpeakingTaskLabel(
+  taskIdentity: TaskIdentity | null | undefined,
+  speakingPart: number,
+  uiLanguage: 'en' | 'es',
+) {
+  if (!taskIdentity) {
+    return uiLanguage === 'es'
+      ? `Parte ${speakingPart}`
+      : `Part ${speakingPart}`;
+  }
+
+  if (speakingPart === 1) {
+    if (typeof taskIdentity.questionText === 'string' && taskIdentity.questionText.trim()) {
+      return taskIdentity.questionText;
+    }
+    if (
+      typeof taskIdentity.topic === 'string' &&
+      taskIdentity.topic.trim() &&
+      typeof taskIdentity.questionIndex === 'number'
+    ) {
+      return `${taskIdentity.topic} · Q${taskIdentity.questionIndex + 1}`;
+    }
+    if (typeof taskIdentity.topic === 'string' && taskIdentity.topic.trim()) {
+      return taskIdentity.topic;
+    }
+  }
+
+  if (speakingPart === 2) {
+    if (typeof taskIdentity.photoId === 'string' && taskIdentity.photoId.trim()) {
+      return uiLanguage === 'es'
+        ? `Tarea fotográfica ${taskIdentity.photoId}`
+        : `Photo task ${taskIdentity.photoId}`;
+    }
+    return uiLanguage === 'es' ? 'Tarea fotográfica' : 'Photo task';
+  }
+
+  if (speakingPart === 3) {
+    if (typeof taskIdentity.scenarioId === 'string' && taskIdentity.scenarioId.trim()) {
+      return uiLanguage === 'es'
+        ? `Escenario ${taskIdentity.scenarioId}`
+        : `Scenario ${taskIdentity.scenarioId}`;
+    }
+    return uiLanguage === 'es' ? 'Escenario' : 'Scenario';
+  }
+
+  if (speakingPart === 4) {
+    if (typeof taskIdentity.part4SetId === 'string' && taskIdentity.part4SetId.trim()) {
+      const match = taskIdentity.part4SetId.match(/(\d+)$/);
+      const suffix = match ? match[1] : taskIdentity.part4SetId;
+      return uiLanguage === 'es'
+        ? `Conjunto de discusión ${suffix}`
+        : `Discussion set ${suffix}`;
+    }
+    return uiLanguage === 'es' ? 'Conjunto de discusión' : 'Discussion set';
+  }
+
+  return uiLanguage === 'es' ? `Parte ${speakingPart}` : `Part ${speakingPart}`;
+}
+
+function formatSpeakingAssessmentSummary(summary: AssessmentSummary | null | undefined) {
+  if (!summary) {
+    return null;
+  }
+
+  const score = formatSummaryValue(summary.scoreSummary);
+  if (score) {
+    return score;
+  }
+
+  if (summary.assessmentStatus) {
+    return summary.assessmentStatus.replaceAll('_', ' ');
+  }
+
+  return null;
+}
+
+function buildSpeakingHistorySummary(history: SpeakingHistoryItem[]) {
+  const counts = new Map<number, number>();
+  for (const item of history) {
+    counts.set(item.speakingPart, (counts.get(item.speakingPart) ?? 0) + 1);
+  }
+
+  return [1, 2, 3, 4].map((part) => ({
+    part,
+    count: counts.get(part) ?? 0,
+  }));
+}
+
+function formatSpeakingHistorySummary(
+  summary: { part: number; count: number }[],
+  partSummaryLabel: string,
+) {
+  return summary.map((item) => `Part ${item.part} ${item.count} ${partSummaryLabel}`).join(' · ');
 }
 
 function buildPart1Insights(part1History: Part1HistoryItem[]) {
