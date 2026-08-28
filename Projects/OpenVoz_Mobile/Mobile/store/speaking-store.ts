@@ -49,6 +49,7 @@ interface SpeakingStoreState {
   examinerAudioUrl: string | null;
   examinerText: string | null;
   examinerSpeaking: boolean;
+  examinerPlaybackProgress: number;
   initializePart: (partId: SpeakingPartId) => void;
   isCreatingSession: boolean;
   isEvaluating: boolean;
@@ -185,6 +186,7 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
       errorMessage: null,
       isPlaying: false,
       isRecording: false,
+      examinerPlaybackProgress: 0,
       recorderStatus: recorder.lifecycleStatus,
       session: state.session
         ? { ...state.session, status: 'ready', updatedAt: new Date().toISOString() }
@@ -196,6 +198,7 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
   examinerAudioUrl: null,
   examinerText: null,
   examinerSpeaking: false,
+  examinerPlaybackProgress: 0,
 
   initializePart(partId) {
     const part = getSpeakingPartDefinition(partId);
@@ -216,6 +219,7 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
         partDescription: part.description,
         partId,
         partTitle: part.title,
+        examinerPlaybackProgress: 0,
         recorderStatus: recorder.lifecycleStatus,
       });
       return;
@@ -234,6 +238,7 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
       examinerAudioUrl: null,
       examinerText: null,
       examinerSpeaking: false,
+      examinerPlaybackProgress: 0,
       isCreatingSession: false,
       isEvaluating: false,
       isPlaying: false,
@@ -462,6 +467,7 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
       const nextRecorder = getRecorderSnapshot();
       set({
         examinerSpeaking: false,
+        examinerPlaybackProgress: 0,
         isPlaying: false,
         recorderStatus: nextRecorder.lifecycleStatus,
       });
@@ -478,6 +484,7 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
       set({
         capability,
         errorMessage: null,
+        examinerPlaybackProgress: 0,
         isPlaying: false,
         isRecording: true,
         recorderStatus: nextRecorder.lifecycleStatus,
@@ -492,6 +499,7 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
         capability: nextRecorder.capability,
         errorMessage: getErrorMessage(error),
         isRecording: false,
+        examinerPlaybackProgress: 0,
         recorderStatus: nextRecorder.lifecycleStatus,
       });
     }
@@ -528,6 +536,7 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
       errorMessage: null,
       examinerAudioUrl: null,
       examinerText: null,
+      examinerPlaybackProgress: 0,
       isCreatingSession: false,
       isEvaluating: false,
       isPlaying: false,
@@ -563,6 +572,7 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
     set({
       errorMessage: null,
       isCreatingSession: true,
+      examinerPlaybackProgress: 0,
       session: createDraftSession(partId),
     });
 
@@ -586,6 +596,7 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
       set({
         isCreatingSession: false,
         isStartingSession: true,
+        examinerPlaybackProgress: 0,
         session: {
           ...draft,
           remoteSessionId: created.session_id,
@@ -610,6 +621,7 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
       set({
         examinerAudioUrl: started.examiner_turn.audio_url,
         examinerText: started.examiner_turn.text,
+        examinerPlaybackProgress: 0,
         isStartingSession: false,
         part2Complete: started.conversation_state.part2_complete ?? false,
         part2Phase: started.conversation_state.part2_phase ?? null,
@@ -669,6 +681,7 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
         errorMessage: getErrorMessage(error),
         isCreatingSession: false,
         isStartingSession: false,
+        examinerPlaybackProgress: 0,
         session: activeSession(ensureSession(get().session, partId), 'error'),
       });
     }
@@ -686,6 +699,7 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
     set({
       isPlaying: false,
       examinerSpeaking: false,
+      examinerPlaybackProgress: 0,
       recorderStatus: recorder.lifecycleStatus,
     });
   },
@@ -762,6 +776,7 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
         errorMessage: getErrorMessage(error),
         isPlaying: false,
         examinerSpeaking: false,
+        examinerPlaybackProgress: 0,
         recorderStatus: recorder.lifecycleStatus,
       });
     }
@@ -804,6 +819,7 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
     set({
       errorMessage: null,
       isUploading: true,
+      examinerPlaybackProgress: 0,
       session: activeSession(session, 'uploading'),
     });
 
@@ -832,6 +848,7 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
         clip: null,
         examinerAudioUrl: result.examiner_turn.audio_url,
         examinerText: result.examiner_turn.text,
+        examinerPlaybackProgress: 0,
         isUploading: false,
         part2Complete: isPart2
           ? result.conversation_state.part2_complete ?? false
@@ -894,6 +911,7 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
       set({
         errorMessage: getErrorMessage(error),
         isUploading: false,
+        examinerPlaybackProgress: 0,
         session: activeSession(ensureSession(get().session, partId), 'error'),
       });
     }
@@ -902,6 +920,10 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
 
 speakingRecorder.subscribeExaminerPlayback((isSpeaking) => {
   useSpeakingStore.setState({ examinerSpeaking: isSpeaking });
+});
+
+speakingRecorder.subscribeExaminerPlaybackProgress((progress) => {
+  useSpeakingStore.setState({ examinerPlaybackProgress: progress });
 });
 
 // ---------------------------------------------------------------------------

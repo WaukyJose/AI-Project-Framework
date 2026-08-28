@@ -6,7 +6,7 @@ import {
   requestRecordingPermissionsAsync,
   setAudioModeAsync,
 } from 'expo-audio';
-import type { AudioRecorder, AudioPlayer, RecordingOptions } from 'expo-audio';
+import type { AudioPlayer, AudioRecorder, AudioStatus, RecordingOptions } from 'expo-audio';
 import type { EventSubscription } from 'expo-modules-core';
 
 import {
@@ -14,6 +14,7 @@ import {
   SpeakingCapabilityState,
   SpeakingRecorderState,
 } from '../../types/speaking';
+import { normalizeExaminerPlaybackProgress } from './examiner-playback-progress';
 
 // ---------------------------------------------------------------------------
 // Web-only browser types (not available on native)
@@ -99,6 +100,7 @@ class SpeakingRecorderService {
   private examinerPlaybackSubscription: EventSubscription | null = null;
   private audioSessionConfigured = false;
   private examinerPlaybackListeners = new Set<(isPlaying: boolean) => void>();
+  private examinerPlaybackProgressListeners = new Set<(progress: number) => void>();
 
   // =====================================================================
   // Public contract
@@ -125,6 +127,21 @@ class SpeakingRecorderService {
     listener(Boolean(this.examinerPlayer?.playing));
     return () => {
       this.examinerPlaybackListeners.delete(listener);
+    };
+  }
+
+  subscribeExaminerPlaybackProgress(listener: (progress: number) => void): () => void {
+    this.examinerPlaybackProgressListeners.add(listener);
+    listener(
+      this.examinerPlayer
+        ? normalizeExaminerPlaybackProgress(
+            this.examinerPlayer.currentTime,
+            this.examinerPlayer.duration,
+          )
+        : 0,
+    );
+    return () => {
+      this.examinerPlaybackProgressListeners.delete(listener);
     };
   }
 
@@ -173,6 +190,7 @@ class SpeakingRecorderService {
       this.examinerPlayer?.remove();
       this.examinerPlayer = null;
       this.notifyExaminerPlayback(false);
+      this.notifyExaminerPlaybackProgress(0);
     }
 
     if (Platform.OS === 'web') {
@@ -196,15 +214,23 @@ class SpeakingRecorderService {
     }
   }
 
+  private notifyExaminerPlaybackProgress(progress: number): void {
+    for (const listener of this.examinerPlaybackProgressListeners) {
+      try {
+        listener(progress);
+      } catch {
+        // Keep other listeners alive.
+      }
+    }
+  }
+
   private bindExaminerPlayer(player: AudioPlayer): void {
     this.examinerPlaybackSubscription?.remove();
-    this.examinerPlaybackSubscription = player.addListener('playbackStatusUpdate', (status: {
-      didJustFinish?: boolean;
-      error?: string | null;
-      playing?: boolean;
-    }) => {
+    this.examinerPlaybackSubscription = player.addListener('playbackStatusUpdate', (status: AudioStatus) => {
       const isPlaying = status.playing === true && status.didJustFinish !== true && status.error === null;
+      const progress = status.error ? 0 : normalizeExaminerPlaybackProgress(status.currentTime, status.duration);
       this.notifyExaminerPlayback(isPlaying);
+      this.notifyExaminerPlaybackProgress(progress);
 
       if (status.didJustFinish || status.error) {
         this.notifyExaminerPlayback(false);
@@ -627,6 +653,7 @@ class SpeakingRecorderService {
     this.examinerPlayer = player;
     this.bindExaminerPlayer(player);
     this.notifyExaminerPlayback(true);
+    this.notifyExaminerPlaybackProgress(0);
     player.play();
   }
 
@@ -641,6 +668,7 @@ class SpeakingRecorderService {
     this.examinerPlayer?.remove();
     this.examinerPlayer = null;
     this.notifyExaminerPlayback(false);
+    this.notifyExaminerPlaybackProgress(0);
   }
 }
 
