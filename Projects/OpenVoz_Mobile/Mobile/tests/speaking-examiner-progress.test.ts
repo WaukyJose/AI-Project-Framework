@@ -30,6 +30,7 @@ test('speaking-recorder uses playbackStatusUpdate currentTime and duration for e
   assert.match(source, /playbackStatusUpdate/);
   assert.match(source, /status\.currentTime/);
   assert.match(source, /status\.duration/);
+  assert.match(source, /status\.didJustFinish\s*\?\s*1\s*:/);
   assert.match(source, /normalizeExaminerPlaybackProgress\(status\.currentTime, status\.duration\)/);
   assert.match(source, /subscribeExaminerPlaybackProgress/);
   assert.match(source, /notifyExaminerPlaybackProgress\(0\)/);

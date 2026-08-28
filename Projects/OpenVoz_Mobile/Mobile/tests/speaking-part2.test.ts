@@ -695,12 +695,28 @@ test('Opening Part 2 does not auto-start the task and shows explicit start gate'
 
   assert.match(screenSource, /!hasStartedTask/);
   assert.match(screenSource, /Start Part 2/);
-  assert.match(screenSource, /hasStartedTask && examinerText/);
+  assert.match(screenSource, /const part2TaskText = part2Photo\?\.taskInstruction \?\? '';/);
+  assert.match(screenSource, /const examinerBubbleText = examinerText \?\? '';/);
+  assert.match(
+    screenSource,
+    /const examinerPlaybackProgress = useSpeakingStore\(\(state\) => state\.examinerPlaybackProgress\);/,
+  );
+  assert.match(screenSource, /const taskText = isPart2 \? part2TaskText : isPart3 \? part3TaskText : '';/);
   assert.match(
     screenSource,
     /\{hasStartedTask && !isPart1Complete && !isPart2Complete && !isPart3Complete && !isPart4Complete \? \(/,
   );
-  assert.match(screenSource, /isExaminerSpeaking=\{examinerSpeaking\}/);
+  assert.match(screenSource, /<ExaminerIntroTaskStack/);
+  assert.match(screenSource, /compactScript=\{isPart2 \|\| isPart3\}/);
+  assert.match(screenSource, /examinerPlaybackProgress=\{examinerPlaybackProgress\}/);
+  assert.match(screenSource, /taskLabel=\{t\.taskCardTitle\}/);
+  assert.match(screenSource, /examinerText=\{examinerBubbleText\}/);
+  assert.match(screenSource, /taskText=\{taskText\}/);
+  assert.doesNotMatch(screenSource, /scrollViewRef/);
+  assert.doesNotMatch(screenSource, /autoScrollFrameRef/);
+  assert.doesNotMatch(screenSource, /handleScrollBeginDrag/);
+  assert.doesNotMatch(screenSource, /handleMomentumScrollBegin/);
+  assert.doesNotMatch(screenSource, /scrollTo\(\{ animated: false, y: nextOffset \}\)/);
 });
 
 test('Parts 1-3 retain the shared startSession gate while Part 4 uses its linked gate', () => {

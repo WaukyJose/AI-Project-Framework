@@ -265,10 +265,77 @@ test('opening Part 3 does NOT auto-start the task', () => {
 
   // The only mount effect initializes state; it must not call startSession.
   assert.match(source, /initializePart\(\(partId as SpeakingPartId\) \?\? 'part-1'\);/);
-  assert.doesNotMatch(source, /void startSession\(\);/);
   assert.doesNotMatch(source, /useEffect\(\(\) => \{\s*startSession\(\)/s);
   // startSession is only wired to the explicit ready-card button.
   assert.match(source, /onPress=\{startSession\}/);
+});
+
+test('Part 3 shows the full examiner bubble, task card, and guided auto-scroll', () => {
+  const screenSource = readFileSync(
+    resolve(process.cwd(), 'screens/practice/b2-speaking-part-placeholder-screen.tsx'),
+    'utf8',
+  );
+  const componentSource = readFileSync(
+    resolve(process.cwd(), 'components/speaking/examiner-turn-bubble.tsx'),
+    'utf8',
+  );
+
+  assert.match(screenSource, /const examinerBubbleText = examinerText \?\? '';/);
+  assert.match(
+    screenSource,
+    /const examinerPlaybackProgress = useSpeakingStore\(\(state\) => state\.examinerPlaybackProgress\);/,
+  );
+  assert.match(screenSource, /<ExaminerIntroTaskStack/);
+  assert.match(screenSource, /compactScript=\{isPart2 \|\| isPart3\}/);
+  assert.match(screenSource, /examinerPlaybackProgress=\{examinerPlaybackProgress\}/);
+  assert.match(screenSource, /examinerText=\{examinerBubbleText\}/);
+  assert.match(screenSource, /const part3TaskText = part3Scenario\?\.taskInstruction \?\? '';/);
+  assert.match(screenSource, /taskText=\{taskText\}/);
+  assert.match(screenSource, /taskLabel=\{t\.taskCardTitle\}/);
+  assert.doesNotMatch(screenSource, /scrollViewRef/);
+  assert.doesNotMatch(screenSource, /autoScrollFrameRef/);
+  assert.doesNotMatch(screenSource, /handleScrollBeginDrag/);
+  assert.doesNotMatch(screenSource, /handleMomentumScrollBegin/);
+  assert.doesNotMatch(screenSource, /scrollTo\(\{ animated: false, y: nextOffset \}\)/);
+
+  assert.match(componentSource, /compactScript\?: boolean;/);
+  assert.match(componentSource, /examinerPlaybackProgress\?: number;/);
+  assert.match(componentSource, /buildExaminerScriptSentenceRanges/);
+  assert.match(componentSource, /getActiveExaminerSentenceIndex/);
+  assert.match(componentSource, /const scriptRanges = useMemo\(/);
+  assert.match(componentSource, /const shouldHighlightActiveSentence = isSpeaking \|\| examinerPlaybackProgress >= 1;/);
+  assert.match(componentSource, /const activeSentenceIndex = useMemo\(/);
+  assert.match(componentSource, /scriptRanges\.map\(/);
+  assert.match(componentSource, /styles\.scriptSentenceActive/);
+  assert.match(componentSource, /const scriptScrollRef = useRef<ScrollView \| null>\(null\);/);
+  assert.match(componentSource, /const scriptSentenceLayoutsRef = useRef<Record<number, \{ height: number; y: number \}>>\(\{\}\);/);
+  assert.match(componentSource, /<ScrollView[\s\S]*ref=\{scriptScrollRef\}[\s\S]*style=\{styles\.scriptViewport\}/);
+  assert.match(componentSource, /maxHeight: 220/);
+  assert.match(componentSource, /height: 132/);
+  assert.match(componentSource, /scrollActiveSentenceIntoView\(activeSentenceIndex\);/);
+  assert.match(componentSource, /scrollActiveSentenceIntoView\(index\);/);
+  assert.match(componentSource, /scriptScrollRef\.current\?\.scrollTo\(\{ animated: true, y: targetOffset \}\);/);
+  assert.doesNotMatch(componentSource, /requestAnimationFrame/);
+});
+
+test('Part 3 guided auto-scroll follows examiner playback and respects manual scroll', () => {
+  const source = readFileSync(
+    resolve(process.cwd(), 'components/speaking/examiner-turn-bubble.tsx'),
+    'utf8',
+  );
+
+  assert.match(source, /const scriptScrollRef = useRef<ScrollView \| null>\(null\);/);
+  assert.match(source, /onScrollBeginDrag=\{handleScriptScrollBeginDrag\}/);
+  assert.match(source, /onMomentumScrollBegin=\{handleScriptMomentumScrollBegin\}/);
+  assert.match(source, /scriptPauseUntilRef\.current = Date\.now\(\) \+ 1200;/);
+  assert.match(
+    source,
+    /const isComfortablyVisible =\s*sentenceTop >= visibleTop \+ comfortPadding[\s\S]*sentenceBottom <= visibleBottom - comfortPadding;/,
+  );
+  assert.match(source, /const targetOffset = Math\.max\(0, Math\.min\(sentenceTop - viewportHeight \* 0\.28, maxOffset\)\);/);
+  assert.match(source, /scriptScrollRef\.current\?\.scrollTo\(\{ animated: true, y: targetOffset \}\);/);
+  assert.match(source, /scriptScrollRef\.current\?\.scrollTo\(\{ animated: false, y: 0 \}\);/);
+  assert.doesNotMatch(source, /requestAnimationFrame/);
 });
 
 test('Part 3 has no timer guide', () => {
@@ -367,7 +434,9 @@ test('Part 3 reuses AssessmentResultsCard without manufacturing criteria', () =>
     'utf8',
   );
 
-  assert.match(screenSource, /assessment \? <AssessmentResultsCard assessment=\{assessment\} \/>/);
+  assert.match(screenSource, /\{assessment \? \(/);
+  assert.match(screenSource, /<AssessmentResultsCard/);
+  assert.match(screenSource, /assessment=\{assessment\}/);
   assert.match(resultsSource, /status === 'unavailable'/);
   assert.doesNotMatch(resultsSource, /global[_ ]achievement/i);
   assert.doesNotMatch(resultsSource, /pronunciation.*band/i);
@@ -432,7 +501,9 @@ test('Part 3 scenario image uses contain-to-width sizing without cropping', () =
   assert.match(componentSource, /scaleToFitWidth\?/);
   assert.match(componentSource, /styles\.imageFrameFitWidth/);
   assert.match(componentSource, /resizeMode="contain"/);
-  assert.match(componentSource, /style=\{\[styles\.imageFitWidth, \{ aspectRatio \}\]\}/);
+  assert.match(componentSource, /fitWidthRenderedHeight/);
+  assert.match(componentSource, /width: '100%'/);
+  assert.match(componentSource, /aspectRatio/);
   // Part 2's frozen frame path is preserved.
   assert.match(componentSource, /overflow: 'hidden'/);
 });

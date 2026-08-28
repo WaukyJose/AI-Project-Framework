@@ -130,6 +130,7 @@ const content = {
     dismissMessage: 'Dismiss message',
     leaveScreen: 'Leave this speaking screen',
     backToB2Speaking: 'Back to B2 Speaking',
+    taskCardTitle: 'Task',
   },
   es: {
     eyebrow: 'B2 Expresión oral',
@@ -232,8 +233,51 @@ const content = {
     dismissMessage: 'Descartar mensaje',
     leaveScreen: 'Salir de esta práctica oral',
     backToB2Speaking: 'Volver a B2 Expresión oral',
+    taskCardTitle: 'Tarea',
   },
 } as const;
+
+function ExaminerIntroTaskStack({
+  examinerAudioUrl,
+  examinerPlaybackProgress,
+  examinerText,
+  taskText,
+  isSpeaking,
+  language,
+  compactScript = false,
+  taskLabel,
+}: {
+  examinerAudioUrl: string | null;
+  examinerPlaybackProgress: number;
+  examinerText: string;
+  taskText: string;
+  isSpeaking: boolean;
+  language: 'en' | 'es';
+  compactScript?: boolean;
+  taskLabel: string;
+}) {
+  const identity = languageIdentities[language];
+  const isSpanish = language === 'es';
+
+  return (
+    <View style={styles.part23PromptStack}>
+      <ExaminerTurnBubble
+        examinerAudioUrl={examinerAudioUrl}
+        examinerPlaybackProgress={examinerPlaybackProgress}
+        examinerText={examinerText}
+        isSpeaking={isSpeaking}
+        language={language}
+        compactScript={compactScript}
+      />
+      <View style={styles.taskInstructionCard}>
+        <Text style={[styles.taskInstructionLabel, isSpanish && { color: identity.accent }]}>
+          {taskLabel}
+        </Text>
+        <Text style={styles.taskInstructionText}>{taskText}</Text>
+      </View>
+    </View>
+  );
+}
 
 export function B2SpeakingPartScreen({
   partId,
@@ -253,6 +297,7 @@ export function B2SpeakingPartScreen({
   const discardRecording = useSpeakingStore((state) => state.discardRecording);
   const errorMessage = useSpeakingStore((state) => state.errorMessage);
   const examinerAudioUrl = useSpeakingStore((state) => state.examinerAudioUrl);
+  const examinerPlaybackProgress = useSpeakingStore((state) => state.examinerPlaybackProgress);
   const examinerText = useSpeakingStore((state) => state.examinerText);
   const examinerSpeaking = useSpeakingStore((state) => state.examinerSpeaking);
   const initializePart = useSpeakingStore((state) => state.initializePart);
@@ -302,6 +347,11 @@ export function B2SpeakingPartScreen({
   const canStartPart4 = isPart4 && Boolean(sourcePart3SessionId);
   const hasStartedTask = Boolean(session?.remoteSessionId);
   const isTaskLoading = !hasStartedTask && (isCreatingSession || isStartingSession);
+
+  const part2TaskText = part2Photo?.taskInstruction ?? '';
+  const part3TaskText = part3Scenario?.taskInstruction ?? '';
+  const examinerBubbleText = examinerText ?? '';
+  const taskText = isPart2 ? part2TaskText : isPart3 ? part3TaskText : '';
 
   const canRequestEvaluation =
     Boolean(session?.remoteSessionId) &&
@@ -394,7 +444,7 @@ export function B2SpeakingPartScreen({
 
   return (
     <ScreenContainer>
-      <ScrollView contentContainerStyle={shellStyles.content}>
+      <ScrollView contentContainerStyle={[shellStyles.content, isPart3 ? styles.part3ScrollContent : null]}>
         <AppHeader
           accent={isSpanish ? identity.accent : undefined}
           eyebrow={t.eyebrow}
@@ -437,9 +487,21 @@ export function B2SpeakingPartScreen({
           </View>
         ) : null}
 
-        {hasStartedTask && examinerText ? (
+        {hasStartedTask && (isPart2 || isPart3) ? (
+          <ExaminerIntroTaskStack
+            examinerAudioUrl={examinerAudioUrl}
+            examinerPlaybackProgress={examinerPlaybackProgress}
+            examinerText={examinerBubbleText}
+            isSpeaking={examinerSpeaking}
+            language={language}
+            compactScript={isPart2 || isPart3}
+            taskLabel={t.taskCardTitle}
+            taskText={taskText}
+          />
+        ) : hasStartedTask && examinerText ? (
           <ExaminerTurnBubble
             examinerAudioUrl={examinerAudioUrl}
+            examinerPlaybackProgress={examinerPlaybackProgress}
             examinerText={examinerText}
             isSpeaking={examinerSpeaking}
             language={language}
@@ -772,6 +834,9 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 21,
   },
+  part3ScrollContent: {
+    paddingBottom: 96,
+  },
   part3CompletionTitle: {
     color: '#FFFFFF',
     fontSize: 24,
@@ -884,6 +949,10 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
   },
+  part23PromptStack: {
+    gap: 12,
+    width: '100%',
+  },
   taskLoadingBanner: {
     backgroundColor: '#F8FBFD',
     borderColor: '#D9E2EC',
@@ -901,6 +970,26 @@ const styles = StyleSheet.create({
     color: '#102A43',
     fontSize: 16,
     fontWeight: '700',
+  },
+  taskInstructionCard: {
+    backgroundColor: '#F8FAFC',
+    borderColor: '#D9E2EC',
+    borderRadius: 18,
+    borderWidth: 1,
+    gap: 8,
+    padding: 16,
+  },
+  taskInstructionLabel: {
+    color: '#035388',
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+  },
+  taskInstructionText: {
+    color: '#102A43',
+    fontSize: 16,
+    lineHeight: 24,
   },
   transitionBanner: {
     backgroundColor: '#FFF7ED',

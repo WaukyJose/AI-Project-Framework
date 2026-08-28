@@ -33,9 +33,19 @@ test('active Part 4 renders the server examiner turn and existing answer area', 
     screenSource,
     /<ExaminerTurnBubble[\s\S]*examinerAudioUrl=\{examinerAudioUrl\}[\s\S]*examinerText=\{examinerText\}/,
   );
+  assert.match(
+    screenSource,
+    /examinerPlaybackProgress=\{examinerPlaybackProgress\}/,
+  );
   assert.match(screenSource, /<SpeakingAnswerArea/);
   assert.match(screenSource, /onStartRecording=\{startRecording\}/);
   assert.match(screenSource, /onUpload=\{uploadRecording\}/);
+  assert.match(screenSource, /isPart4\s*\?\s*isPart4Complete/);
+  assert.match(screenSource, /examinerPlaybackProgress=\{examinerPlaybackProgress\}/);
+  assert.match(
+    screenSource,
+    /compactScript=\{isPart2 \|\| isPart3\}/,
+  );
 });
 
 test('Part 4 exposes no question count or client progression control', () => {
@@ -47,8 +57,11 @@ test('Part 4 exposes no question count or client progression control', () => {
 test('canonical completion preserves closing turn, shows success, and hides answer controls', () => {
   assert.match(screenSource, /part4Complete && part4Phase === 'complete'/);
   assert.match(screenSource, /hasStartedTask && examinerText/);
-  assert.match(screenSource, /<Text style=\{styles\.completionTitle\}>\{t\.part4CompleteTitle\}<\/Text>/);
-  assert.match(screenSource, /hasStartedTask && !isPart3Complete && !isPart4Complete/);
+  assert.match(screenSource, /part4CompletionTitle/);
+  assert.match(screenSource, /t\.part4CompleteTitle/);
+  assert.match(screenSource, /part4CompletionSubtitle/);
+  assert.match(screenSource, /t\.part4CompleteText/);
+  assert.match(screenSource, /isPart4Complete \? \(/);
   assert.match(screenSource, /Back to B2 Speaking/);
 });
 

@@ -228,7 +228,11 @@ class SpeakingRecorderService {
     this.examinerPlaybackSubscription?.remove();
     this.examinerPlaybackSubscription = player.addListener('playbackStatusUpdate', (status: AudioStatus) => {
       const isPlaying = status.playing === true && status.didJustFinish !== true && status.error === null;
-      const progress = status.error ? 0 : normalizeExaminerPlaybackProgress(status.currentTime, status.duration);
+      const progress = status.error
+        ? 0
+        : status.didJustFinish
+          ? 1
+          : normalizeExaminerPlaybackProgress(status.currentTime, status.duration);
       this.notifyExaminerPlayback(isPlaying);
       this.notifyExaminerPlaybackProgress(progress);
 
