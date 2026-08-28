@@ -692,6 +692,7 @@ export function B2SpeakingPartScreen({
             isPlaying={isPlaying}
             isRecording={isRecording}
             isUploading={isUploading}
+            isExaminerSpeaking={examinerSpeaking}
             language={language}
             playbackSupported={capability.playbackSupported}
             recordingSupported={capability.recordingStatus === 'ready'}

@@ -15,6 +15,7 @@ interface SpeakingAnswerAreaProps {
   isPlaying: boolean;
   isRecording: boolean;
   isUploading: boolean;
+  isExaminerSpeaking: boolean;
   language?: Language;
   playbackSupported: boolean;
   recordingSupported: boolean;
@@ -68,6 +69,7 @@ export function SpeakingAnswerArea({
   isPlaying,
   isRecording,
   isUploading,
+  isExaminerSpeaking,
   language = 'en',
   playbackSupported,
   recordingSupported,
@@ -104,7 +106,7 @@ export function SpeakingAnswerArea({
           {!isRecording ? (
             <PrimaryButton
               accent={isSpanish ? identity.accent : undefined}
-              disabled={!recordingSupported}
+              disabled={!recordingSupported || isExaminerSpeaking}
               label={t.startRecording}
               onPress={onStartRecording}
             />

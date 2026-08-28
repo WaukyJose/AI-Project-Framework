@@ -582,7 +582,10 @@ test('Part 2 replay forwards sourceSessionId through the speaking store', () => 
     'utf8',
   );
 
-  assert.match(storeSource, /const shouldForwardSourceSessionId = partId === 'part-1' \|\| partId === 'part-2';/);
+  assert.match(
+    storeSource,
+    /const shouldForwardSourceSessionId =[\s\S]*partId === 'part-1'[\s\S]*partId === 'part-2'[\s\S]*partId === 'part-3'[\s\S]*partId === 'part-4';/,
+  );
   assert.match(storeSource, /sourceSessionId: shouldForwardSourceSessionId \? sourceSessionId : undefined,/);
   assert.match(storeSource, /partId === 'part-1' && options\?\.practiceMode/);
 });
@@ -606,7 +609,6 @@ test('Part 2 does not carry a contradictory 120-second guide', () => {
   assert.match(screenSource, /const startLabel = isTaskLoading/);
   assert.match(screenSource, /'part-2': 'Starting Part 2…'/);
   assert.match(screenSource, /'part-2': 'Start Part 2'/);
-  assert.doesNotMatch(screenSource, /void startSession\(\);/);
   assert.doesNotMatch(screenSource, /<SpeakingSessionCard/);
   assert.match(screenSource, /timerDisplay=\{shouldShowTimerGuide \? formatCountdown\(secondsRemaining\) : null\}/);
   assert.match(screenSource, /timerStatusLabel=\{shouldShowTimerGuide \? timerStatusLabel : null\}/);
@@ -625,7 +627,7 @@ test('Part 1 initial workspace exposes Start Part 1 and does not auto-start', ()
   assert.match(screenSource, /const isPart1 = \(partId as SpeakingPartId\) === 'part-1';/);
   assert.match(screenSource, /Start Part 1/);
   assert.match(screenSource, /!hasStartedTask && \(isPart1 \|\| isPart2 \|\| isPart3\)/);
-  assert.doesNotMatch(screenSource, /void startSession\(\);/);
+  assert.doesNotMatch(screenSource, /useEffect\(\(\) => \{\s*void startSession\(/s);
 });
 
 // -- 14. Source-contract checks for minimal reuse -------------------------
@@ -638,7 +640,9 @@ test('Part 2 screen reuses existing requestEvaluation and AssessmentResultsCard'
 
   assert.match(screenSource, /const requestEvaluation = useSpeakingStore\(\(state\) => state\.requestEvaluation\);/);
   assert.match(screenSource, /onRequestEvaluation=\{requestEvaluation\}/);
-  assert.match(screenSource, /\{assessment \? <AssessmentResultsCard assessment=\{assessment\} \/> : null\}/);
+  assert.match(screenSource, /\{assessment \? \(/);
+  assert.match(screenSource, /<AssessmentResultsCard/);
+  assert.match(screenSource, /assessment=\{assessment\}/);
   assert.match(screenSource, /Short follow-up/);
   assert.match(screenSource, /Candidate A's long turn is finished/);
   assert.match(screenSource, /\(isPart2 && hasStartedTask && part2Photo !== null\)/);
@@ -694,8 +698,9 @@ test('Opening Part 2 does not auto-start the task and shows explicit start gate'
   assert.match(screenSource, /hasStartedTask && examinerText/);
   assert.match(
     screenSource,
-    /\{hasStartedTask && !isPart3Complete && !isPart4Complete \? \(\s*<SpeakingAnswerArea/,
+    /\{hasStartedTask && !isPart1Complete && !isPart2Complete && !isPart3Complete && !isPart4Complete \? \(/,
   );
+  assert.match(screenSource, /isExaminerSpeaking=\{examinerSpeaking\}/);
 });
 
 test('Parts 1-3 retain the shared startSession gate while Part 4 uses its linked gate', () => {

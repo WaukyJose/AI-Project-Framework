@@ -439,7 +439,8 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
   // -----------------------------------------------------------------------
 
   async startRecording() {
-    const { session, partId, part2Phase, part4Complete, part4Phase } = get();
+    const { session, partId, part2Phase, part4Complete, part4Phase, examinerSpeaking } = get();
+    const recorder = getRecorderSnapshot();
 
     if (partId === 'part-4' && part4Complete && part4Phase === 'complete') {
       set({ errorMessage: 'Part 4 is complete.' });
@@ -455,9 +456,20 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
     // Auto-create local session if none exists
     const active = session ?? createDraftSession(partId);
 
+    if (examinerSpeaking || recorder.lifecycleStatus === 'playing') {
+      speakingRecorder.stopPlayback();
+      speakingRecorder.stopExaminerAudio();
+      const nextRecorder = getRecorderSnapshot();
+      set({
+        examinerSpeaking: false,
+        isPlaying: false,
+        recorderStatus: nextRecorder.lifecycleStatus,
+      });
+    }
+
     try {
       const capability = await speakingRecorder.startRecording();
-      const recorder = getRecorderSnapshot();
+      const nextRecorder = getRecorderSnapshot();
       const isPart2 = partId === 'part-2';
       const isPart3 = partId === 'part-3';
       const recordingDuration = isPart2
@@ -468,19 +480,19 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
         errorMessage: null,
         isPlaying: false,
         isRecording: true,
-        recorderStatus: recorder.lifecycleStatus,
+        recorderStatus: nextRecorder.lifecycleStatus,
         secondsRemaining: recordingDuration,
         session: { ...active, status: 'recording', updatedAt: new Date().toISOString() },
         timerDurationSeconds: recordingDuration,
         timerStatus: isPart3 ? 'idle' : 'running',
       });
     } catch (error) {
-      const recorder = getRecorderSnapshot();
+      const nextRecorder = getRecorderSnapshot();
       set({
-        capability: recorder.capability,
+        capability: nextRecorder.capability,
         errorMessage: getErrorMessage(error),
         isRecording: false,
-        recorderStatus: recorder.lifecycleStatus,
+        recorderStatus: nextRecorder.lifecycleStatus,
       });
     }
   },
