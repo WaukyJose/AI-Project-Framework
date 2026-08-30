@@ -21,9 +21,20 @@ test('progress service maps speaking_history into normalized mobile history item
 
 test('progress screen renders a consolidated speaking history section', () => {
   assert.match(progressScreenSource, /speakingHistoryLabels/);
-  assert.match(progressScreenSource, /SectionHeader\s*[\s\S]*title=\{speakingHistoryText\.title\}/);
+  assert.match(progressScreenSource, /ProgressAccordionSection/);
+  assert.match(progressScreenSource, /title=\{speakingHistoryText\.title\}/);
   assert.match(progressScreenSource, /buildSpeakingHistorySummary\(speakingHistory\)/);
   assert.match(progressScreenSource, /speakingHistory\.length\s*\?/);
+});
+
+test('progress screen keeps the summary visible and collapses detailed sections', () => {
+  assert.match(progressScreenSource, /metricsPanel/);
+  assert.match(progressScreenSource, /const \[isRecentExpanded, setIsRecentExpanded\] = useState\(true\);/);
+  assert.match(progressScreenSource, /const \[isCriterionExpanded, setIsCriterionExpanded\] = useState\(false\);/);
+  assert.match(progressScreenSource, /const \[isPartHistoryExpanded, setIsPartHistoryExpanded\] = useState\(false\);/);
+  assert.match(progressScreenSource, /const \[isMilestonesExpanded, setIsMilestonesExpanded\] = useState\(false\);/);
+  assert.match(progressScreenSource, /accessibilityState=\{\{ expanded \}\}/);
+  assert.match(progressScreenSource, /accordionChevron/);
 });
 
 test('part 1 speaking labels prefer question text and then topic/question number', () => {

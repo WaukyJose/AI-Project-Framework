@@ -10,8 +10,8 @@ import {
 } from 'react-native';
 
 import { ScreenContainer } from '../../components/ui/screen-container';
-import { authService } from '../../services/auth/auth-service';
 import { useAuthStore } from '../../store/auth-store';
+import { useUiPreferencesStore } from '../../store/ui-preferences-store';
 
 function validateForm(username: string, password: string) {
   const errors: { password?: string; username?: string } = {};
@@ -27,14 +27,42 @@ function validateForm(username: string, password: string) {
   return errors;
 }
 
+const content = {
+  en: {
+    eyebrow: 'B2 Speaking Practice',
+    title: 'Sign in to OpenVoz',
+    body: 'Authentication remains server-owned. The mobile client reuses the existing OpenVoz sign-in flow and stores only the session details needed to keep you signed in.',
+    usernameLabel: 'Username or email',
+    usernamePlaceholder: 'yourname@example.com',
+    passwordLabel: 'Password',
+    passwordPlaceholder: 'Enter your password',
+    signIn: 'Sign In',
+    forgotPassword: 'Forgot password?',
+    supportText: 'Need to reset your password? Use the OpenVoz account recovery flow.',
+  },
+  es: {
+    eyebrow: 'Práctica de expresión oral B2',
+    title: 'Inicia sesión en OpenVoz',
+    body: 'La autenticación sigue estando controlada por el servidor. La app móvil reutiliza el inicio de sesión existente de OpenVoz y guarda solo los datos de sesión necesarios para mantenerte conectado.',
+    usernameLabel: 'Usuario o correo electrónico',
+    usernamePlaceholder: 'tunombre@ejemplo.com',
+    passwordLabel: 'Contraseña',
+    passwordPlaceholder: 'Introduce tu contraseña',
+    signIn: 'Iniciar sesión',
+    forgotPassword: '¿Olvidaste tu contraseña?',
+    supportText: '¿Necesitas restablecer tu contraseña? Usa el flujo de recuperación de cuenta de OpenVoz.',
+  },
+} as const;
+
 export function LoginScreen() {
   const login = useAuthStore((state) => state.login);
   const isLoading = useAuthStore((state) => state.isLoading);
   const errorMessage = useAuthStore((state) => state.errorMessage);
+  const uiLanguage = useUiPreferencesStore((state) => state.uiLanguage);
+  const t = content[uiLanguage];
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [fieldErrors, setFieldErrors] = useState<{ password?: string; username?: string }>({});
-  const passwordResetUrl = authService.getPasswordResetUrl();
 
   async function handleSubmit() {
     const errors = validateForm(username, password);
@@ -58,22 +86,19 @@ export function LoginScreen() {
     <ScreenContainer>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
-          <Text style={styles.eyebrow}>Sprint 2</Text>
-          <Text style={styles.title}>Sign in to OpenVoz</Text>
-          <Text style={styles.body}>
-            Authentication remains server-owned. The mobile client reuses the existing OpenVoz
-            sign-in flow and persists only the session metadata required for continuity.
-          </Text>
+          <Text style={styles.eyebrow}>{t.eyebrow}</Text>
+          <Text style={styles.title}>{t.title}</Text>
+          <Text style={styles.body}>{t.body}</Text>
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.label}>Username or email</Text>
+          <Text style={styles.label}>{t.usernameLabel}</Text>
           <TextInput
             autoCapitalize="none"
             autoCorrect={false}
             editable={!isLoading}
             onChangeText={setUsername}
-            placeholder="yourname@example.com"
+            placeholder={t.usernamePlaceholder}
             style={[styles.input, fieldErrors.username ? styles.inputError : null]}
             value={username}
           />
@@ -81,11 +106,11 @@ export function LoginScreen() {
             <Text style={styles.fieldError}>{fieldErrors.username}</Text>
           ) : null}
 
-          <Text style={styles.label}>Password</Text>
+          <Text style={styles.label}>{t.passwordLabel}</Text>
           <TextInput
             editable={!isLoading}
             onChangeText={setPassword}
-            placeholder="Enter your password"
+            placeholder={t.passwordPlaceholder}
             secureTextEntry
             style={[styles.input, fieldErrors.password ? styles.inputError : null]}
             value={password}
@@ -104,17 +129,14 @@ export function LoginScreen() {
             {isLoading ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Text style={styles.buttonText}>Sign In</Text>
+              <Text style={styles.buttonText}>{t.signIn}</Text>
             )}
           </Pressable>
 
           <Pressable disabled style={styles.linkButton}>
-            <Text style={styles.metaText}>Forgot Password</Text>
+            <Text style={styles.metaText}>{t.forgotPassword}</Text>
           </Pressable>
-          <Text style={styles.supportText}>
-            Password recovery remains owned by the OpenVoz account system. The current backend
-            recovery URL is {passwordResetUrl}.
-          </Text>
+          <Text style={styles.supportText}>{t.supportText}</Text>
         </View>
       </ScrollView>
     </ScreenContainer>

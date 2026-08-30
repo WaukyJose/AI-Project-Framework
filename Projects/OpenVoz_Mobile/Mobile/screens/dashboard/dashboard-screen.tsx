@@ -5,6 +5,7 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { ScreenContainer } from '../../components/ui/screen-container';
 import { LanguageCode } from '../../constants/language-identity';
+import { formatAssessmentStatusLabel } from '../../services/assessment-status-labels';
 import { useDashboardData } from '../../hooks/use-dashboard-data';
 import { useAuthStore } from '../../store/auth-store';
 import { useUiPreferencesStore } from '../../store/ui-preferences-store';
@@ -15,11 +16,28 @@ const WAVE_HEIGHTS = [
 ];
 const PLAYED_COUNT = 11;
 
+const content = {
+  en: {
+    practicePreviewLabel: 'Speaking practice',
+    practicePreviewSupport: 'Practise with an AI examiner',
+    previewBadge: 'Preview',
+    previewTimer: 'Illustrative preview',
+    previewPrompt: '“Tell me about something you enjoy learning about.”',
+  },
+  es: {
+    practicePreviewLabel: 'Práctica oral',
+    practicePreviewSupport: 'Practica con un examinador de IA',
+    previewBadge: 'Vista previa',
+    previewTimer: 'Vista previa ilustrativa',
+    previewPrompt: '“Cuéntame algo que disfrutes aprender.”',
+  },
+} as const;
+
 function extractText(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
-function buildRecentSessionRows(items: DashboardActivityItem[]) {
+function buildRecentSessionRows(items: DashboardActivityItem[], language: LanguageCode) {
   return items.slice(0, 3).map((item, index) => {
     const title =
       extractText(item.title) ??
@@ -34,7 +52,10 @@ function buildRecentSessionRows(items: DashboardActivityItem[]) {
       extractText(item.created_at) ??
       'Recorded session';
     const badge =
-      extractText(item.score) ?? extractText(item.band) ?? extractText(item.result) ?? null;
+      extractText(item.score) ??
+      extractText(item.band) ??
+      formatAssessmentStatusLabel(extractText(item.result), language) ??
+      null;
 
     return { badge, meta, title };
   });
@@ -134,11 +155,12 @@ export function DashboardScreen() {
   const logout = useAuthStore((state) => state.logout);
   const uiLanguage = useUiPreferencesStore((state) => state.uiLanguage);
   const setUiLanguage = useUiPreferencesStore((state) => state.setUiLanguage);
+  const heroText = content[uiLanguage];
   const { data } = useDashboardData(uiLanguage);
   const user = data?.user;
   const stats = data?.dashboard.stats;
   const recentActivity = data?.dashboard.recentActivity ?? [];
-  const recentSessions = buildRecentSessionRows(recentActivity);
+  const recentSessions = buildRecentSessionRows(recentActivity, uiLanguage);
   const latestSession = recentSessions[0] ?? null;
   const sessionCount = recentActivity.length;
   const initials = getInitials(user?.fullName, user?.username);
@@ -176,15 +198,13 @@ export function DashboardScreen() {
 
           <View style={styles.heroPill}>
             <View style={styles.heroPillDot} />
-            <Text style={styles.heroPillText}>B2 FIRST SPEAKING</Text>
+            <Text style={styles.heroPillText}>{heroText.practicePreviewLabel}</Text>
           </View>
 
           <Text style={styles.heroHeadline}>
             Practise speaking.{'\n'}Get better.
           </Text>
-          <Text style={styles.heroSupportText}>
-            All 4 parts of B2 First Speaking with your AI examiner.
-          </Text>
+          <Text style={styles.heroSupportText}>{heroText.practicePreviewSupport}</Text>
 
           {/* Integrated AI Examiner card */}
           <View style={styles.examinerCard}>
@@ -197,18 +217,16 @@ export function DashboardScreen() {
               </View>
               <View style={styles.liveRow}>
                 <View style={styles.liveDot} />
-                <Text style={styles.liveText}>LIVE</Text>
+                <Text style={styles.liveText}>{heroText.previewBadge}</Text>
               </View>
             </View>
 
-            <Text style={styles.examinerPrompt}>
-              “Tell me about something you enjoy learning about.”
-            </Text>
+            <Text style={styles.examinerPrompt}>{heroText.previewPrompt}</Text>
 
             <View style={styles.responseStrip}>
               <View style={styles.responseLeft}>
                 <View style={styles.recordingDot} />
-                <Text style={styles.timerText}>0:24</Text>
+                <Text style={styles.timerText}>{heroText.previewTimer}</Text>
               </View>
               <View style={styles.waveformRow}>
                 {WAVE_HEIGHTS.map((height, index) => (
