@@ -108,19 +108,6 @@
       "openVozApi": {
         "defaultEnvironment": "production",
         "environments": {
-          "development": {
-            "label": "Development",
-            "siteUrl": "http://192.168.100.135:8000",
-            "apiBaseUrl": "http://192.168.100.135:8000/api/v1",
-            "versionPath": "/api/version/"
-          },
-          "staging": {
-            "label": "Staging",
-            "siteUrl": "https://staging.openvoz.com",
-            "apiBaseUrl": "https://staging.openvoz.com/api/v1",
-            "connectivityPath": "/usersvoicechat/login/",
-            "versionPath": "/api/version/"
-          },
           "production": {
             "label": "Production",
             "siteUrl": "https://www.openvoz.com",

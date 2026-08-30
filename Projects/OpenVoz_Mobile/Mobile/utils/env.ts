@@ -31,65 +31,26 @@ function getExtraConfig(): OpenVozApiExtra {
   return extra?.openVozApi ?? {};
 }
 
-function getOverride(name: ApiEnvironmentName, key: 'apiBaseUrl' | 'siteUrl') {
-  const overrideMap: Record<
-    ApiEnvironmentName,
-    Record<'apiBaseUrl' | 'siteUrl', string | undefined>
-  > = {
-    development: {
-      apiBaseUrl: process.env.EXPO_PUBLIC_OPENVOZ_DEVELOPMENT_API_BASE_URL,
-      siteUrl: process.env.EXPO_PUBLIC_OPENVOZ_DEVELOPMENT_SITE_URL,
-    },
-    production: {
-      apiBaseUrl: process.env.EXPO_PUBLIC_OPENVOZ_PRODUCTION_API_BASE_URL,
-      siteUrl: process.env.EXPO_PUBLIC_OPENVOZ_PRODUCTION_SITE_URL,
-    },
-    staging: {
-      apiBaseUrl: process.env.EXPO_PUBLIC_OPENVOZ_STAGING_API_BASE_URL,
-      siteUrl: process.env.EXPO_PUBLIC_OPENVOZ_STAGING_SITE_URL,
-    },
-  };
-
-  return overrideMap[name][key];
-}
-
-const fallbackEnvironments: Record<ApiEnvironmentName, Omit<ApiEnvironment, 'name'>> = {
-  development: {
-    apiBaseUrl: 'http://192.168.100.132:8000/api/v1',
-    connectivityPath: '/usersvoicechat/login/',
-    label: 'Development',
-    siteUrl: 'http://192.168.100.132:8000',
-    versionPath: '/api/version/',
-  },
-  production: {
-    apiBaseUrl: 'https://www.openvoz.com/api/v1',
-    connectivityPath: '/usersvoicechat/login/',
-    label: 'Production',
-    siteUrl: 'https://www.openvoz.com',
-    versionPath: '/api/version/',
-  },
-  staging: {
-    apiBaseUrl: 'https://staging.openvoz.com/api/v1',
-    connectivityPath: '/usersvoicechat/login/',
-    label: 'Staging',
-    siteUrl: 'https://staging.openvoz.com',
-    versionPath: '/api/version/',
-  },
+const fallbackEnvironment: Omit<ApiEnvironment, 'name'> = {
+  apiBaseUrl: 'https://www.openvoz.com/api/v1',
+  connectivityPath: '/usersvoicechat/login/',
+  label: 'Production',
+  siteUrl: 'https://www.openvoz.com',
+  versionPath: '/api/version/',
 };
 
 export function getApiEnvironment(name: ApiEnvironmentName): ApiEnvironment {
   const effectiveName = isApiEnvironmentSelectionEnabled() ? name : 'production';
   const extra = getExtraConfig();
-  const configured = extra.environments?.[effectiveName];
-  const fallback = fallbackEnvironments[effectiveName];
+  const configured = extra.environments?.[effectiveName] ?? extra.environments?.production;
+  const fallback = fallbackEnvironment;
 
   return {
-    apiBaseUrl:
-      getOverride(effectiveName, 'apiBaseUrl') ?? configured?.apiBaseUrl ?? fallback.apiBaseUrl,
+    apiBaseUrl: configured?.apiBaseUrl ?? fallback.apiBaseUrl,
     connectivityPath: configured?.connectivityPath ?? fallback.connectivityPath,
     label: configured?.label ?? fallback.label,
     name: effectiveName,
-    siteUrl: getOverride(effectiveName, 'siteUrl') ?? configured?.siteUrl ?? fallback.siteUrl,
+    siteUrl: configured?.siteUrl ?? fallback.siteUrl,
     versionPath: configured?.versionPath ?? fallback.versionPath,
   };
 }
