@@ -7,11 +7,16 @@ import { SecondaryButton } from '../../components/ui/buttons';
 import { ScreenContainer } from '../../components/ui/screen-container';
 import { SectionHeader } from '../../components/ui/section-header';
 import { languageIdentities } from '../../constants/language-identity';
-import { dataDeletionRequestApi } from '../../services/api';
+import { dataDeletionRequestApi, type DataDeletionRequestResponse } from '../../services/api';
 import { useConsent } from '../../hooks/use-consent';
 import { useAuthStore } from '../../store/auth-store';
 import { useUiPreferencesStore } from '../../store/ui-preferences-store';
 import { shellStyles } from '../shared/shell-styles';
+import {
+  getDeletionRequestConfirmationText,
+  getDeletionRequestOutcome,
+  type DeletionRequestStatus,
+} from './deletion-request-copy';
 
 const PRIVACY_POLICY_URL = 'https://openvoz.com/static/chat/pages/page-privacy.html';
 const TERMS_OF_SERVICE_URL = 'https://www.openvoz.com/terms-of-use/';
@@ -49,12 +54,10 @@ const content = {
     rightsTitle: 'Your data rights',
     rightsReview: 'Review how your data is used.',
     rightsWithdraw: 'Withdraw optional consent.',
-    rightsDelete: 'Request deletion of your data.',
-    rightsAction: 'Request data deletion',
-    rightsConfirmTitle: 'Request data deletion?',
-    rightsConfirmText:
-      'We will create a deletion request for review. This does not delete your data immediately.',
-    rightsSuccess: 'Your deletion request was submitted.',
+    rightsDelete: 'Start permanent account deletion.',
+    rightsAction: 'Delete account',
+    rightsConfirmTitle: 'Delete account?',
+    rightsConfirmText: getDeletionRequestConfirmationText('en'),
     rightsError: 'Could not submit your deletion request. Please try again.',
     privacyPolicyTitle: 'Privacy Policy',
     privacyPolicyText: 'Review how OpenVoz collects, uses, and protects your data.',
@@ -101,12 +104,10 @@ const content = {
     rightsTitle: 'Tus derechos sobre los datos',
     rightsReview: 'Revisa cómo se usan tus datos.',
     rightsWithdraw: 'Retira el consentimiento opcional.',
-    rightsDelete: 'Solicita la eliminación de tus datos.',
-    rightsAction: 'Solicitar eliminación de datos',
-    rightsConfirmTitle: '¿Solicitar eliminación de datos?',
-    rightsConfirmText:
-      'Crearemos una solicitud para revisión. Esto no elimina tus datos de inmediato.',
-    rightsSuccess: 'Tu solicitud de eliminación fue enviada.',
+    rightsDelete: 'Inicia la eliminación permanente de tu cuenta.',
+    rightsAction: 'Eliminar cuenta',
+    rightsConfirmTitle: '¿Eliminar cuenta?',
+    rightsConfirmText: getDeletionRequestConfirmationText('es'),
     rightsError: 'No se pudo enviar tu solicitud. Inténtalo de nuevo.',
     privacyPolicyTitle: 'Política de privacidad',
     privacyPolicyText: 'Revisa cómo OpenVoz recopila, usa y protege tus datos.',
@@ -179,19 +180,13 @@ export function SettingsScreen() {
 
     try {
       const response = await dataDeletionRequestApi.create();
-      const payload = (await response.json()) as {
-        created: boolean;
-        reason: string;
-        status: 'requested' | 'processing' | 'completed' | 'rejected';
-      };
+      const payload = (await response.json()) as DataDeletionRequestResponse;
+      const outcome = getDeletionRequestOutcome(uiLanguage, payload.status);
 
       setDataDeletionState({
-        error: null,
+        error: outcome.kind === 'error' ? outcome.message : null,
         isSubmitting: false,
-        success:
-          payload.status === 'requested' || payload.status === 'processing'
-            ? t.rightsSuccess
-            : t.rightsSuccess,
+        success: outcome.kind === 'success' ? outcome.message : null,
       });
     } catch {
       setDataDeletionState({
@@ -339,6 +334,35 @@ export function SettingsScreen() {
             <View style={styles.row}>
               <Text style={styles.rowTitle}>{t.policyVersionLabel}</Text>
             </View>
+          </View>
+        </View>
+
+        <SectionHeader
+          description={
+            uiLanguage === 'es'
+              ? 'La eliminación de cuenta inicia una solicitud permanente y no es inmediata.'
+              : 'Account deletion starts a permanent request and is not immediate.'
+          }
+          title={uiLanguage === 'es' ? 'Cuenta' : 'Account'}
+        />
+        <View style={styles.infoCard}>
+          <View style={styles.settingsSection}>
+            <View style={styles.row}>
+              <View style={styles.rowText}>
+                <Text style={styles.rowTitle}>{t.rightsAction}</Text>
+                <Text style={styles.rowDescription}>{t.rightsDelete}</Text>
+              </View>
+            </View>
+            <View style={styles.requestActionWrap}>
+              <SecondaryButton
+                accent="#B21E35"
+                disabled={dataDeletionState.isSubmitting}
+                label={t.rightsAction}
+                onPress={handleRequestDeletion}
+              />
+            </View>
+            {dataDeletionState.success ? <Text style={styles.successText}>{dataDeletionState.success}</Text> : null}
+            {dataDeletionState.error ? <Text style={styles.errorText}>{dataDeletionState.error}</Text> : null}
           </View>
         </View>
 
