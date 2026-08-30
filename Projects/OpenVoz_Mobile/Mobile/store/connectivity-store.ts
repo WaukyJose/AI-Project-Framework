@@ -1,6 +1,10 @@
 import { create } from 'zustand';
 
-import { ApiEnvironmentName, getCurrentApiEnvironmentName } from '../utils/env';
+import {
+  ApiEnvironmentName,
+  getCurrentApiEnvironmentName,
+  isApiEnvironmentSelectionEnabled,
+} from '../utils/env';
 
 interface ConnectivityStoreState {
   selectedEnvironment: ApiEnvironmentName;
@@ -9,5 +13,10 @@ interface ConnectivityStoreState {
 
 export const useConnectivityStore = create<ConnectivityStoreState>((set) => ({
   selectedEnvironment: getCurrentApiEnvironmentName(),
-  setSelectedEnvironment: (selectedEnvironment) => set({ selectedEnvironment }),
+  setSelectedEnvironment: (selectedEnvironment) =>
+    set({
+      selectedEnvironment: isApiEnvironmentSelectionEnabled()
+        ? selectedEnvironment
+        : 'production',
+    }),
 }));

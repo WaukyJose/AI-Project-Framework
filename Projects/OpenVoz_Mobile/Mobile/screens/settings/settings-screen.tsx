@@ -13,8 +13,8 @@ import { useAuthStore } from '../../store/auth-store';
 import { useUiPreferencesStore } from '../../store/ui-preferences-store';
 import { shellStyles } from '../shared/shell-styles';
 
-const PRIVACY_POLICY_URL = 'https://openvoz.example/privacy';
-const TERMS_OF_SERVICE_URL = 'https://openvoz.example/terms';
+const PRIVACY_POLICY_URL = 'https://openvoz.com/static/chat/pages/page-privacy.html';
+const TERMS_OF_SERVICE_URL = 'https://www.openvoz.com/terms-of-use/';
 const PRIVACY_POLICY_VERSION = '1.0';
 
 const content = {

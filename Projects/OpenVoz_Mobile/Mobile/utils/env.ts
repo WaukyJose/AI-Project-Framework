@@ -22,6 +22,10 @@ interface OpenVozApiExtra {
   environments?: Partial<ApiEnvironmentMap>;
 }
 
+export function isApiEnvironmentSelectionEnabled() {
+  return __DEV__;
+}
+
 function getExtraConfig(): OpenVozApiExtra {
   const extra = Constants.expoConfig?.extra as { openVozApi?: OpenVozApiExtra } | undefined;
   return extra?.openVozApi ?? {};
@@ -74,21 +78,27 @@ const fallbackEnvironments: Record<ApiEnvironmentName, Omit<ApiEnvironment, 'nam
 };
 
 export function getApiEnvironment(name: ApiEnvironmentName): ApiEnvironment {
+  const effectiveName = isApiEnvironmentSelectionEnabled() ? name : 'production';
   const extra = getExtraConfig();
-  const configured = extra.environments?.[name];
-  const fallback = fallbackEnvironments[name];
+  const configured = extra.environments?.[effectiveName];
+  const fallback = fallbackEnvironments[effectiveName];
 
   return {
-    apiBaseUrl: getOverride(name, 'apiBaseUrl') ?? configured?.apiBaseUrl ?? fallback.apiBaseUrl,
+    apiBaseUrl:
+      getOverride(effectiveName, 'apiBaseUrl') ?? configured?.apiBaseUrl ?? fallback.apiBaseUrl,
     connectivityPath: configured?.connectivityPath ?? fallback.connectivityPath,
     label: configured?.label ?? fallback.label,
-    name,
-    siteUrl: getOverride(name, 'siteUrl') ?? configured?.siteUrl ?? fallback.siteUrl,
+    name: effectiveName,
+    siteUrl: getOverride(effectiveName, 'siteUrl') ?? configured?.siteUrl ?? fallback.siteUrl,
     versionPath: configured?.versionPath ?? fallback.versionPath,
   };
 }
 
 export function getCurrentApiEnvironmentName(): ApiEnvironmentName {
+  if (!isApiEnvironmentSelectionEnabled()) {
+    return 'production';
+  }
+
   return getExtraConfig().defaultEnvironment ?? 'production';
 }
 
@@ -97,6 +107,10 @@ export function getCurrentApiEnvironment() {
 }
 
 export function getAvailableApiEnvironments() {
+  if (!isApiEnvironmentSelectionEnabled()) {
+    return [getApiEnvironment('production')];
+  }
+
   return (['development', 'staging', 'production'] as ApiEnvironmentName[]).map((name) =>
     getApiEnvironment(name)
   );
