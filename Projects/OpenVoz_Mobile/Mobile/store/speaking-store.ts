@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 
 import { getCurrentApiEnvironment } from '../utils/env';
+import { logger } from '../utils/logger';
+import { useAuthStore } from './auth-store';
 import { useUiPreferencesStore } from './ui-preferences-store';
 import { ApiError, speakingApi } from '../services/api';
 import { speakingRecorder } from '../services/speaking/speaking-recorder';
@@ -35,6 +37,8 @@ export const PART2_TIMER_CONFIG = {
   longTurnSeconds: 60,
   followUpSeconds: 30,
 } as const;
+
+let lastRecordingStoppedAt: number | null = null;
 
 // ---------------------------------------------------------------------------
 // Store shape
@@ -136,6 +140,10 @@ function getErrorMessage(error: unknown): string {
   return 'An unexpected speaking error occurred.';
 }
 
+function isAuthenticationExpiredError(error: unknown) {
+  return error instanceof ApiError && error.code === 'authentication_expired';
+}
+
 function resolvePhotoUrl(photo: { photo_url: string } | null | undefined): Part2PhotoPrompt | null {
   if (!photo) return null;
   const rawUrl = photo.photo_url;
@@ -168,6 +176,16 @@ function buildAssessmentSummary(
   };
 }
 
+function logSpeakingPerformance(
+  event: 'recording_stopped' | 'upload_started' | 'upload_completed' | 'upload_failed',
+  payload: Record<string, number | null | boolean>,
+) {
+  logger.info('speaking.performance', {
+    event,
+    ...payload,
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Store
 // ---------------------------------------------------------------------------
@@ -179,6 +197,7 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
 
   discardRecording() {
     speakingRecorder.discardRecording();
+    lastRecordingStoppedAt = null;
     const recorder = getRecorderSnapshot();
     set((state) => ({
       capability: recorder.capability,
@@ -510,181 +529,221 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
   // -----------------------------------------------------------------------
 
   async startSession(sourcePart3SessionId, sourceSessionId, options) {
-    const { partId, session } = get();
-    const isNewPart1Practice = partId === 'part-1' && options?.practiceMode === 'new';
-    const isCompletedPart1Session = Boolean(session?.part1Complete);
-    if (partId === 'part-4' && !sourcePart3SessionId && !sourceSessionId) {
-      set({ errorMessage: 'Complete Part 3 before starting Part 4.' });
-      return;
-    }
+    const attemptStartSession = async (authRetryAttempted: boolean): Promise<boolean> => {
+      const { partId, session } = get();
+      const isNewPart1Practice = partId === 'part-1' && options?.practiceMode === 'new';
+      const isCompletedPart1Session = Boolean(session?.part1Complete);
+      if (partId === 'part-4' && !sourcePart3SessionId && !sourceSessionId) {
+        set({ errorMessage: 'Complete Part 3 before starting Part 4.' });
+        return false;
+      }
 
-    // Prevent duplicate creation
-    if (session?.remoteSessionId && !sourceSessionId && !(isNewPart1Practice && isCompletedPart1Session)) {
-      set({ errorMessage: 'A session is already active. Discard and start fresh if needed.' });
-      return;
-    }
+      // Prevent duplicate creation
+      if (session?.remoteSessionId && !sourceSessionId && !(isNewPart1Practice && isCompletedPart1Session)) {
+        set({ errorMessage: 'A session is already active. Discard and start fresh if needed.' });
+        return false;
+      }
 
-    const recorder = getRecorderSnapshot();
-    const initialDuration = partId === 'part-2'
-      ? PART2_TIMER_CONFIG.longTurnSeconds
-      : DEFAULT_DURATION_SECONDS;
+      const recorder = getRecorderSnapshot();
+      const initialDuration = partId === 'part-2'
+        ? PART2_TIMER_CONFIG.longTurnSeconds
+        : DEFAULT_DURATION_SECONDS;
 
-    set({
-      assessment: null,
-      capability: recorder.capability,
-      clip: null,
-      errorMessage: null,
-      examinerAudioUrl: null,
-      examinerText: null,
-      examinerPlaybackProgress: 0,
-      isCreatingSession: false,
-      isEvaluating: false,
-      isPlaying: false,
-      isRecording: false,
-      isStartingSession: false,
-      isUploading: false,
-      part2Complete: false,
-      part2Phase: null,
-      part2Photo: null,
-      part3CommentIndex: null,
-      part3Complete: false,
-      part3Phase: null,
-      part3Scenario: null,
-      part3ScenarioId: null,
-      part4Complete: false,
-      part4Phase: null,
-      part4ProgressionPending: false,
-      part4QuestionId: null,
-      part4QuestionIndex: null,
-      part4SetId: null,
-      recorderStatus: recorder.lifecycleStatus,
-      session: null,
-      sourcePart3SessionId: null,
-      secondsRemaining: initialDuration,
-      timerDurationSeconds: initialDuration,
-      timerStatus: 'idle',
-    });
-
-    if (isNewPart1Practice && isCompletedPart1Session) {
-      set({ session: null });
-    }
-
-    set({
-      errorMessage: null,
-      isCreatingSession: true,
-      examinerPlaybackProgress: 0,
-      session: createDraftSession(partId),
-    });
-
-    try {
-      // Step 1: Create session on server
-      const language = useUiPreferencesStore.getState().uiLanguage;
-      const shouldForwardSourceSessionId =
-        partId === 'part-1' ||
-        partId === 'part-2' ||
-        partId === 'part-3' ||
-        partId === 'part-4';
-      const created = await speakingApi.createSession(partId, language, {
-        sourceSessionId: shouldForwardSourceSessionId ? sourceSessionId : undefined,
-        clientContext:
-          partId === 'part-1' && options?.practiceMode
-            ? { practice_mode: options.practiceMode }
-            : undefined,
-      });
-
-      const draft = ensureSession(get().session, partId);
       set({
+        assessment: null,
+        capability: recorder.capability,
+        clip: null,
+        errorMessage: null,
+        examinerAudioUrl: null,
+        examinerText: null,
+        examinerPlaybackProgress: 0,
         isCreatingSession: false,
-        isStartingSession: true,
-        examinerPlaybackProgress: 0,
-        session: {
-          ...draft,
-          remoteSessionId: created.session_id,
-          remoteSessionStatus: created.session_state,
-          status: 'ready',
-          updatedAt: new Date().toISOString(),
-        },
-      });
-
-      // Step 2: Start the conversation
-      const started = await speakingApi.startSession(
-        created.session_id,
-        partId,
-        partId === 'part-4' ? { sourcePart3SessionId } : undefined,
-      );
-
-      const s = ensureSession(get().session, partId);
-      const isPart2 = partId === 'part-2';
-      const isPart3 = partId === 'part-3';
-      const isPart4 = partId === 'part-4';
-      
-      set({
-        examinerAudioUrl: started.examiner_turn.audio_url,
-        examinerText: started.examiner_turn.text,
-        examinerPlaybackProgress: 0,
+        isEvaluating: false,
+        isPlaying: false,
+        isRecording: false,
         isStartingSession: false,
-        part2Complete: started.conversation_state.part2_complete ?? false,
-        part2Phase: started.conversation_state.part2_phase ?? null,
-        part2Photo: isPart2
-          ? resolvePhotoUrl(started.photo as { photo_url: string } | null | undefined)
-          : null,
-        part3CommentIndex: isPart3
-          ? started.conversation_state.part3_comment_index ?? null
-          : null,
-        part3Complete: isPart3
-          ? started.conversation_state.part3_complete ?? false
-          : false,
-        part3Phase: isPart3
-          ? started.conversation_state.part3_phase ?? null
-          : null,
-        part3Scenario: isPart3
-          ? resolvePhotoUrl(started.photo as { photo_url: string } | null | undefined)
-          : null,
-        part3ScenarioId: isPart3
-          ? started.conversation_state.part3_scenario_id ?? null
-          : null,
-        part4Complete: isPart4
-          ? started.conversation_state.part4_complete ?? false
-          : false,
-        part4Phase: isPart4 ? started.conversation_state.part4_phase ?? null : null,
-        part4ProgressionPending: isPart4
-          ? started.conversation_state.part4_progression_pending ?? false
-          : false,
-        part4QuestionId: isPart4
-          ? started.conversation_state.part4_question_id ?? null
-          : null,
-        part4QuestionIndex: isPart4
-          ? started.conversation_state.part4_question_index ?? null
-          : null,
-        part4SetId: isPart4 ? started.conversation_state.part4_set_id ?? null : null,
-        session: {
-          ...s,
-          lastExaminerAudioUrl: started.examiner_turn.audio_url,
-          lastExaminerText: started.examiner_turn.text,
-          remoteSessionStatus: started.session_state,
-          status: 'ready',
-          updatedAt: new Date().toISOString(),
-        },
-        sourcePart3SessionId: isPart4
-          ? started.conversation_state.source_part3_session_id ?? null
-          : null,
+        isUploading: false,
+        part2Complete: false,
+        part2Phase: null,
+        part2Photo: null,
+        part3CommentIndex: null,
+        part3Complete: false,
+        part3Phase: null,
+        part3Scenario: null,
+        part3ScenarioId: null,
+        part4Complete: false,
+        part4Phase: null,
+        part4ProgressionPending: false,
+        part4QuestionId: null,
+        part4QuestionIndex: null,
+        part4SetId: null,
+        recorderStatus: recorder.lifecycleStatus,
+        session: null,
+        sourcePart3SessionId: null,
+        secondsRemaining: initialDuration,
+        timerDurationSeconds: initialDuration,
+        timerStatus: 'idle',
       });
 
-        // Automatically play the examiner's opening prompt aloud
-        const rawUrl = started.examiner_turn.audio_url;
-        if (rawUrl) {
-          const siteUrl = getCurrentApiEnvironment().siteUrl.replace(/\/$/, '');
-          speakingRecorder.playExaminerAudio(`${siteUrl}${rawUrl}`);
+      if (isNewPart1Practice && isCompletedPart1Session) {
+        set({ session: null });
+      }
+
+      set({
+        errorMessage: null,
+        isCreatingSession: true,
+        examinerPlaybackProgress: 0,
+        session: createDraftSession(partId),
+      });
+
+      try {
+        // Step 1: Create session on server
+        const language = useUiPreferencesStore.getState().uiLanguage;
+        const shouldForwardSourceSessionId =
+          partId === 'part-1' ||
+          partId === 'part-2' ||
+          partId === 'part-3' ||
+          partId === 'part-4';
+        const created = await speakingApi.createSession(partId, language, {
+          sourceSessionId: shouldForwardSourceSessionId ? sourceSessionId : undefined,
+          clientContext:
+            partId === 'part-1' && options?.practiceMode
+              ? { practice_mode: options.practiceMode }
+              : undefined,
+        });
+
+        const draft = ensureSession(get().session, partId);
+        set({
+          isCreatingSession: false,
+          isStartingSession: true,
+          examinerPlaybackProgress: 0,
+          session: {
+            ...draft,
+            remoteSessionId: created.session_id,
+            remoteSessionStatus: created.session_state,
+            status: 'ready',
+            updatedAt: new Date().toISOString(),
+          },
+        });
+
+        // Step 2: Start the conversation
+        const started = await speakingApi.startSession(
+          created.session_id,
+          partId,
+          partId === 'part-4' ? { sourcePart3SessionId } : undefined,
+        );
+
+        const s = ensureSession(get().session, partId);
+        const isPart2 = partId === 'part-2';
+        const isPart3 = partId === 'part-3';
+        const isPart4 = partId === 'part-4';
+
+        set({
+          examinerAudioUrl: started.examiner_turn.audio_url,
+          examinerText: started.examiner_turn.text,
+          examinerPlaybackProgress: 0,
+          isStartingSession: false,
+          part2Complete: started.conversation_state.part2_complete ?? false,
+          part2Phase: started.conversation_state.part2_phase ?? null,
+          part2Photo: isPart2
+            ? resolvePhotoUrl(started.photo as { photo_url: string } | null | undefined)
+            : null,
+          part3CommentIndex: isPart3
+            ? started.conversation_state.part3_comment_index ?? null
+            : null,
+          part3Complete: isPart3
+            ? started.conversation_state.part3_complete ?? false
+            : false,
+          part3Phase: isPart3
+            ? started.conversation_state.part3_phase ?? null
+            : null,
+          part3Scenario: isPart3
+            ? resolvePhotoUrl(started.photo as { photo_url: string } | null | undefined)
+            : null,
+          part3ScenarioId: isPart3
+            ? started.conversation_state.part3_scenario_id ?? null
+            : null,
+          part4Complete: isPart4
+            ? started.conversation_state.part4_complete ?? false
+            : false,
+          part4Phase: isPart4 ? started.conversation_state.part4_phase ?? null : null,
+          part4ProgressionPending: isPart4
+            ? started.conversation_state.part4_progression_pending ?? false
+            : false,
+          part4QuestionId: isPart4
+            ? started.conversation_state.part4_question_id ?? null
+            : null,
+          part4QuestionIndex: isPart4
+            ? started.conversation_state.part4_question_index ?? null
+            : null,
+          part4SetId: isPart4 ? started.conversation_state.part4_set_id ?? null : null,
+          session: {
+            ...s,
+            lastExaminerAudioUrl: started.examiner_turn.audio_url,
+            lastExaminerText: started.examiner_turn.text,
+            remoteSessionStatus: started.session_state,
+            status: 'ready',
+            updatedAt: new Date().toISOString(),
+          },
+          sourcePart3SessionId: isPart4
+            ? started.conversation_state.source_part3_session_id ?? null
+            : null,
+        });
+
+          // Automatically play the examiner's opening prompt aloud
+          const rawUrl = started.examiner_turn.audio_url;
+          if (rawUrl) {
+            const siteUrl = getCurrentApiEnvironment().siteUrl.replace(/\/$/, '');
+            speakingRecorder.playExaminerAudio(`${siteUrl}${rawUrl}`);
+          }
+
+        return true;
+      } catch (error) {
+        if (isAuthenticationExpiredError(error)) {
+          if (!authRetryAttempted) {
+            let restored = null;
+            try {
+              restored = await useAuthStore.getState().restoreSession();
+            } catch {
+              restored = null;
+            }
+            if (restored) {
+              return attemptStartSession(true);
+            }
+
+            set({
+              isCreatingSession: false,
+              isStartingSession: false,
+              examinerPlaybackProgress: 0,
+              errorMessage: null,
+              session: null,
+            });
+            return false;
+          }
+
+          await useAuthStore.getState().logout().catch(() => undefined);
+          set({
+            isCreatingSession: false,
+            isStartingSession: false,
+            examinerPlaybackProgress: 0,
+            errorMessage: null,
+            session: null,
+          });
+          return false;
         }
-    } catch (error) {
-      set({
-        errorMessage: getErrorMessage(error),
-        isCreatingSession: false,
-        isStartingSession: false,
-        examinerPlaybackProgress: 0,
-        session: activeSession(ensureSession(get().session, partId), 'error'),
-      });
-    }
+
+        set({
+          errorMessage: getErrorMessage(error),
+          isCreatingSession: false,
+          isStartingSession: false,
+          examinerPlaybackProgress: 0,
+          session: activeSession(ensureSession(get().session, partId), 'error'),
+        });
+        return false;
+      }
+    };
+
+    await attemptStartSession(false);
   },
 
   startTimer() {
@@ -707,6 +766,11 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
   async stopRecording() {
     try {
       const clip = await speakingRecorder.stopRecording();
+      const recordingStoppedAt = Date.now();
+      lastRecordingStoppedAt = recordingStoppedAt;
+      logSpeakingPerformance('recording_stopped', {
+        recordingStoppedAt,
+      });
       const recorder = getRecorderSnapshot();
       set((state) => ({
         clip: clip ?? null,
@@ -815,12 +879,21 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
     }
 
     const nextTurn = session.lastTurnNumber + 1;
+    const uploadStartedAt = Date.now();
+    const stopToUploadStartMs =
+      lastRecordingStoppedAt !== null ? uploadStartedAt - lastRecordingStoppedAt : null;
 
     set({
       errorMessage: null,
       isUploading: true,
       examinerPlaybackProgress: 0,
       session: activeSession(session, 'uploading'),
+    });
+
+    logSpeakingPerformance('upload_started', {
+      recordingStoppedAt: lastRecordingStoppedAt,
+      stopToUploadStartMs,
+      uploadStartedAt,
     });
 
     try {
@@ -835,6 +908,14 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
           uri: clip.objectUrl,
         },
       );
+      const uploadCompletedAt = Date.now();
+      logSpeakingPerformance('upload_completed', {
+        recordingStoppedAt: lastRecordingStoppedAt,
+        stopToUploadStartMs,
+        uploadCompletedAt,
+        uploadLatencyMs: uploadCompletedAt - uploadStartedAt,
+      });
+      lastRecordingStoppedAt = null;
 
       const s = ensureSession(get().session, partId);
       const isPart2 = partId === 'part-2';
@@ -908,6 +989,14 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
           speakingRecorder.playExaminerAudio(`${siteUrl}${rawUrl}`);
         }
     } catch (error) {
+      const uploadCompletedAt = Date.now();
+      logSpeakingPerformance('upload_failed', {
+        recordingStoppedAt: lastRecordingStoppedAt,
+        stopToUploadStartMs,
+        uploadCompletedAt,
+        uploadLatencyMs: uploadCompletedAt - uploadStartedAt,
+      });
+      lastRecordingStoppedAt = null;
       set({
         errorMessage: getErrorMessage(error),
         isUploading: false,
