@@ -129,6 +129,7 @@ const content = {
     continueToPart4: 'Continue to Part 4',
     dismissMessage: 'Dismiss message',
     leaveScreen: 'Leave this speaking screen',
+    goHome: 'Go to Home',
     backToB2Speaking: 'Back to B2 Speaking',
     taskCardTitle: 'Task',
   },
@@ -232,6 +233,7 @@ const content = {
     continueToPart4: 'Continuar a la Parte 4',
     dismissMessage: 'Descartar mensaje',
     leaveScreen: 'Salir de esta práctica oral',
+    goHome: 'Ir al inicio',
     backToB2Speaking: 'Volver a B2 Expresión oral',
     taskCardTitle: 'Tarea',
   },
@@ -393,7 +395,24 @@ export function B2SpeakingPartScreen({
         ? t.status.paused
         : t.status.ready;
   const transitionMessage = isFollowUpPhase ? t.transitionMessage : null;
-  const backLabel = hasStartedTask ? t.leaveScreen : t.backToB2Speaking;
+  const backLabel = isPart4Complete
+    ? t.goHome
+    : hasStartedTask
+      ? t.leaveScreen
+      : t.backToB2Speaking;
+  const handleBack = () => {
+    if (isPart4Complete) {
+      router.replace('/(app)/(tabs)/dashboard');
+      return;
+    }
+    if (isPart4) {
+      router.replace(
+        language === 'es' ? '/(app)/practice/b2-speaking?lang=es' : '/(app)/practice/b2-speaking',
+      );
+      return;
+    }
+    router.back();
+  };
   const recordingElapsedSeconds = useSpeakingReliabilityStore(
     (state) => state.recordingElapsedSeconds,
   );
@@ -781,7 +800,7 @@ export function B2SpeakingPartScreen({
           </View>
         ) : null}
 
-        <SecondaryButton label={backLabel} onPress={() => router.back()} />
+        <SecondaryButton label={backLabel} onPress={handleBack} />
       </ScrollView>
     </ScreenContainer>
   );

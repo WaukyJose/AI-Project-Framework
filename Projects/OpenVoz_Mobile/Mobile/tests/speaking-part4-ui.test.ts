@@ -27,6 +27,23 @@ test('unlinked Part 4 explains the prerequisite and does not expose its start ca
   assert.match(screenSource, /canStartPart4 = isPart4 && Boolean\(sourcePart3SessionId\)/);
 });
 
+test('Part 4 leaves to the B2 Speaking overview while Parts 1-3 keep stack back', () => {
+  assert.match(screenSource, /const handleBack = \(\) => \{/);
+  assert.match(screenSource, /if \(isPart4\)/);
+  assert.match(screenSource, /'\/\(app\)\/practice\/b2-speaking\?lang=es'/);
+  assert.match(screenSource, /'\/\(app\)\/practice\/b2-speaking'/);
+  assert.match(screenSource, /router\.back\(\);/);
+  assert.match(screenSource, /<SecondaryButton label=\{backLabel\} onPress=\{handleBack\}/);
+});
+
+test('completed Part 4 leaves to Home with localized labels', () => {
+  assert.match(screenSource, /goHome: 'Go to Home'/);
+  assert.match(screenSource, /goHome: 'Ir al inicio'/);
+  assert.match(screenSource, /if \(isPart4Complete\)/);
+  assert.match(screenSource, /router\.replace\('\/\(app\)\/\(tabs\)\/dashboard'\)/);
+  assert.match(screenSource, /const backLabel = isPart4Complete/);
+});
+
 test('active Part 4 renders the server examiner turn and existing answer area', () => {
   assert.match(screenSource, /hasStartedTask && examinerText/);
   assert.match(
