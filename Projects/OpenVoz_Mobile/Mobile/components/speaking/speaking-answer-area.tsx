@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { PrimaryButton, SecondaryButton } from '../ui/buttons';
 import { languageIdentities } from '../../constants/language-identity';
@@ -33,6 +33,8 @@ interface SpeakingAnswerAreaProps {
 const content = {
   en: {
     yourTurn: 'Your turn',
+    answerRecorded: '✓ Answer recorded',
+    waiting: 'One moment…',
     remaining: ' remaining',
     startRecording: 'Start recording',
     stopRecording: 'Stop recording',
@@ -46,6 +48,8 @@ const content = {
   },
   es: {
     yourTurn: 'Tu turno',
+    answerRecorded: '✓ Respuesta grabada',
+    waiting: 'Un momento…',
     remaining: ' restantes',
     startRecording: 'Empezar a grabar',
     stopRecording: 'Detener grabación',
@@ -86,10 +90,21 @@ export function SpeakingAnswerArea({
   const t = content[language];
   const identity = languageIdentities[language];
   const isSpanish = language === 'es';
+  const showRecordedConfirmation = hasClip && !isRecording;
+  const showUploadControl = hasClip && (canUpload || isUploading);
 
   return (
     <View style={styles.card}>
       <Text style={styles.title}>{t.yourTurn}</Text>
+
+      {showRecordedConfirmation ? (
+        <Text
+          accessibilityLiveRegion="polite"
+          style={[styles.recordedConfirmation, { color: identity.accent }]}
+        >
+          {t.answerRecorded}
+        </Text>
+      ) : null}
 
       {!hasCompletedPart && timerDisplay && timerStatusLabel ? (
         <View style={styles.timerRow}>
@@ -101,12 +116,23 @@ export function SpeakingAnswerArea({
         </View>
       ) : null}
 
-      {!hasCompletedPart ? (
+      {isUploading ? (
+        <View
+          accessibilityLiveRegion="polite"
+          accessibilityRole="progressbar"
+          style={styles.waitingRow}
+        >
+          <ActivityIndicator color={identity.accent} size="small" />
+          <Text style={styles.waitingText}>{t.waiting}</Text>
+        </View>
+      ) : null}
+
+      {!isUploading && !hasCompletedPart ? (
         <View style={styles.row}>
           {!isRecording ? (
             <PrimaryButton
               accent={isSpanish ? identity.accent : undefined}
-              disabled={!recordingSupported || isExaminerSpeaking}
+              disabled={!recordingSupported || isExaminerSpeaking || isUploading}
               label={t.startRecording}
               onPress={onStartRecording}
             />
@@ -120,31 +146,35 @@ export function SpeakingAnswerArea({
         </View>
       ) : null}
 
-      {hasClip ? (
+      {!isUploading && hasClip ? (
         <>
           <View style={styles.row}>
             {isPlaying ? (
               <SecondaryButton
-                disabled={!playbackSupported}
+                disabled={!playbackSupported || isUploading}
                 label={t.stop}
                 onPress={onStopPlayback}
               />
             ) : (
               <SecondaryButton
-                disabled={!playbackSupported || isPlaying}
+                disabled={!playbackSupported || isPlaying || isUploading}
                 label={t.listen}
                 onPress={onTogglePlayback}
               />
             )}
-            <SecondaryButton label={t.discardRecording} onPress={onDiscard} />
+            <SecondaryButton
+              disabled={isUploading}
+              label={t.discardRecording}
+              onPress={onDiscard}
+            />
           </View>
 
-          {canUpload ? (
+          {showUploadControl ? (
             <View style={styles.row}>
               <PrimaryButton
                 accent={isSpanish ? identity.accent : undefined}
                 disabled={isUploading}
-                label={isUploading ? t.submitting : t.submitAnswer}
+                label={isUploading ? t.waiting : t.submitAnswer}
                 onPress={onUpload}
               />
             </View>
@@ -181,6 +211,21 @@ const styles = StyleSheet.create({
   },
   timerRow: {
     gap: 2,
+  },
+  recordedConfirmation: {
+    fontSize: 13,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  waitingRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+  },
+  waitingText: {
+    color: '#486581',
+    fontSize: 13,
+    fontWeight: '600',
   },
   timerStatus: {
     color: '#486581',

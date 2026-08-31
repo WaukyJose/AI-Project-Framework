@@ -694,7 +694,10 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
           const rawUrl = started.examiner_turn.audio_url;
           if (rawUrl) {
             const siteUrl = getCurrentApiEnvironment().siteUrl.replace(/\/$/, '');
-            speakingRecorder.playExaminerAudio(`${siteUrl}${rawUrl}`);
+            speakingRecorder.playExaminerAudio(
+              `${siteUrl}${rawUrl}`,
+              started.examiner_turn.audio_duration_seconds,
+            );
           }
 
         return true;
@@ -986,7 +989,10 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
         const rawUrl = result.examiner_turn.audio_url;
         if (rawUrl) {
           const siteUrl = getCurrentApiEnvironment().siteUrl.replace(/\/$/, '');
-          speakingRecorder.playExaminerAudio(`${siteUrl}${rawUrl}`);
+          speakingRecorder.playExaminerAudio(
+            `${siteUrl}${rawUrl}`,
+            result.examiner_turn.audio_duration_seconds,
+          );
         }
     } catch (error) {
       const uploadCompletedAt = Date.now();

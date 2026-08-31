@@ -14,7 +14,10 @@ import {
   SpeakingCapabilityState,
   SpeakingRecorderState,
 } from '../../types/speaking';
-import { normalizeExaminerPlaybackProgress } from './examiner-playback-progress';
+import {
+  normalizeExaminerPlaybackProgress,
+  resolveExaminerPlaybackDuration,
+} from './examiner-playback-progress';
 
 // ---------------------------------------------------------------------------
 // Web-only browser types (not available on native)
@@ -224,15 +227,20 @@ class SpeakingRecorderService {
     }
   }
 
-  private bindExaminerPlayer(player: AudioPlayer): void {
+  private bindExaminerPlayer(player: AudioPlayer, backendDuration: number | null): void {
     this.examinerPlaybackSubscription?.remove();
     this.examinerPlaybackSubscription = player.addListener('playbackStatusUpdate', (status: AudioStatus) => {
       const isPlaying = status.playing === true && status.didJustFinish !== true && status.error === null;
+      const duration = resolveExaminerPlaybackDuration(
+        backendDuration,
+        status.duration,
+        player.duration,
+      );
       const progress = status.error
         ? 0
         : status.didJustFinish
           ? 1
-          : normalizeExaminerPlaybackProgress(status.currentTime, status.duration);
+          : normalizeExaminerPlaybackProgress(status.currentTime, duration);
       this.notifyExaminerPlayback(isPlaying);
       this.notifyExaminerPlaybackProgress(progress);
 
@@ -625,7 +633,7 @@ class SpeakingRecorderService {
   // Examiner TTS playback (persistent reference — must survive JS GC)
   // =====================================================================
 
-  async playExaminerAudio(uri: string): Promise<void> {
+  async playExaminerAudio(uri: string, backendDuration?: number | null): Promise<void> {
     if (Platform.OS === 'web') {
       return;
     }
@@ -652,10 +660,12 @@ class SpeakingRecorderService {
     this.examinerPlaybackSubscription = null;
     const player = createAudioPlayer(
       { uri },
-      { keepAudioSessionActive: true }
+      { keepAudioSessionActive: true, updateInterval: 150 }
     );
+    const effectiveBackendDuration =
+      Number.isFinite(backendDuration) && backendDuration! > 0 ? backendDuration! : null;
     this.examinerPlayer = player;
-    this.bindExaminerPlayer(player);
+    this.bindExaminerPlayer(player, effectiveBackendDuration);
     this.notifyExaminerPlayback(true);
     this.notifyExaminerPlaybackProgress(0);
     player.play();

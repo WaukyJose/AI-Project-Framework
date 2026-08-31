@@ -47,6 +47,7 @@ export interface ExaminerTurn {
   turn: number;
   text: string;
   audio_url: string | null;
+  audio_duration_seconds?: number | null;
 }
 
 export interface CandidateTurn {

@@ -655,6 +655,17 @@ test('SpeakingAnswerArea shows Get feedback independently of hasClip and hides r
   );
 
   assert.match(source, /!\s*hasCompletedPart\s*\?/);
+  assert.match(source, /const showRecordedConfirmation = hasClip && !isRecording;/);
+  assert.match(source, /const showUploadControl = hasClip && \(canUpload \|\| isUploading\);/);
+  assert.match(source, /answerRecorded: '✓ Answer recorded'/);
+  assert.match(source, /answerRecorded: '✓ Respuesta grabada'/);
+  assert.match(source, /waiting: 'One moment…'/);
+  assert.match(source, /waiting: 'Un momento…'/);
+  assert.match(source, /import \{ ActivityIndicator, StyleSheet, Text, View \} from 'react-native';/);
+  assert.match(source, /\{isUploading \? \([\s\S]*?<ActivityIndicator color=\{identity\.accent\} size="small" \/>/);
+  assert.match(source, /<Text style=\{styles\.waitingText\}>\{t\.waiting\}<\/Text>/);
+  assert.match(source, /!isUploading && !hasCompletedPart/);
+  assert.match(source, /!isUploading && hasClip/);
   assert.match(source, /\{canRequestEvaluation \? \(/);
   assert.match(source, /\{hasClip \? \(/);
   assert.match(source, /timerDisplay && timerStatusLabel/);
