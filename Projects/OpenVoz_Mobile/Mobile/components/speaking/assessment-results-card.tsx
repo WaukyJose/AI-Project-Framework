@@ -103,8 +103,7 @@ export function AssessmentResultsCard({
   const t = {
     en: {
       evaluationInProgress: "Evaluation in progress",
-      evaluationInProgressBody:
-        "The backend has accepted the request, but a final assessment result is not yet confirmed.",
+      evaluationInProgressBody: "Your feedback is being prepared…",
       evaluationUnavailable: "Evaluation unavailable",
       evaluationUnavailableBody:
         "The assessment could not be completed. Please try requesting evaluation again.",
@@ -121,8 +120,7 @@ export function AssessmentResultsCard({
     },
     es: {
       evaluationInProgress: "Evaluación en progreso",
-      evaluationInProgressBody:
-        "El backend ha aceptado la solicitud, pero todavía no se ha confirmado un resultado final.",
+      evaluationInProgressBody: "Estamos preparando tus comentarios…",
       evaluationUnavailable: "Evaluación no disponible",
       evaluationUnavailableBody:
         "No se pudo completar la evaluación. Intenta solicitarla nuevamente.",

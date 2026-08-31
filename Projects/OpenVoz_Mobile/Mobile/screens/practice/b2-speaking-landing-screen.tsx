@@ -20,8 +20,10 @@ const content = {
     eyebrow: 'Cambridge B2',
     screenTitle: 'B2 First Speaking',
     introText: 'Move through the exam one part at a time with a calmer, guided practice flow.',
-    startHere: 'Start here',
-    recommendedNextStep: 'Recommended next step',
+    featuredExamName: 'B2 FIRST',
+    featuredDiscipline: 'Speaking Practice',
+    featuredMeta: 'Four-part oral examination · ~14 min',
+    startSpeakingPractice: 'Enter B2 Speaking',
     allPartsTitle: 'All Parts',
     allPartsDescription:
       'Practise every stage of the speaking exam with the same shared workspace.',
@@ -54,8 +56,10 @@ const content = {
     eyebrow: 'Cambridge B2',
     screenTitle: 'B2 Expresión oral',
     introText: 'Avanza por el examen parte por parte con una práctica guiada.',
-    startHere: 'Empieza aquí',
-    recommendedNextStep: 'Siguiente paso recomendado',
+    featuredExamName: 'B2 FIRST',
+    featuredDiscipline: 'Práctica oral',
+    featuredMeta: 'Examen oral de cuatro partes · ~14 min',
+    startSpeakingPractice: 'Entrar en práctica oral',
     allPartsTitle: 'Todas las partes',
     allPartsDescription:
       'Practica cada etapa del examen oral en el mismo espacio de trabajo compartido.',
@@ -144,21 +148,18 @@ export function B2SpeakingLandingScreen({ language }: B2SpeakingLandingScreenPro
           }
           style={({ pressed }) => [styles.featuredCard, pressed && styles.featuredCardPressed]}
         >
-          <View style={styles.featuredHeader}>
-            <View style={styles.featuredBadge}>
-              <Text style={styles.featuredBadgeText}>{t.startHere}</Text>
-            </View>
-            <View style={styles.featuredChevron}>
-              <Text style={styles.featuredChevronText}>›</Text>
-            </View>
+          <View style={styles.featuredIdentity}>
+            <Text style={styles.featuredExamName}>{t.featuredExamName}</Text>
+            <Text style={styles.featuredTitle}>{t.featuredDiscipline}</Text>
           </View>
 
-          <Text style={styles.featuredTitle}>{featuredPart.title}</Text>
-          <Text style={styles.featuredDescription}>{featuredPart.description}</Text>
+          <Text style={styles.featuredMeta}>{t.featuredMeta}</Text>
 
           <View style={styles.featuredFooter}>
-            <View style={[styles.featuredChip, { backgroundColor: `${identity.accent}72` }]}>
-              <Text style={styles.featuredChipText}>{t.recommendedNextStep}</Text>
+            <View style={styles.featuredDivider} />
+            <View style={styles.featuredAction}>
+              <Text style={styles.featuredActionText}>{t.startSpeakingPractice}</Text>
+              <Text style={styles.featuredActionArrow}>→</Text>
             </View>
           </View>
         </Pressable>
@@ -222,70 +223,54 @@ const styles = StyleSheet.create({
     marginBottom: 3,
     textTransform: 'uppercase',
   },
-  featuredBadge: {
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  featuredBadgeText: {
-    color: 'rgba(255,255,255,0.72)',
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
-  },
   featuredCard: {
     backgroundColor: '#1A2B4A',
-    borderRadius: 20,
+    borderRadius: 12,
     marginTop: 20,
     paddingBottom: 20,
     paddingHorizontal: 20,
     paddingTop: 20,
-    shadowColor: '#1A2B4A',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.14,
-    shadowRadius: 20,
   },
   featuredCardPressed: {
     opacity: 0.94,
   },
-  featuredChevron: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderRadius: 14,
-    height: 28,
-    justifyContent: 'center',
-    width: 28,
-  },
-  featuredChevronText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  featuredChip: {
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  featuredChipText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '500',
-  },
-  featuredDescription: {
-    color: 'rgba(255,255,255,0.64)',
-    fontSize: 14,
-    lineHeight: 21,
-  },
-  featuredFooter: {
-    marginTop: 16,
-  },
-  featuredHeader: {
+  featuredAction: {
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 14,
+    paddingTop: 15,
+  },
+  featuredActionArrow: {
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontWeight: '400',
+  },
+  featuredActionText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  featuredDivider: {
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    height: 1,
+    width: '100%',
+  },
+  featuredExamName: {
+    color: 'rgba(255,255,255,0.68)',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 1.8,
+  },
+  featuredIdentity: {
+    gap: 5,
+  },
+  featuredMeta: {
+    color: 'rgba(255,255,255,0.64)',
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  featuredFooter: {
+    marginTop: 28,
   },
   featuredTitle: {
     color: '#FFFFFF',
