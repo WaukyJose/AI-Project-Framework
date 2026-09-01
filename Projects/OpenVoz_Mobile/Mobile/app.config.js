@@ -1,4 +1,4 @@
-const isReleaseProfile = process.env.EAS_BUILD_PROFILE === 'production';
+const isReleaseProfile = ['preview', 'production'].includes(process.env.EAS_BUILD_PROFILE);
 
 const developmentEnvironment = {
   label: 'Development',
@@ -31,6 +31,10 @@ const productionEnvironment = {
 
 module.exports = ({ config }) => ({
   ...config,
+  android: {
+    ...config.android,
+    package: 'com.openvoz.mobile',
+  },
   extra: {
     ...config.extra,
     openVozApi: isReleaseProfile
