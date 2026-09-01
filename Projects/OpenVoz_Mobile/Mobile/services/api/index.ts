@@ -5,4 +5,5 @@ export * from './data-deletion-request-api';
 export * from './dashboard-api';
 export * from './profile-api';
 export * from './speaking-api';
+export * from './speaking-progress-reset-api';
 export * from './subscription-api';
