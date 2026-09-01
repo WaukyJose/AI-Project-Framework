@@ -22,11 +22,11 @@ interface ExaminerTurnBubbleProps {
 const content = {
   en: {
     examinerTitle: 'OpenVoz Examiner',
-    audioReady: 'Audio ready',
+    audioUnavailable: 'You can read the question and begin when ready.',
   },
   es: {
     examinerTitle: 'Examinador OpenVoz',
-    audioReady: 'Audio listo',
+    audioUnavailable: 'Puedes leer la pregunta y comenzar cuando estés listo.',
   },
 };
 
@@ -173,20 +173,10 @@ export function ExaminerTurnBubble({
             <Text style={[styles.examinerTitle, isSpanish && { color: identity.accent }]}>
               {t.examinerTitle}
             </Text>
-            {examinerAudioUrl ? (
-              <Text
-                style={[
-                  styles.audioBadge,
-                  isSpanish && {
-                    backgroundColor: `${identity.accent}26`,
-                    color: identity.accent,
-                  },
-                ]}
-              >
-                {t.audioReady}
-              </Text>
-            ) : null}
           </View>
+          {examinerText && !examinerAudioUrl ? (
+            <Text style={styles.audioFallback}>{t.audioUnavailable}</Text>
+          ) : null}
           <ScrollView
             contentContainerStyle={styles.scriptContent}
             nestedScrollEnabled
@@ -247,20 +237,10 @@ export function ExaminerTurnBubble({
           <Text style={[styles.examinerTitle, isSpanish && { color: identity.accent }]}>
             {t.examinerTitle}
           </Text>
-          {examinerAudioUrl ? (
-            <Text
-              style={[
-                styles.audioBadge,
-                isSpanish && {
-                  backgroundColor: `${identity.accent}26`,
-                  color: identity.accent,
-                },
-              ]}
-            >
-              {t.audioReady}
-            </Text>
-          ) : null}
         </View>
+        {examinerText && !examinerAudioUrl ? (
+          <Text style={styles.audioFallback}>{t.audioUnavailable}</Text>
+        ) : null}
         <Text style={styles.examinerText}>{renderSentenceSegments(true)}</Text>
       </View>
     </View>
@@ -268,14 +248,10 @@ export function ExaminerTurnBubble({
 }
 
 const styles = StyleSheet.create({
-  audioBadge: {
-    backgroundColor: '#E2E8F0',
-    borderRadius: 6,
-    color: '#475569',
-    fontSize: 11,
-    overflow: 'hidden',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+  audioFallback: {
+    color: '#627D98',
+    fontSize: 13,
+    lineHeight: 19,
   },
   avatarRow: {
     paddingTop: 4,
