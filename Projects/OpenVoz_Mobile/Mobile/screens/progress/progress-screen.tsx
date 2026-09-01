@@ -2,8 +2,8 @@ import { useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { AppHeader } from '../../components/ui/app-header';
-import { ProgressCard } from '../../components/ui/cards';
 import { ListItem } from '../../components/ui/listing';
+import { SpeakingDevelopmentContinuum } from '../../components/progress/speaking-development-continuum';
 import { ScreenContainer } from '../../components/ui/screen-container';
 import { SectionHeader } from '../../components/ui/section-header';
 import { languageIdentities } from '../../constants/language-identity';
@@ -35,18 +35,14 @@ const milestoneLabels = {
 
 const speakingHistoryLabels = {
   en: {
-    title: 'Speaking History',
     empty: 'No completed speaking attempts yet.',
     replay: 'Replay',
     assessmentAvailable: 'Assessment available',
-    partSummary: 'attempts',
   },
   es: {
-    title: 'Historial de expresión oral',
     empty: 'Aún no hay intentos orales completados.',
     replay: 'Repetición',
     assessmentAvailable: 'Evaluación disponible',
-    partSummary: 'intentos',
   },
 } as const;
 
@@ -90,38 +86,17 @@ const content = {
     streakLabel: 'Streak',
     questionsLabel: 'Sessions',
     accuracyLabel: 'Assessments',
-    developmentTitle: 'Speaking Development',
-    developmentAccentValue: 'Practice activity',
-    developmentCaption: 'Speaking Development',
-    developmentDescription:
-      'Complete speaking sessions and assessments to begin seeing strengths, recent progress, and next improvement areas.',
-    assessmentTitle: 'Assessment Results',
-    assessmentAccentValue: 'Assessment feedback',
-    assessmentCaption: 'Assessment Summary',
-    assessmentDescription:
-      'Request feedback after a completed speaking session to begin tracking your assessment results.',
-    criterionSectionTitle: 'Criterion Progress',
+    assessmentSectionTitle: 'Assessment feedback',
+    criterionSectionTitle: 'Criteria progress',
     criterionSectionDescription: 'Track your Cambridge speaking criteria development.',
-    recentSectionTitle: 'Recent Activity / Speaking History',
-    recentSectionDescription: 'Review your latest speaking sessions and assessment results.',
-    partHistorySectionTitle: 'Part-specific Progress History',
+    recentSectionTitle: 'Recent activity',
+    partHistorySectionTitle: 'Part 1 history',
     partHistorySectionDescription: 'Review your completed Part 1 attempts, scores, and feedback.',
     milestonesSectionTitle: 'Milestones',
     milestonesSectionDescription: 'Keep practising to unlock more speaking milestones.',
-    recentActivityTitle: 'Recent Activity',
-    recentActivityDescription: 'Review your latest speaking sessions and assessment results.',
-    historyTitle: 'History',
-    historyCaption:
-      'Your recent speaking sessions and assessment history will appear here after your first completed session.',
-    milestonesTitle: 'Milestones',
-    milestonesCaption: 'Keep practising to unlock more speaking milestones.',
+    emptyRecentActivity: 'Complete your first speaking session to see your activity here.',
     milestoneAchieved: 'Completed',
     milestoneLocked: 'Keep practising',
-    part1HistoryTitle: 'Part 1 Progress History',
-    part1HistoryDescription: 'Review your completed Part 1 attempts, scores, and feedback.',
-    part1HistoryEmpty: 'No completed Part 1 attempts yet.',
-    criterionTitle: 'Criterion Progress',
-    criterionDescription: 'Track your Cambridge speaking criteria development.',
     criterionBandLabel: 'Band',
     criterionAverageLabel: 'Average band',
     criterionAssessmentsLabel: 'assessments',
@@ -134,42 +109,18 @@ const content = {
     streakLabel: 'Racha',
     questionsLabel: 'Sesiones',
     accuracyLabel: 'Evaluaciones',
-    developmentTitle: 'Desarrollo de expresión oral',
-    developmentAccentValue: 'Actividad de práctica',
-    developmentCaption: 'Desarrollo de expresión oral',
-    developmentDescription:
-      'Completa sesiones de práctica oral y evaluaciones para comenzar a ver tus fortalezas, tu progreso reciente y las próximas áreas de mejora.',
-    assessmentTitle: 'Resultados de evaluación',
-    assessmentAccentValue: 'Retroalimentación de evaluación',
-    assessmentCaption: 'Resumen de evaluación',
-    assessmentDescription:
-      'Solicita una evaluación después de completar una sesión de práctica oral para comenzar a registrar tus resultados.',
-    criterionSectionTitle: 'Progreso por criterio',
+    assessmentSectionTitle: 'Comentarios de evaluación',
+    criterionSectionTitle: 'Progreso por criterios',
     criterionSectionDescription: 'Sigue tu desarrollo en los criterios de expresión oral de Cambridge.',
-    recentSectionTitle: 'Actividad reciente / Historial de expresión oral',
-    recentSectionDescription:
-      'Revisa tus sesiones orales más recientes y tus resultados de evaluación.',
-    partHistorySectionTitle: 'Historial de progreso por parte',
+    recentSectionTitle: 'Actividad reciente',
+    partHistorySectionTitle: 'Historial de la Parte 1',
     partHistorySectionDescription:
       'Revisa tus intentos completados de la Parte 1, tus puntuaciones y tu retroalimentación.',
     milestonesSectionTitle: 'Hitos',
     milestonesSectionDescription: 'Sigue practicando para desbloquear más hitos orales.',
-    recentActivityTitle: 'Actividad reciente',
-    recentActivityDescription:
-      'Revisa tus sesiones orales más recientes y tus resultados de evaluación.',
-    historyTitle: 'Historial',
-    historyCaption:
-      'Tus sesiones recientes de práctica oral y tu historial de evaluaciones aparecerán aquí después de tu primera sesión completada.',
-    milestonesTitle: 'Hitos',
-    milestonesCaption: 'Sigue practicando para desbloquear más hitos orales.',
+    emptyRecentActivity: 'Completa tu primera sesión oral para ver tu actividad aquí.',
     milestoneAchieved: 'Completado',
     milestoneLocked: 'Sigue practicando',
-    part1HistoryTitle: 'Historial de progreso de la Parte 1',
-    part1HistoryDescription:
-      'Revisa tus intentos completados de la Parte 1, tus puntuaciones y tu retroalimentación.',
-    part1HistoryEmpty: 'Aún no hay intentos completados de la Parte 1.',
-    criterionTitle: 'Progreso por criterio',
-    criterionDescription: 'Sigue tu desarrollo en los criterios de expresión oral de Cambridge.',
     criterionBandLabel: 'Banda',
     criterionAverageLabel: 'Banda promedio',
     criterionAssessmentsLabel: 'evaluaciones', 
@@ -188,9 +139,17 @@ export function ProgressScreen() {
   const { data } = useProgressData(uiLanguage);
   const part1Insights = buildPart1Insights(data?.part1History ?? []);
   const speakingHistory = data?.speakingHistory ?? [];
-  const speakingHistorySummary = buildSpeakingHistorySummary(speakingHistory);
+  const recentSpeakingHistory = speakingHistory.slice(0, 10);
+  const recentPart1History = (data?.part1History ?? []).slice(0, 10);
+  const isEmpty =
+    data !== undefined && data.completedSessions === 0 && data.assessedSessions === 0;
+  const hasAssessmentData = Boolean(data?.assessedSessions || data?.recentAssessments.length);
+  const hasCriteriaData = Boolean(data?.criterionProgress.length);
+  const hasPart1Data = Boolean(data?.part1History.length);
+  const hasSpeakingData = Boolean(data?.completedSessions || speakingHistory.length);
   const [isCriterionExpanded, setIsCriterionExpanded] = useState(false);
   const [isRecentExpanded, setIsRecentExpanded] = useState(true);
+  const [isAssessmentExpanded, setIsAssessmentExpanded] = useState(false);
   const [isPartHistoryExpanded, setIsPartHistoryExpanded] = useState(false);
   const [isMilestonesExpanded, setIsMilestonesExpanded] = useState(false);
 
@@ -263,81 +222,24 @@ export function ProgressScreen() {
           </View>
         </View>
 
-        <ProgressCard
-          accentValue={t.developmentAccentValue}
-          accentValueColor={accentColor}
-          caption={t.developmentCaption}
-          description={t.developmentDescription}
-          title={t.developmentTitle}
-        />
-
-        <ProgressCard
-          accentValue={t.assessmentAccentValue}
-          accentValueColor={accentColor}
-          caption={t.assessmentCaption}
-          description={t.assessmentDescription}
-          title={t.assessmentTitle}
-        />
+        <SpeakingDevelopmentContinuum language={uiLanguage} sessions={recentSpeakingHistory} />
 
         <ProgressAccordionSection
-          description={t.criterionSectionDescription}
-          expanded={isCriterionExpanded}
-          onToggle={() => setIsCriterionExpanded((current) => !current)}
-          title={t.criterionSectionTitle}
-          accessibilityHint={uiLanguage === 'es'
-            ? 'Toca para mostrar u ocultar el progreso por criterio.'
-            : 'Tap to show or hide criterion progress.'}
-        >
-          {data?.criterionProgress.map((criterion) => (
-            <ListItem
-              key={criterion.criterion}
-              title={criterion.criterionName}
-              caption={`${t.criterionAverageLabel} ${criterion.averageBand} · ${criterion.assessmentsCount} ${t.criterionAssessmentsLabel}`}
-              trailingLabel={`${t.criterionBandLabel} ${criterion.latestBand}`}
-            />
-          ))}
-        </ProgressAccordionSection>
-
-        <ProgressAccordionSection
-          description={t.recentSectionDescription}
+          description=""
           expanded={isRecentExpanded}
           onToggle={() => setIsRecentExpanded((current) => !current)}
           title={t.recentSectionTitle}
           accessibilityHint={uiLanguage === 'es'
-            ? 'Toca para mostrar u ocultar la actividad reciente y el historial de expresión oral.'
-            : 'Tap to show or hide recent activity and speaking history.'}
+            ? 'Toca para mostrar u ocultar la actividad reciente.'
+            : 'Tap to show or hide recent activity.'}
         >
-          <SectionHeader description={t.recentActivityDescription} title={t.recentActivityTitle} />
-          <SectionHeader description={t.historyCaption} title={t.historyTitle} />
-
-          {data?.recentAssessments.map((assessment) => (
-            <ListItem
-              key={assessment.assessmentId}
-              title={
-                assessment.speakingPart
-                  ? `${uiLanguage === 'es' ? 'Parte' : 'Part'} ${assessment.speakingPart}`
-                  : t.historyTitle
-              }
-              caption={new Date(assessment.assessmentTimestamp).toLocaleDateString()}
-              trailingLabel={
-                formatAssessmentStatusLabel(assessment.assessmentStatus, uiLanguage) ?? undefined
-              }
-            />
-          ))}
-
-          <SectionHeader
-            title={speakingHistoryText.title}
-            description={formatSpeakingHistorySummary(
-              speakingHistorySummary,
-              speakingHistoryText.partSummary,
-            )}
-          />
-
-          {speakingHistory.length ? (
-            speakingHistory.map((item) => (
+          {isEmpty ? (
+            <ListItem title={t.emptyRecentActivity} />
+          ) : recentSpeakingHistory.length ? (
+            recentSpeakingHistory.map((item) => (
               <ListItem
                 key={item.sessionId}
-                title={`Part ${item.speakingPart}`}
+                title={`${uiLanguage === 'es' ? 'Parte' : 'Part'} ${item.speakingPart}`}
                 caption={formatSpeakingHistoryCaption(item)}
                 trailingLabel={item.isReplay ? speakingHistoryText.replay : undefined}
               />
@@ -347,15 +249,64 @@ export function ProgressScreen() {
           )}
         </ProgressAccordionSection>
 
-        <ProgressAccordionSection
-          description={t.partHistorySectionDescription}
-          expanded={isPartHistoryExpanded}
-          onToggle={() => setIsPartHistoryExpanded((current) => !current)}
-          title={t.partHistorySectionTitle}
-          accessibilityHint={uiLanguage === 'es'
-            ? 'Toca para mostrar u ocultar el progreso histórico de la Parte 1.'
-            : 'Tap to show or hide Part 1 progress history.'}
-        >
+        {!isEmpty && hasAssessmentData ? (
+          <ProgressAccordionSection
+            description=""
+            expanded={isAssessmentExpanded}
+            onToggle={() => setIsAssessmentExpanded((current) => !current)}
+            title={t.assessmentSectionTitle}
+            accessibilityHint={uiLanguage === 'es'
+              ? 'Toca para mostrar u ocultar los comentarios de evaluación.'
+              : 'Tap to show or hide assessment feedback.'}
+          >
+            {data?.recentAssessments.map((assessment) => (
+              <ListItem
+                key={assessment.assessmentId}
+                title={
+                  assessment.speakingPart
+                    ? `${uiLanguage === 'es' ? 'Parte' : 'Part'} ${assessment.speakingPart}`
+                    : t.assessmentSectionTitle
+                }
+                caption={new Date(assessment.assessmentTimestamp).toLocaleDateString()}
+                trailingLabel={
+                  formatAssessmentStatusLabel(assessment.assessmentStatus, uiLanguage) ?? undefined
+                }
+              />
+            ))}
+          </ProgressAccordionSection>
+        ) : null}
+
+        {!isEmpty && hasCriteriaData ? (
+          <ProgressAccordionSection
+            description={t.criterionSectionDescription}
+            expanded={isCriterionExpanded}
+            onToggle={() => setIsCriterionExpanded((current) => !current)}
+            title={t.criterionSectionTitle}
+            accessibilityHint={uiLanguage === 'es'
+              ? 'Toca para mostrar u ocultar el progreso por criterios.'
+              : 'Tap to show or hide criteria progress.'}
+          >
+            {data?.criterionProgress.map((criterion) => (
+              <ListItem
+                key={criterion.criterion}
+                title={criterion.criterionName}
+                caption={`${t.criterionAverageLabel} ${criterion.averageBand} · ${criterion.assessmentsCount} ${t.criterionAssessmentsLabel}`}
+                trailingLabel={`${t.criterionBandLabel} ${criterion.latestBand}`}
+              />
+            ))}
+          </ProgressAccordionSection>
+        ) : null}
+
+        {!isEmpty && hasPart1Data ? (
+          <ProgressAccordionSection
+            description={t.partHistorySectionDescription}
+            expanded={isPartHistoryExpanded}
+            onToggle={() => setIsPartHistoryExpanded((current) => !current)}
+            title={t.partHistorySectionTitle}
+            accessibilityHint={uiLanguage === 'es'
+              ? 'Toca para mostrar u ocultar el historial de la Parte 1.'
+              : 'Tap to show or hide Part 1 history.'}
+          >
           <SectionHeader title={part1InsightText.title} description="" />
           {part1Insights.hasAttempts ? (
             <View style={styles.insightPanel}>
@@ -382,43 +333,37 @@ export function ProgressScreen() {
             <ListItem title={part1InsightText.noData} />
           )}
 
-          <SectionHeader
-            description={t.part1HistoryDescription}
-            title={t.part1HistoryTitle}
-          />
+          {recentPart1History.map((attempt) => (
+            <ListItem
+              key={attempt.conversationId}
+              title={part1AttemptText[attempt.practiceMode]}
+              caption={formatPart1HistoryCaption(attempt)}
+              trailingLabel={attempt.replayOfSessionId ? '↩' : undefined}
+            />
+          ))}
+          </ProgressAccordionSection>
+        ) : null}
 
-          {data?.part1History?.length ? (
-            data.part1History.map((attempt) => (
-              <ListItem
-                key={attempt.conversationId}
-                title={part1AttemptText[attempt.practiceMode]}
-                caption={formatPart1HistoryCaption(attempt)}
-                trailingLabel={attempt.replayOfSessionId ? '↩' : undefined}
-              />
-            ))
-          ) : (
-            <ListItem title={t.part1HistoryEmpty} />
-          )}
-        </ProgressAccordionSection>
-
-        <ProgressAccordionSection
-          description={t.milestonesSectionDescription}
-          expanded={isMilestonesExpanded}
-          onToggle={() => setIsMilestonesExpanded((current) => !current)}
-          title={t.milestonesSectionTitle}
-          accessibilityHint={uiLanguage === 'es'
-            ? 'Toca para mostrar u ocultar los hitos.'
-            : 'Tap to show or hide milestones.'}
-        >
-          {data?.milestones.map((milestone) => (
+        {!isEmpty && hasSpeakingData && data?.milestones.length ? (
+          <ProgressAccordionSection
+            description={t.milestonesSectionDescription}
+            expanded={isMilestonesExpanded}
+            onToggle={() => setIsMilestonesExpanded((current) => !current)}
+            title={t.milestonesSectionTitle}
+            accessibilityHint={uiLanguage === 'es'
+              ? 'Toca para mostrar u ocultar los hitos.'
+              : 'Tap to show or hide milestones.'}
+          >
+            {data.milestones.map((milestone) => (
             <ListItem
               key={milestone.id}
               title={milestoneText[milestone.id as keyof typeof milestoneText] ?? milestone.id}
               caption={milestone.achieved ? t.milestoneAchieved : t.milestoneLocked}
               trailingLabel={milestone.achieved ? '✓' : '🔒'}
             />
-          ))}
-        </ProgressAccordionSection>
+            ))}
+          </ProgressAccordionSection>
+        ) : null}
       </ScrollView>
     </ScreenContainer>
   );
@@ -662,25 +607,6 @@ function formatSpeakingAssessmentSummary(
   }
 
   return null;
-}
-
-function buildSpeakingHistorySummary(history: SpeakingHistoryItem[]) {
-  const counts = new Map<number, number>();
-  for (const item of history) {
-    counts.set(item.speakingPart, (counts.get(item.speakingPart) ?? 0) + 1);
-  }
-
-  return [1, 2, 3, 4].map((part) => ({
-    part,
-    count: counts.get(part) ?? 0,
-  }));
-}
-
-function formatSpeakingHistorySummary(
-  summary: { part: number; count: number }[],
-  partSummaryLabel: string,
-) {
-  return summary.map((item) => `Part ${item.part} ${item.count} ${partSummaryLabel}`).join(' · ');
 }
 
 function buildPart1Insights(part1History: Part1HistoryItem[]) {

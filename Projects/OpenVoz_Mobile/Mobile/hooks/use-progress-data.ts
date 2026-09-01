@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { router, useIsFocused } from 'expo-router';
 
 import { ApiError } from '../services/api';
@@ -18,6 +18,21 @@ export function useProgressData(language: 'en' | 'es') {
     queryKey: queryKeys.progress(language),
     retry: false,
   });
+  const wasFocused = useRef(false);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      wasFocused.current = false;
+      return;
+    }
+
+    if (isFocused) {
+      if (wasFocused.current) {
+        void query.refetch();
+      }
+      wasFocused.current = true;
+    }
+  }, [isAuthenticated, isFocused, query.refetch]);
 
   useEffect(() => {
     if (!(query.error instanceof ApiError) || query.error.status !== 401) {

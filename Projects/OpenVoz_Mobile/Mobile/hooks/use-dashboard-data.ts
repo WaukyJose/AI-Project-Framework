@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { useEffect } from 'react';
-import { router } from 'expo-router';
+import { useEffect, useRef } from 'react';
+import { router, useIsFocused } from 'expo-router';
 
 import { ApiError } from '../services/api';
 import { dashboardService } from '../services/dashboard/dashboard-service';
@@ -10,6 +10,7 @@ import { useAuthStore } from '../store/auth-store';
 export function useDashboardData(language: 'en' | 'es') {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const logout = useAuthStore((state) => state.logout);
+  const isFocused = useIsFocused();
 
   const query = useQuery({
     enabled: isAuthenticated,
@@ -17,6 +18,21 @@ export function useDashboardData(language: 'en' | 'es') {
     queryKey: queryKeys.dashboard(language),
     retry: false,
   });
+  const wasFocused = useRef(false);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      wasFocused.current = false;
+      return;
+    }
+
+    if (isFocused) {
+      if (wasFocused.current) {
+        void query.refetch();
+      }
+      wasFocused.current = true;
+    }
+  }, [isAuthenticated, isFocused, query.refetch]);
 
   useEffect(() => {
     if (!(query.error instanceof ApiError) || query.error.status !== 401) {
