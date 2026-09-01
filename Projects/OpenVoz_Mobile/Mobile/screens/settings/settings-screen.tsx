@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
 import { Alert, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useState } from 'react';
 
@@ -7,11 +8,16 @@ import { SecondaryButton } from '../../components/ui/buttons';
 import { ScreenContainer } from '../../components/ui/screen-container';
 import { SectionHeader } from '../../components/ui/section-header';
 import { languageIdentities } from '../../constants/language-identity';
-import { dataDeletionRequestApi, type DataDeletionRequestResponse } from '../../services/api';
+import {
+  dataDeletionRequestApi,
+  speakingProgressResetApi,
+  type DataDeletionRequestResponse,
+} from '../../services/api';
 import { useConsent } from '../../hooks/use-consent';
 import { useAuthStore } from '../../store/auth-store';
 import { useUiPreferencesStore } from '../../store/ui-preferences-store';
 import { shellStyles } from '../shared/shell-styles';
+import { queryKeys } from '../../services/query/query-keys';
 import {
   getDeletionRequestConfirmationText,
   getDeletionRequestOutcome,
@@ -59,6 +65,15 @@ const content = {
     rightsConfirmTitle: 'Delete account?',
     rightsConfirmText: getDeletionRequestConfirmationText('en'),
     rightsError: 'Could not submit your deletion request. Please try again.',
+    speakingResetTitle: 'Speaking progress',
+    speakingResetText:
+      'Remove speaking practice history and assessment data without deleting your account.',
+    speakingResetAction: 'Reset speaking progress',
+    speakingResetConfirmTitle: 'Reset speaking progress?',
+    speakingResetConfirmText:
+      'This will permanently remove your speaking practice history, transcripts, assessments, streak, and progress for both English and Spanish. Your account and other learning data will not be affected.',
+    speakingResetSuccess: 'Speaking progress reset.',
+    speakingResetError: 'Could not reset speaking progress. Please try again.',
     privacyPolicyTitle: 'Privacy Policy',
     privacyPolicyText: 'Review how OpenVoz collects, uses, and protects your data.',
     termsTitle: 'Terms of Service',
@@ -109,6 +124,15 @@ const content = {
     rightsConfirmTitle: '¿Eliminar cuenta?',
     rightsConfirmText: getDeletionRequestConfirmationText('es'),
     rightsError: 'No se pudo enviar tu solicitud. Inténtalo de nuevo.',
+    speakingResetTitle: 'Progreso de expresión oral',
+    speakingResetText:
+      'Elimina el historial de práctica oral y los datos de evaluación sin eliminar tu cuenta.',
+    speakingResetAction: 'Restablecer progreso de expresión oral',
+    speakingResetConfirmTitle: '¿Restablecer el progreso de expresión oral?',
+    speakingResetConfirmText:
+      'Esto eliminará permanentemente tu historial de práctica oral, transcripciones, evaluaciones, racha y progreso tanto en inglés como en español. Tu cuenta y otros datos de aprendizaje no se verán afectados.',
+    speakingResetSuccess: 'Progreso de expresión oral restablecido.',
+    speakingResetError: 'No se pudo restablecer el progreso de expresión oral. Inténtalo de nuevo.',
     privacyPolicyTitle: 'Política de privacidad',
     privacyPolicyText: 'Revisa cómo OpenVoz recopila, usa y protege tus datos.',
     termsTitle: 'Términos de servicio',
@@ -131,6 +155,7 @@ export function SettingsScreen() {
   const t = content[uiLanguage];
   const accentColor = uiLanguage === 'es' ? identity.accent : undefined;
   const consentQuery = useConsent();
+  const queryClient = useQueryClient();
   const [dataDeletionState, setDataDeletionState] = useState<{
     error: string | null;
     isSubmitting: boolean;
@@ -142,6 +167,11 @@ export function SettingsScreen() {
   });
   const [isHowAiExpanded, setIsHowAiExpanded] = useState(false);
   const [isRightsExpanded, setIsRightsExpanded] = useState(false);
+  const [speakingResetState, setSpeakingResetState] = useState<{
+    error: string | null;
+    isSubmitting: boolean;
+    success: string | null;
+  }>({ error: null, isSubmitting: false, success: null });
 
   const logout = useAuthStore((state) => state.logout);
   const consent = consentQuery.consent;
@@ -207,6 +237,37 @@ export function SettingsScreen() {
         text: t.rightsAction,
         style: 'destructive',
         onPress: () => void submitDataDeletionRequest(),
+      },
+    ]);
+  }
+
+  async function resetSpeakingProgress() {
+    if (speakingResetState.isSubmitting) {
+      return;
+    }
+
+    setSpeakingResetState({ error: null, isSubmitting: true, success: null });
+    try {
+      await speakingProgressResetApi.reset();
+      await Promise.all(
+        (['en', 'es'] as const).flatMap((language) => [
+          queryClient.invalidateQueries({ queryKey: queryKeys.dashboard(language) }),
+          queryClient.invalidateQueries({ queryKey: queryKeys.progress(language) }),
+        ])
+      );
+      setSpeakingResetState({ error: null, isSubmitting: false, success: t.speakingResetSuccess });
+    } catch {
+      setSpeakingResetState({ error: t.speakingResetError, isSubmitting: false, success: null });
+    }
+  }
+
+  function handleResetSpeakingProgress() {
+    Alert.alert(t.speakingResetConfirmTitle, t.speakingResetConfirmText, [
+      { text: uiLanguage === 'es' ? 'Cancelar' : 'Cancel', style: 'cancel' },
+      {
+        text: t.speakingResetAction,
+        style: 'destructive',
+        onPress: () => void resetSpeakingProgress(),
       },
     ]);
   }
@@ -334,6 +395,22 @@ export function SettingsScreen() {
             <View style={styles.row}>
               <Text style={styles.rowTitle}>{t.policyVersionLabel}</Text>
             </View>
+          </View>
+        </View>
+
+        <SectionHeader title={t.speakingResetTitle} />
+        <View style={styles.infoCard}>
+          <View style={styles.settingsSection}>
+            <Text style={styles.rowDescription}>{t.speakingResetText}</Text>
+            <View style={styles.requestActionWrap}>
+              <SecondaryButton
+                disabled={speakingResetState.isSubmitting}
+                label={t.speakingResetAction}
+                onPress={handleResetSpeakingProgress}
+              />
+            </View>
+            {speakingResetState.success ? <Text style={styles.successText}>{speakingResetState.success}</Text> : null}
+            {speakingResetState.error ? <Text style={styles.errorText}>{speakingResetState.error}</Text> : null}
           </View>
         </View>
 
