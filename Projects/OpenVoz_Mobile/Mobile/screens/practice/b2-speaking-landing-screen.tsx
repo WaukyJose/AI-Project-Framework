@@ -1,11 +1,21 @@
-import { router } from 'expo-router';
-import { useEffect, useRef } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  AccessibilityInfo,
+  Animated,
+  Easing,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
 import { ScreenContainer } from '../../components/ui/screen-container';
 import { speakingParts } from '../../services/speaking/speaking-parts';
 import { languageIdentities } from '../../constants/language-identity';
 import { useUiPreferencesStore } from '../../store/ui-preferences-store';
+import Svg, { Path } from 'react-native-svg';
 
 const featuredPartId = 'part-1';
 
@@ -93,6 +103,7 @@ const content = {
 export function B2SpeakingLandingScreen({ language }: B2SpeakingLandingScreenProps) {
   const uiLanguage = useUiPreferencesStore((state) => state.uiLanguage);
   const setUiLanguage = useUiPreferencesStore((state) => state.setUiLanguage);
+  const [arrowAnimation] = useState(() => new Animated.Value(0));
 
   // Compatibility bootstrap: a legacy ?lang=es route param seeds the global
   // store once on mount. After that, the store is the primary UI-language
@@ -108,8 +119,79 @@ export function B2SpeakingLandingScreen({ language }: B2SpeakingLandingScreenPro
     }
   }, [language, setUiLanguage]);
 
+  useFocusEffect(
+    useCallback(() => {
+      let isFocused = true;
+      let reduceMotionEnabled = false;
+      let animation: Animated.CompositeAnimation | null = null;
+
+      arrowAnimation.stopAnimation();
+      arrowAnimation.setValue(0);
+
+      const stopAndResetArrow = () => {
+        animation?.stop();
+        animation = null;
+        arrowAnimation.stopAnimation();
+        arrowAnimation.setValue(0);
+      };
+
+      const startArrowAnimation = (shouldReduceMotion: boolean) => {
+        if (!isFocused || shouldReduceMotion) return;
+        reduceMotionEnabled = false;
+        animation = Animated.loop(
+          Animated.sequence([
+            Animated.timing(arrowAnimation, {
+              duration: 500,
+              easing: Easing.inOut(Easing.cubic),
+              toValue: 1,
+              useNativeDriver: true,
+            }),
+            Animated.timing(arrowAnimation, {
+              duration: 500,
+              easing: Easing.inOut(Easing.cubic),
+              toValue: 0,
+              useNativeDriver: true,
+            }),
+            Animated.delay(1800),
+          ])
+        );
+        animation.start();
+      };
+
+      const subscription = AccessibilityInfo.addEventListener('reduceMotionChanged', (enabled) => {
+        reduceMotionEnabled = enabled;
+        if (enabled) stopAndResetArrow();
+      });
+
+      AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
+        if (!isFocused || reduceMotionEnabled) return;
+        startArrowAnimation(enabled);
+      });
+
+      return () => {
+        isFocused = false;
+        stopAndResetArrow();
+        subscription.remove();
+      };
+    }, [arrowAnimation])
+  );
+
   const t = content[uiLanguage];
   const identity = languageIdentities[uiLanguage];
+  const animatedArrowStyle = {
+    opacity: arrowAnimation.interpolate({
+      inputRange: [0, 1],
+      outputRange: [1, 0.72],
+    }),
+    transform: [
+      {
+        translateX: arrowAnimation.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, 6],
+        }),
+      },
+    ],
+  };
   const featuredPartOriginal =
     speakingParts.find((part) => part.id === featuredPartId) ?? speakingParts[0];
   const remainingPartsOriginal = speakingParts.filter(
@@ -159,7 +241,18 @@ export function B2SpeakingLandingScreen({ language }: B2SpeakingLandingScreenPro
             <View style={styles.featuredDivider} />
             <View style={styles.featuredAction}>
               <Text style={styles.featuredActionText}>{t.startSpeakingPractice}</Text>
-              <Text style={styles.featuredActionArrow}>→</Text>
+              <Animated.View style={[styles.featuredActionArrow, animatedArrowStyle]}>
+                <Svg width={24} height={24} viewBox="0 0 24 24">
+                  <Path
+                    d="M5 12h13M13 6l6 6-6 6"
+                    fill="none"
+                    stroke="#FFFFFF"
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </Svg>
+              </Animated.View>
             </View>
           </View>
         </Pressable>
@@ -241,9 +334,12 @@ const styles = StyleSheet.create({
     paddingTop: 15,
   },
   featuredActionArrow: {
-    color: '#FFFFFF',
-    fontSize: 22,
-    fontWeight: '400',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderRadius: 19,
+    height: 38,
+    justifyContent: 'center',
+    width: 38,
   },
   featuredActionText: {
     color: '#FFFFFF',

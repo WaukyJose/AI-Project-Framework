@@ -1,6 +1,16 @@
-import { router } from 'expo-router';
-import { useEffect, useRef } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  AccessibilityInfo,
+  Animated,
+  Easing,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 
 import { ScreenContainer } from '../../components/ui/screen-container';
 import { languageIdentities } from '../../constants/language-identity';
@@ -74,6 +84,7 @@ const content = {
 export function PracticeScreen({ language }: PracticeScreenProps) {
   const uiLanguage = useUiPreferencesStore((state) => state.uiLanguage);
   const setUiLanguage = useUiPreferencesStore((state) => state.setUiLanguage);
+  const [arrowAnimation] = useState(() => new Animated.Value(0));
 
   // Compatibility bootstrap: an explicitly route-provided language (for
   // example practice-es) seeds the global store once on mount. After that,
@@ -89,9 +100,80 @@ export function PracticeScreen({ language }: PracticeScreenProps) {
     }
   }, [language, setUiLanguage]);
 
+  useFocusEffect(
+    useCallback(() => {
+      let isFocused = true;
+      let reduceMotionEnabled = false;
+      let animation: Animated.CompositeAnimation | null = null;
+
+      arrowAnimation.stopAnimation();
+      arrowAnimation.setValue(0);
+
+      const stopAndResetArrow = () => {
+        animation?.stop();
+        animation = null;
+        arrowAnimation.stopAnimation();
+        arrowAnimation.setValue(0);
+      };
+
+      const startArrowAnimation = (shouldReduceMotion: boolean) => {
+        if (!isFocused || shouldReduceMotion) return;
+        reduceMotionEnabled = false;
+        animation = Animated.loop(
+          Animated.sequence([
+            Animated.timing(arrowAnimation, {
+              duration: 500,
+              easing: Easing.inOut(Easing.cubic),
+              toValue: 1,
+              useNativeDriver: true,
+            }),
+            Animated.timing(arrowAnimation, {
+              duration: 500,
+              easing: Easing.inOut(Easing.cubic),
+              toValue: 0,
+              useNativeDriver: true,
+            }),
+            Animated.delay(1800),
+          ])
+        );
+        animation.start();
+      };
+
+      const subscription = AccessibilityInfo.addEventListener('reduceMotionChanged', (enabled) => {
+        reduceMotionEnabled = enabled;
+        if (enabled) stopAndResetArrow();
+      });
+
+      AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
+        if (!isFocused || reduceMotionEnabled) return;
+        startArrowAnimation(enabled);
+      });
+
+      return () => {
+        isFocused = false;
+        stopAndResetArrow();
+        subscription.remove();
+      };
+    }, [arrowAnimation])
+  );
+
   const t = content[uiLanguage];
   const activeLanguageCode = uiLanguage.toUpperCase();
   const identity = languageIdentities[uiLanguage];
+  const animatedArrowStyle = {
+    opacity: arrowAnimation.interpolate({
+      inputRange: [0, 1],
+      outputRange: [1, 0.72],
+    }),
+    transform: [
+      {
+        translateX: arrowAnimation.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, 6],
+        }),
+      },
+    ],
+  };
 
   const handleLanguagePress = (code: string) => {
     setUiLanguage(code === 'ES' ? 'es' : 'en');
@@ -129,9 +211,18 @@ export function PracticeScreen({ language }: PracticeScreenProps) {
                 {t.examBadgeText}
               </Text>
             </View>
-            <View style={[styles.chevronButton, { backgroundColor: `${identity.accent}1A` }]}>
-              <Text style={styles.chevronText}>›</Text>
-            </View>
+            <Animated.View style={[styles.chevronButton, animatedArrowStyle]}>
+              <Svg width={24} height={24} viewBox="0 0 24 24">
+                <Path
+                  d="M5 12h13M13 6l6 6-6 6"
+                  fill="none"
+                  stroke="#FFFFFF"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </Svg>
+            </Animated.View>
           </View>
 
           <Text style={styles.primaryTitle}>{t.primaryTitle}</Text>
@@ -211,16 +302,11 @@ export function PracticeScreen({ language }: PracticeScreenProps) {
 const styles = StyleSheet.create({
   chevronButton: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderRadius: 14,
-    height: 28,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderRadius: 19,
+    height: 38,
     justifyContent: 'center',
-    width: 28,
-  },
-  chevronText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '600',
+    width: 38,
   },
   languageBadge: {
     alignItems: 'center',
