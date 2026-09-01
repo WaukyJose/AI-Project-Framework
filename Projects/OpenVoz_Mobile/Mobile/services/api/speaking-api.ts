@@ -8,6 +8,7 @@ import type {
   RetrieveSessionResponse,
   StartSessionResponse,
   SubmitTurnResponse,
+  TranscriptionPreviewResponse,
 } from '../../types/speaking';
 
 // ---------------------------------------------------------------------------
@@ -84,6 +85,7 @@ export const speakingApi = {
     return apiClient.request<StartSessionResponse>(sessionPath(sessionId, 'start/'), {
       body,
       method: 'POST',
+      timeoutMs: 15000,
     });
   },
 
@@ -126,6 +128,41 @@ export const speakingApi = {
       method: 'POST',
       timeoutMs: 60000,
     });
+  },
+
+  /**
+   * POST /api/v1/speaking/sessions/{session_id}/transcription-preview/
+   *
+   * Transcribes a local recording without committing a speaking turn.
+   */
+  async transcriptionPreview(
+    sessionId: string,
+    part: string,
+    turn: number,
+    audio: { uri: string; name: string; mimeType: string; durationMs: number | null },
+  ): Promise<TranscriptionPreviewResponse> {
+    const formData = new FormData();
+    const file = new File(audio.uri);
+    formData.append('audio', file);
+    formData.append('part', part);
+    formData.append('turn', String(turn));
+
+    const metadata: Record<string, unknown> = {
+      mime_type: audio.mimeType,
+    };
+    if (audio.durationMs !== null) {
+      metadata.duration_ms = audio.durationMs;
+    }
+    formData.append('metadata', JSON.stringify(metadata));
+
+    return apiClient.request<TranscriptionPreviewResponse>(
+      sessionPath(sessionId, 'transcription-preview/'),
+      {
+        body: formData,
+        method: 'POST',
+        timeoutMs: 60000,
+      },
+    );
   },
 
   /**

@@ -1,4 +1,13 @@
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import {
+  AccessibilityInfo,
+  ActivityIndicator,
+  Animated,
+  Easing,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { useEffect, useState } from 'react';
 
 import { PrimaryButton, SecondaryButton } from '../ui/buttons';
 import { languageIdentities } from '../../constants/language-identity';
@@ -10,6 +19,7 @@ interface SpeakingAnswerAreaProps {
   canUpload: boolean;
   hasCompletedPart: boolean;
   hasClip: boolean;
+  isTranscribingPreview: boolean;
   isFollowUpPhase?: boolean;
   isEvaluating: boolean;
   isPlaying: boolean;
@@ -21,6 +31,8 @@ interface SpeakingAnswerAreaProps {
   recordingSupported: boolean;
   timerDisplay?: string | null;
   timerStatusLabel?: string | null;
+  transcriptionPreview: string | null;
+  transcriptionPreviewError: string | null;
   onDiscard: () => void;
   onRequestEvaluation: () => void;
   onStartRecording: () => void;
@@ -33,7 +45,9 @@ interface SpeakingAnswerAreaProps {
 const content = {
   en: {
     yourTurn: 'Your turn',
-    answerRecorded: '✓ Answer recorded',
+    yourAnswer: 'Your answer',
+    preparingAnswer: 'Preparing your answer…',
+    previewError: "We couldn't prepare a transcript. You can still listen or submit your answer.",
     waiting: 'One moment…',
     remaining: ' remaining',
     startRecording: 'Start recording',
@@ -42,13 +56,15 @@ const content = {
     listen: 'Listen',
     discardRecording: 'Discard recording',
     submitting: 'Submitting…',
-    submitAnswer: 'Submit answer',
+    submitAnswer: 'Submit answer to continue',
     requestingFeedback: 'Requesting feedback…',
     getFeedback: 'Get feedback',
   },
   es: {
     yourTurn: 'Tu turno',
-    answerRecorded: '✓ Respuesta grabada',
+    yourAnswer: 'Tu respuesta',
+    preparingAnswer: 'Preparando tu respuesta…',
+    previewError: 'No pudimos preparar una transcripción. Puedes escuchar o enviar tu respuesta.',
     waiting: 'Un momento…',
     remaining: ' restantes',
     startRecording: 'Empezar a grabar',
@@ -57,7 +73,7 @@ const content = {
     listen: 'Escuchar',
     discardRecording: 'Descartar grabación',
     submitting: 'Enviando…',
-    submitAnswer: 'Enviar respuesta',
+    submitAnswer: 'Enviar respuesta para continuar',
     requestingFeedback: 'Solicitando evaluación…',
     getFeedback: 'Ver evaluación',
   },
@@ -72,6 +88,7 @@ export function SpeakingAnswerArea({
   isEvaluating,
   isPlaying,
   isRecording,
+  isTranscribingPreview,
   isUploading,
   isExaminerSpeaking,
   language = 'en',
@@ -79,6 +96,8 @@ export function SpeakingAnswerArea({
   recordingSupported,
   timerDisplay = null,
   timerStatusLabel = null,
+  transcriptionPreview,
+  transcriptionPreviewError,
   onDiscard,
   onRequestEvaluation,
   onStartRecording,
@@ -90,20 +109,87 @@ export function SpeakingAnswerArea({
   const t = content[language];
   const identity = languageIdentities[language];
   const isSpanish = language === 'es';
-  const showRecordedConfirmation = hasClip && !isRecording;
+  const showPreview = hasClip && !isRecording && !isUploading;
   const showUploadControl = hasClip && (canUpload || isUploading);
+  const [submitScale] = useState(() => new Animated.Value(1));
+
+  useEffect(() => {
+    const canAnimate = hasClip && !isRecording && !isUploading;
+    let animation: Animated.CompositeAnimation | null = null;
+    let mounted = true;
+
+    const stopAnimation = () => {
+      animation?.stop();
+      animation = null;
+      submitScale.setValue(1);
+    };
+
+    const startAnimation = () => {
+      if (!mounted || !canAnimate) return;
+      animation = Animated.loop(
+        Animated.sequence([
+          Animated.timing(submitScale, {
+            duration: 400,
+            easing: Easing.inOut(Easing.ease),
+            toValue: 1.015,
+            useNativeDriver: true,
+          }),
+          Animated.timing(submitScale, {
+            duration: 400,
+            easing: Easing.inOut(Easing.ease),
+            toValue: 1,
+            useNativeDriver: true,
+          }),
+          Animated.delay(2000),
+        ]),
+      );
+      animation.start();
+    };
+
+    stopAnimation();
+    const reduceMotionSubscription = AccessibilityInfo.addEventListener(
+      'reduceMotionChanged',
+      (reduceMotionEnabled) => {
+        stopAnimation();
+        if (!reduceMotionEnabled && canAnimate) {
+          startAnimation();
+        }
+      },
+    );
+
+    AccessibilityInfo.isReduceMotionEnabled().then((reduceMotionEnabled) => {
+      if (mounted && !reduceMotionEnabled && canAnimate) {
+        startAnimation();
+      }
+    });
+
+    return () => {
+      mounted = false;
+      reduceMotionSubscription.remove();
+      stopAnimation();
+    };
+  }, [hasClip, isRecording, isUploading, submitScale]);
 
   return (
     <View style={styles.card}>
       <Text style={styles.title}>{t.yourTurn}</Text>
 
-      {showRecordedConfirmation ? (
-        <Text
-          accessibilityLiveRegion="polite"
-          style={[styles.recordedConfirmation, { color: identity.accent }]}
-        >
-          {t.answerRecorded}
-        </Text>
+      {showPreview ? (
+        <View style={styles.previewBlock}>
+          <Text style={styles.previewLabel}>{t.yourAnswer}</Text>
+          {isTranscribingPreview ? (
+            <View accessibilityLiveRegion="polite" style={styles.previewLoadingRow}>
+              <ActivityIndicator color={identity.accent} size="small" />
+              <Text style={styles.previewText}>{t.preparingAnswer}</Text>
+            </View>
+          ) : transcriptionPreview ? (
+            <Text style={styles.previewText}>{transcriptionPreview}</Text>
+          ) : transcriptionPreviewError ? (
+            <Text accessibilityLiveRegion="polite" style={styles.previewError}>
+              {t.previewError}
+            </Text>
+          ) : null}
+        </View>
       ) : null}
 
       {!hasCompletedPart && timerDisplay && timerStatusLabel ? (
@@ -171,12 +257,14 @@ export function SpeakingAnswerArea({
 
           {showUploadControl ? (
             <View style={styles.row}>
-              <PrimaryButton
-                accent={isSpanish ? identity.accent : undefined}
-                disabled={isUploading}
-                label={isUploading ? t.waiting : t.submitAnswer}
-                onPress={onUpload}
-              />
+              <Animated.View style={{ transform: [{ scale: submitScale }] }}>
+                <PrimaryButton
+                  accent={isSpanish ? identity.accent : undefined}
+                  disabled={isUploading}
+                  label={isUploading ? t.waiting : t.submitAnswer}
+                  onPress={onUpload}
+                />
+              </Animated.View>
             </View>
           ) : null}
         </>
@@ -212,10 +300,31 @@ const styles = StyleSheet.create({
   timerRow: {
     gap: 2,
   },
-  recordedConfirmation: {
-    fontSize: 13,
+  previewBlock: {
+    backgroundColor: '#F0F9FF',
+    borderRadius: 12,
+    gap: 4,
+    padding: 12,
+  },
+  previewError: {
+    color: '#486581',
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  previewLabel: {
+    color: '#0F766E',
+    fontSize: 15,
     fontWeight: '700',
-    marginBottom: 2,
+  },
+  previewLoadingRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+  },
+  previewText: {
+    color: '#334E68',
+    fontSize: 15,
+    lineHeight: 22,
   },
   waitingRow: {
     alignItems: 'center',

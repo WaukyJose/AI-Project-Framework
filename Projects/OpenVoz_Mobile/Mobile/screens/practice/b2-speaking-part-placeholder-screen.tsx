@@ -296,6 +296,7 @@ export function B2SpeakingPartScreen({
   const assessment = useSpeakingStore((state) => state.assessment);
   const capability = useSpeakingStore((state) => state.capability);
   const clip = useSpeakingStore((state) => state.clip);
+  const clearTranscriptionPreview = useSpeakingStore((state) => state.clearTranscriptionPreview);
   const discardRecording = useSpeakingStore((state) => state.discardRecording);
   const errorMessage = useSpeakingStore((state) => state.errorMessage);
   const examinerAudioUrl = useSpeakingStore((state) => state.examinerAudioUrl);
@@ -308,6 +309,7 @@ export function B2SpeakingPartScreen({
   const isPlaying = useSpeakingStore((state) => state.isPlaying);
   const isRecording = useSpeakingStore((state) => state.isRecording);
   const isStartingSession = useSpeakingStore((state) => state.isStartingSession);
+  const isTranscribingPreview = useSpeakingStore((state) => state.isTranscribingPreview);
   const isUploading = useSpeakingStore((state) => state.isUploading);
   const part2Complete = useSpeakingStore((state) => state.part2Complete);
   const part2Phase = useSpeakingStore((state) => state.part2Phase);
@@ -327,6 +329,8 @@ export function B2SpeakingPartScreen({
   const stopPlayback = useSpeakingStore((state) => state.stopPlayback);
   const stopRecording = useSpeakingStore((state) => state.stopRecording);
   const timerStatus = useSpeakingStore((state) => state.timerStatus);
+  const transcriptionPreview = useSpeakingStore((state) => state.transcriptionPreview);
+  const transcriptionPreviewError = useSpeakingStore((state) => state.transcriptionPreviewError);
   const togglePlayback = useSpeakingStore((state) => state.togglePlayback);
   const uploadRecording = useSpeakingStore((state) => state.uploadRecording);
 
@@ -401,6 +405,7 @@ export function B2SpeakingPartScreen({
       ? t.leaveScreen
       : t.backToB2Speaking;
   const handleBack = () => {
+    clearTranscriptionPreview();
     if (isPart4Complete) {
       router.replace('/(app)/(tabs)/dashboard');
       return;
@@ -772,6 +777,7 @@ export function B2SpeakingPartScreen({
             isEvaluating={isEvaluating}
             isPlaying={isPlaying}
             isRecording={isRecording}
+            isTranscribingPreview={isTranscribingPreview}
             isUploading={isUploading}
             isExaminerSpeaking={examinerSpeaking}
             language={language}
@@ -779,6 +785,8 @@ export function B2SpeakingPartScreen({
             recordingSupported={capability.recordingStatus === 'ready'}
             timerDisplay={shouldShowTimerGuide ? formatCountdown(secondsRemaining) : null}
             timerStatusLabel={shouldShowTimerGuide ? timerStatusLabel : null}
+            transcriptionPreview={transcriptionPreview}
+            transcriptionPreviewError={transcriptionPreviewError}
             onDiscard={discardRecording}
             onRequestEvaluation={requestEvaluation}
             onStartRecording={startRecording}

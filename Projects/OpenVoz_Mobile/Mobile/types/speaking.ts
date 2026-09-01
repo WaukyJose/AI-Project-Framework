@@ -129,6 +129,10 @@ export interface SubmitTurnResponse {
   transcript_delta: TranscriptDeltaEntry[];
 }
 
+export interface TranscriptionPreviewResponse {
+  transcript: string;
+}
+
 export interface CompleteSessionResponse {
   session_id: string;
   part: string;

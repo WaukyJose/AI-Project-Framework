@@ -39,6 +39,7 @@ export const PART2_TIMER_CONFIG = {
 } as const;
 
 let lastRecordingStoppedAt: number | null = null;
+let transcriptionPreviewGeneration = 0;
 
 // ---------------------------------------------------------------------------
 // Store shape
@@ -48,6 +49,7 @@ interface SpeakingStoreState {
   assessment: SpeakingAssessmentSummary | null;
   capability: SpeakingCapabilityState;
   clip: SpeakingAudioClip | null;
+  clearTranscriptionPreview: () => void;
   discardRecording: () => void;
   errorMessage: string | null;
   examinerAudioUrl: string | null;
@@ -60,6 +62,7 @@ interface SpeakingStoreState {
   isPlaying: boolean;
   isRecording: boolean;
   isStartingSession: boolean;
+  isTranscribingPreview: boolean;
   isUploading: boolean;
   part2Complete: boolean;
   part2Phase: Part2Phase | null;
@@ -88,6 +91,7 @@ interface SpeakingStoreState {
   session: SpeakingDraftSession | null;
   setDurationSeconds: (seconds: number) => void;
   startRecording: () => Promise<void>;
+  previewRecording: (clip: SpeakingAudioClip) => Promise<void>;
   startSession: (
     sourcePart3SessionId?: string,
     sourceSessionId?: string,
@@ -99,6 +103,8 @@ interface SpeakingStoreState {
   tickTimer: () => void;
   timerDurationSeconds: number;
   timerStatus: SpeakingTimerStatus;
+  transcriptionPreview: string | null;
+  transcriptionPreviewError: string | null;
   togglePlayback: () => Promise<void>;
   uploadRecording: () => Promise<void>;
 }
@@ -194,10 +200,23 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
   assessment: null,
   capability: getRecorderSnapshot().capability,
   clip: null,
+  transcriptionPreview: null,
+  isTranscribingPreview: false,
+  transcriptionPreviewError: null,
+
+  clearTranscriptionPreview() {
+    transcriptionPreviewGeneration += 1;
+    set({
+      isTranscribingPreview: false,
+      transcriptionPreview: null,
+      transcriptionPreviewError: null,
+    });
+  },
 
   discardRecording() {
     speakingRecorder.discardRecording();
     lastRecordingStoppedAt = null;
+    transcriptionPreviewGeneration += 1;
     const recorder = getRecorderSnapshot();
     set((state) => ({
       capability: recorder.capability,
@@ -205,8 +224,11 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
       errorMessage: null,
       isPlaying: false,
       isRecording: false,
+      isTranscribingPreview: false,
       examinerPlaybackProgress: 0,
       recorderStatus: recorder.lifecycleStatus,
+      transcriptionPreview: null,
+      transcriptionPreviewError: null,
       session: state.session
         ? { ...state.session, status: 'ready', updatedAt: new Date().toISOString() }
         : state.session,
@@ -220,6 +242,7 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
   examinerPlaybackProgress: 0,
 
   initializePart(partId) {
+    transcriptionPreviewGeneration += 1;
     const part = getSpeakingPartDefinition(partId);
     const current = get();
     const recorder = getRecorderSnapshot();
@@ -263,6 +286,7 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
       isPlaying: false,
       isRecording: false,
       isStartingSession: false,
+      isTranscribingPreview: false,
       isUploading: false,
       part2Complete: false,
       part2Phase: null,
@@ -287,6 +311,8 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
       sourcePart3SessionId: null,
       timerDurationSeconds: initialDuration,
       timerStatus: 'idle',
+      transcriptionPreview: null,
+      transcriptionPreviewError: null,
     });
   },
 
@@ -530,6 +556,7 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
 
   async startSession(sourcePart3SessionId, sourceSessionId, options) {
     const attemptStartSession = async (authRetryAttempted: boolean): Promise<boolean> => {
+      transcriptionPreviewGeneration += 1;
       const { partId, session } = get();
       const isNewPart1Practice = partId === 'part-1' && options?.practiceMode === 'new';
       const isCompletedPart1Session = Boolean(session?.part1Complete);
@@ -544,6 +571,7 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
         return false;
       }
 
+      speakingRecorder.stopExaminerAudio();
       const recorder = getRecorderSnapshot();
       const initialDuration = partId === 'part-2'
         ? PART2_TIMER_CONFIG.longTurnSeconds
@@ -556,12 +584,14 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
         errorMessage: null,
         examinerAudioUrl: null,
         examinerText: null,
+        examinerSpeaking: false,
         examinerPlaybackProgress: 0,
         isCreatingSession: false,
         isEvaluating: false,
         isPlaying: false,
         isRecording: false,
         isStartingSession: false,
+        isTranscribingPreview: false,
         isUploading: false,
         part2Complete: false,
         part2Phase: null,
@@ -583,6 +613,8 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
         secondsRemaining: initialDuration,
         timerDurationSeconds: initialDuration,
         timerStatus: 'idle',
+        transcriptionPreview: null,
+        transcriptionPreviewError: null,
       });
 
       if (isNewPart1Practice && isCompletedPart1Session) {
@@ -775,11 +807,15 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
         recordingStoppedAt,
       });
       const recorder = getRecorderSnapshot();
+      transcriptionPreviewGeneration += 1;
       set((state) => ({
         clip: clip ?? null,
         errorMessage: null,
         isRecording: false,
+        isTranscribingPreview: false,
         recorderStatus: recorder.lifecycleStatus,
+        transcriptionPreview: null,
+        transcriptionPreviewError: null,
         session: state.session
           ? {
               ...state.session,
@@ -794,6 +830,9 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
               ? 'paused'
               : 'idle',
       }));
+      if (clip?.objectUrl) {
+        void get().previewRecording(clip);
+      }
     } catch (error) {
       const recorder = getRecorderSnapshot();
       set((state) => ({
@@ -849,6 +888,67 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
     }
   },
 
+  async previewRecording(clip) {
+    const requestGeneration = ++transcriptionPreviewGeneration;
+    const { partId, session } = get();
+
+    if (!clip.objectUrl || !session?.remoteSessionId) {
+      set({
+        isTranscribingPreview: false,
+        transcriptionPreview: null,
+        transcriptionPreviewError: 'Preview is unavailable for this recording.',
+      });
+      return;
+    }
+
+    set({
+      errorMessage: null,
+      isTranscribingPreview: true,
+      transcriptionPreview: null,
+      transcriptionPreviewError: null,
+    });
+
+    try {
+      const result = await speakingApi.transcriptionPreview(
+        session.remoteSessionId,
+        partId,
+        session.lastTurnNumber + 1,
+        {
+          durationMs: clip.durationMs,
+          mimeType: clip.mimeType,
+          name: clip.name,
+          uri: clip.objectUrl,
+        },
+      );
+
+      if (
+        requestGeneration !== transcriptionPreviewGeneration ||
+        get().clip?.objectUrl !== clip.objectUrl
+      ) {
+        return;
+      }
+
+      set({
+        isTranscribingPreview: false,
+        transcriptionPreview: result.transcript.trim() || null,
+        transcriptionPreviewError: null,
+      });
+    } catch (error) {
+      if (
+        requestGeneration !== transcriptionPreviewGeneration ||
+        get().clip?.objectUrl !== clip.objectUrl
+      ) {
+        return;
+      }
+
+      set({
+        isTranscribingPreview: false,
+        transcriptionPreview: null,
+        transcriptionPreviewError: getErrorMessage(error),
+      });
+    }
+  },
+
   // -----------------------------------------------------------------------
   // Upload / submit turn
   // -----------------------------------------------------------------------
@@ -886,8 +986,10 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
     const stopToUploadStartMs =
       lastRecordingStoppedAt !== null ? uploadStartedAt - lastRecordingStoppedAt : null;
 
+    transcriptionPreviewGeneration += 1;
     set({
       errorMessage: null,
+      isTranscribingPreview: false,
       isUploading: true,
       examinerPlaybackProgress: 0,
       session: activeSession(session, 'uploading'),
@@ -934,6 +1036,9 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
         examinerText: result.examiner_turn.text,
         examinerPlaybackProgress: 0,
         isUploading: false,
+        isTranscribingPreview: false,
+        transcriptionPreview: null,
+        transcriptionPreviewError: null,
         part2Complete: isPart2
           ? result.conversation_state.part2_complete ?? false
           : false,
@@ -984,7 +1089,6 @@ export const useSpeakingStore = create<SpeakingStoreState>((set, get) => ({
             ? 'completed'
             : 'idle',
       });
-
         // Automatically play the examiner's response aloud
         const rawUrl = result.examiner_turn.audio_url;
         if (rawUrl) {

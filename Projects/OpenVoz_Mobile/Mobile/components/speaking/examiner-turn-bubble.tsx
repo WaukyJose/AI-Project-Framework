@@ -22,11 +22,9 @@ interface ExaminerTurnBubbleProps {
 const content = {
   en: {
     examinerTitle: 'OpenVoz Examiner',
-    audioUnavailable: 'You can read the question and begin when ready.',
   },
   es: {
     examinerTitle: 'Examinador OpenVoz',
-    audioUnavailable: 'Puedes leer la pregunta y comenzar cuando estés listo.',
   },
 };
 
@@ -174,9 +172,6 @@ export function ExaminerTurnBubble({
               {t.examinerTitle}
             </Text>
           </View>
-          {examinerText && !examinerAudioUrl ? (
-            <Text style={styles.audioFallback}>{t.audioUnavailable}</Text>
-          ) : null}
           <ScrollView
             contentContainerStyle={styles.scriptContent}
             nestedScrollEnabled
@@ -238,9 +233,6 @@ export function ExaminerTurnBubble({
             {t.examinerTitle}
           </Text>
         </View>
-        {examinerText && !examinerAudioUrl ? (
-          <Text style={styles.audioFallback}>{t.audioUnavailable}</Text>
-        ) : null}
         <Text style={styles.examinerText}>{renderSentenceSegments(true)}</Text>
       </View>
     </View>
@@ -248,11 +240,6 @@ export function ExaminerTurnBubble({
 }
 
 const styles = StyleSheet.create({
-  audioFallback: {
-    color: '#627D98',
-    fontSize: 13,
-    lineHeight: 19,
-  },
   avatarRow: {
     paddingTop: 4,
   },
