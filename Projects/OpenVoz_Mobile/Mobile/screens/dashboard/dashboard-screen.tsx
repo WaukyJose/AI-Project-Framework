@@ -1,37 +1,39 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle, Path, Rect } from 'react-native-svg';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
+import {
+  AccessibilityInfo,
+  Animated,
+  Easing,
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
+import Svg, {
+  Circle,
+  Defs,
+  Image as SvgImage,
+  LinearGradient as SvgLinearGradient,
+  Mask,
+  Path,
+  Rect,
+  Stop,
+} from 'react-native-svg';
 
 import { ScreenContainer } from '../../components/ui/screen-container';
 import { LanguageCode } from '../../constants/language-identity';
 import { formatAssessmentStatusLabel } from '../../services/assessment-status-labels';
 import { useDashboardData } from '../../hooks/use-dashboard-data';
+import { useResponsiveLayout } from '../../hooks/use-responsive-layout';
 import { useAuthStore } from '../../store/auth-store';
 import { useUiPreferencesStore } from '../../store/ui-preferences-store';
 import { DashboardActivityItem } from '../../types/dashboard';
 
-const WAVE_HEIGHTS = [
-  8, 14, 20, 12, 28, 16, 32, 18, 24, 14, 20, 10, 18, 12, 22, 14, 10, 16,
-];
-const PLAYED_COUNT = 11;
-
-const content = {
-  en: {
-    practicePreviewLabel: 'Speaking practice',
-    practicePreviewSupport: 'Practise with an AI examiner',
-    previewBadge: 'Preview',
-    previewTimer: 'Illustrative preview',
-    previewPrompt: '“Tell me about something you enjoy learning about.”',
-  },
-  es: {
-    practicePreviewLabel: 'Práctica oral',
-    practicePreviewSupport: 'Practica con un examinador de IA',
-    previewBadge: 'Vista previa',
-    previewTimer: 'Vista previa ilustrativa',
-    previewPrompt: '“Cuéntame algo que disfrutes aprender.”',
-  },
-} as const;
+const AnimatedRect = Animated.createAnimatedComponent(Rect);
 
 function extractText(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
@@ -77,15 +79,6 @@ function LogoMark() {
       <Rect x={5} y={6.4} width={1.4} height={3.2} rx={0.7} fill="#FFFFFF" />
       <Rect x={7.3} y={4.8} width={1.4} height={6.4} rx={0.7} fill="#FFFFFF" />
       <Rect x={9.6} y={6} width={1.4} height={4} rx={0.7} fill="#FFFFFF" />
-    </Svg>
-  );
-}
-
-function ExaminerAvatarIcon() {
-  return (
-    <Svg width={12} height={12} viewBox="0 0 12 12">
-      <Circle cx={6} cy={4} r={2.2} fill="#FFFFFF" />
-      <Path d="M1.8 10.4c.6-2.2 2.3-3.4 4.2-3.4s3.6 1.2 4.2 3.4" fill="#FFFFFF" />
     </Svg>
   );
 }
@@ -155,7 +148,15 @@ export function DashboardScreen() {
   const logout = useAuthStore((state) => state.logout);
   const uiLanguage = useUiPreferencesStore((state) => state.uiLanguage);
   const setUiLanguage = useUiPreferencesStore((state) => state.setUiLanguage);
-  const heroText = content[uiLanguage];
+  const { width: windowWidth } = useWindowDimensions();
+  const [measuredArtworkWidth, setMeasuredArtworkWidth] = useState<number | null>(null);
+  const { contentMaxWidth } = useResponsiveLayout();
+  const fallbackArtworkWidth = Math.min(windowWidth - 40, contentMaxWidth - 40);
+  const heroArtworkWidth =
+    measuredArtworkWidth !== null && measuredArtworkWidth > 0
+      ? measuredArtworkWidth
+      : fallbackArtworkWidth;
+  const heroArtworkHeight = heroArtworkWidth * (460 / 630);
   const { data } = useDashboardData(uiLanguage);
   const user = data?.user;
   const stats = data?.dashboard.stats;
@@ -164,6 +165,98 @@ export function DashboardScreen() {
   const latestSession = recentSessions[0] ?? null;
   const sessionCount = recentActivity.length;
   const initials = getInitials(user?.fullName, user?.username);
+  const [artworkEntrance] = useState(() => new Animated.Value(0));
+  const [shimmerPosition] = useState(() => new Animated.Value(-150));
+  const [isReducedMotion, setIsReducedMotion] = useState(true);
+
+  useFocusEffect(
+    useCallback(() => {
+      let isFocused = true;
+      let reduceMotionEnabled = false;
+      let animation: Animated.CompositeAnimation | null = null;
+      let shimmerAnimation: Animated.CompositeAnimation | null = null;
+      const shimmerStart = -150;
+      const shimmerEnd = 630;
+      const createShimmerSweep = () => {
+        shimmerPosition.setValue(shimmerStart);
+        return Animated.timing(shimmerPosition, {
+          duration: 1200,
+          easing: Easing.out(Easing.cubic),
+          toValue: shimmerEnd,
+          useNativeDriver: false,
+        });
+      };
+
+      artworkEntrance.stopAnimation();
+      artworkEntrance.setValue(0);
+      shimmerPosition.stopAnimation();
+      shimmerPosition.setValue(shimmerStart);
+      setIsReducedMotion(true);
+
+      const showArtworkImmediately = () => {
+        animation?.stop();
+        animation = null;
+        artworkEntrance.setValue(1);
+      };
+
+      const startEntrance = (shouldReduceMotion: boolean) => {
+        if (!isFocused) return;
+        reduceMotionEnabled = shouldReduceMotion;
+        setIsReducedMotion(shouldReduceMotion);
+
+        if (shouldReduceMotion) {
+          showArtworkImmediately();
+          return;
+        }
+
+        animation = Animated.timing(artworkEntrance, {
+          duration: 700,
+          easing: Easing.out(Easing.cubic),
+          toValue: 1,
+          useNativeDriver: true,
+        });
+        animation.start(() => {
+          animation = null;
+        });
+      };
+
+      const startShimmer = () => {
+        shimmerAnimation = Animated.sequence([
+          Animated.delay(1800),
+          createShimmerSweep(),
+          Animated.loop(
+            Animated.sequence([Animated.delay(6800), createShimmerSweep()]),
+          ),
+        ]);
+        shimmerAnimation.start();
+      };
+
+      const subscription = AccessibilityInfo.addEventListener('reduceMotionChanged', (enabled) => {
+        reduceMotionEnabled = enabled;
+        setIsReducedMotion(enabled);
+        if (enabled) showArtworkImmediately();
+        if (enabled) {
+          shimmerAnimation?.stop();
+          shimmerAnimation = null;
+        }
+      });
+
+      AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
+        if (isFocused && !reduceMotionEnabled) {
+          startEntrance(enabled);
+          if (!enabled) startShimmer();
+        }
+      });
+
+      return () => {
+        isFocused = false;
+        animation?.stop();
+        shimmerAnimation?.stop();
+        subscription.remove();
+        setIsReducedMotion(true);
+      };
+    }, [artworkEntrance, shimmerPosition])
+  );
 
   async function handleLogout() {
     await logout();
@@ -191,61 +284,89 @@ export function DashboardScreen() {
               </LinearGradient>
               <Text style={styles.wordmark}>OpenVoz</Text>
             </View>
-            <Pressable onPress={navigateToProfile} style={styles.avatarCircle}>
+            <Pressable
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              onPress={navigateToProfile}
+              style={styles.avatarCircle}
+            >
               <Text style={styles.avatarInitials}>{initials}</Text>
             </Pressable>
           </View>
 
-          <View style={styles.heroPill}>
-            <View style={styles.heroPillDot} />
-            <Text style={styles.heroPillText}>{heroText.practicePreviewLabel}</Text>
-          </View>
-
-          <Text style={styles.heroHeadline}>
-            Practise speaking.{'\n'}Get better.
-          </Text>
-          <Text style={styles.heroSupportText}>{heroText.practicePreviewSupport}</Text>
-
-          {/* Integrated AI Examiner card */}
-          <View style={styles.examinerCard}>
-            <View style={styles.examinerHeader}>
-              <View style={styles.examinerHeaderLeft}>
-                <LinearGradient colors={['#1D7A6B', '#2A9B8A']} style={styles.examinerAvatar}>
-                  <ExaminerAvatarIcon />
-                </LinearGradient>
-                <Text style={styles.examinerLabel}>AI Examiner</Text>
-              </View>
-              <View style={styles.liveRow}>
-                <View style={styles.liveDot} />
-                <Text style={styles.liveText}>{heroText.previewBadge}</Text>
-              </View>
-            </View>
-
-            <Text style={styles.examinerPrompt}>{heroText.previewPrompt}</Text>
-
-            <View style={styles.responseStrip}>
-              <View style={styles.responseLeft}>
-                <View style={styles.recordingDot} />
-                <Text style={styles.timerText}>{heroText.previewTimer}</Text>
-              </View>
-              <View style={styles.waveformRow}>
-                {WAVE_HEIGHTS.map((height, index) => (
-                  <View
-                    key={index}
-                    style={[
-                      styles.waveBar,
-                      {
-                        height,
-                        backgroundColor:
-                          index < PLAYED_COUNT
-                            ? `rgba(42,155,138,${(0.45 + (height / 32) * 0.55).toFixed(2)})`
-                            : 'rgba(255,255,255,0.18)',
-                      },
-                    ]}
-                  />
-                ))}
-              </View>
-            </View>
+          <View
+            onLayout={({ nativeEvent }) => {
+              const width = nativeEvent.layout.width;
+              setMeasuredArtworkWidth((currentWidth) => (currentWidth === width ? currentWidth : width));
+            }}
+            style={styles.homeHeroArtworkWrap}
+          >
+            <Animated.View
+              style={{
+                opacity: artworkEntrance,
+                transform: [
+                  {
+                    translateY: artworkEntrance.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [14, 0],
+                    }),
+                  },
+                  {
+                    scale: artworkEntrance.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.97, 1],
+                    }),
+                  },
+                ],
+              }}
+            >
+              <Image
+                accessible={false}
+                importantForAccessibility="no"
+                resizeMode="contain"
+                source={require('../../assets/images/home-hero-middle-clean.png')}
+                style={{
+                  alignSelf: 'center',
+                  height: heroArtworkHeight,
+                  width: heroArtworkWidth,
+                }}
+              />
+              {!isReducedMotion ? (
+                <Animated.View pointerEvents="none" style={StyleSheet.absoluteFill}>
+                  <Svg
+                    height={heroArtworkHeight}
+                    pointerEvents="none"
+                    viewBox="0 0 630 460"
+                    width={heroArtworkWidth}
+                  >
+                    <Defs>
+                      <Mask id="homeHeroHeadlineMask" maskUnits="userSpaceOnUse">
+                        <SvgImage
+                          href={require('../../assets/images/home-hero-middle-headline-mask.png')}
+                          height={460}
+                          width={630}
+                          x={0}
+                          y={0}
+                        />
+                      </Mask>
+                      <SvgLinearGradient id="homeHeroSilverRay" x1="0" x2="1" y1="0" y2="0">
+                        <Stop offset="0" stopColor="#FFFFFF" stopOpacity="0" />
+                        <Stop offset="0.5" stopColor="#FFFFFF" stopOpacity="0.2" />
+                        <Stop offset="1" stopColor="#FFFFFF" stopOpacity="0" />
+                      </SvgLinearGradient>
+                    </Defs>
+                    <AnimatedRect
+                      fill="url(#homeHeroSilverRay)"
+                      height={660}
+                      mask="url(#homeHeroHeadlineMask)"
+                      transform="rotate(12 315 230)"
+                      width={150}
+                      x={shimmerPosition}
+                      y={-100}
+                    />
+                  </Svg>
+                </Animated.View>
+              ) : null}
+            </Animated.View>
           </View>
 
           <Pressable
@@ -451,11 +572,20 @@ const styles = StyleSheet.create({
     right: -28,
     width: 170,
   },
+  homeHeroArtworkWrap: {
+    alignItems: 'center',
+    backgroundColor: '#1A2B4A',
+    borderRadius: 10,
+    justifyContent: 'center',
+    marginBottom: 10,
+    overflow: 'hidden',
+    width: '100%',
+  },
   heroHeader: {
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 20,
+    marginBottom: 2,
   },
   logoRow: {
     alignItems: 'center',
@@ -490,148 +620,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-SemiBold',
     fontSize: 12,
   },
-  heroPill: {
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(42,155,138,0.15)',
-    borderColor: 'rgba(42,155,138,0.35)',
-    borderRadius: 20,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: 6,
-    marginBottom: 11,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  heroPillDot: {
-    backgroundColor: '#2A9B8A',
-    borderRadius: 2.5,
-    height: 5,
-    width: 5,
-  },
-  heroPillText: {
-    color: '#2A9B8A',
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 9.5,
-    letterSpacing: 0.5,
-  },
-  heroHeadline: {
-    color: '#FFFFFF',
-    fontFamily: 'Lora-Bold',
-    fontSize: 28,
-    letterSpacing: -0.55,
-    lineHeight: 32,
-    marginBottom: 8,
-  },
-  heroSupportText: {
-    color: 'rgba(255,255,255,0.55)',
-    fontFamily: 'Inter-Regular',
-    fontSize: 13,
-    lineHeight: 19.5,
-    marginBottom: 16,
-  },
-
-  // Integrated AI Examiner card
-  examinerCard: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderColor: 'rgba(255,255,255,0.12)',
-    borderRadius: 14,
-    borderWidth: 1,
-    marginBottom: 16,
-    overflow: 'hidden',
-  },
-  examinerHeader: {
-    alignItems: 'center',
-    borderBottomColor: 'rgba(255,255,255,0.07)',
-    borderBottomWidth: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingBottom: 8,
-    paddingHorizontal: 13,
-    paddingTop: 8,
-  },
-  examinerHeaderLeft: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 8,
-  },
-  examinerAvatar: {
-    alignItems: 'center',
-    borderRadius: 10,
-    height: 22,
-    justifyContent: 'center',
-    width: 22,
-  },
-  examinerLabel: {
-    color: 'rgba(255,255,255,0.65)',
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 11,
-    letterSpacing: 0.2,
-  },
-  liveRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 5,
-  },
-  liveDot: {
-    backgroundColor: '#2A9B8A',
-    borderRadius: 3,
-    height: 6,
-    width: 6,
-  },
-  liveText: {
-    color: '#2A9B8A',
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 9.5,
-    letterSpacing: 0.3,
-  },
-  examinerPrompt: {
-    color: 'rgba(255,255,255,0.78)',
-    fontFamily: 'Lora-Italic',
-    fontSize: 12.5,
-    lineHeight: 18.8,
-    paddingBottom: 8,
-    paddingHorizontal: 13,
-    paddingTop: 8,
-  },
-  responseStrip: {
-    alignItems: 'center',
-    borderTopColor: 'rgba(255,255,255,0.07)',
-    borderTopWidth: 1,
-    flexDirection: 'row',
-    gap: 10,
-    justifyContent: 'space-between',
-    paddingBottom: 9,
-    paddingHorizontal: 13,
-    paddingTop: 8,
-  },
-  responseLeft: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 8,
-  },
-  recordingDot: {
-    backgroundColor: '#E05555',
-    borderRadius: 4,
-    height: 8,
-    width: 8,
-  },
-  timerText: {
-    color: 'rgba(255,255,255,0.40)',
-    fontFamily: 'Inter-Medium',
-    fontSize: 11,
-    letterSpacing: 0.2,
-  },
-  waveformRow: {
-    alignItems: 'flex-end',
-    flexDirection: 'row',
-    gap: 2.5,
-  },
-  waveBar: {
-    borderRadius: 2,
-    width: 2.5,
-  },
-
   // Primary CTA
   heroCta: {
     borderRadius: 13,
@@ -687,9 +675,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     flexGrow: 1,
     flexBasis: 0,
-    paddingBottom: 14,
+    paddingBottom: 10,
     paddingHorizontal: 14,
-    paddingTop: 14,
+    paddingTop: 10,
   },
   featureCardTeal: {
     backgroundColor: '#EAF4F2',
@@ -704,21 +692,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 10,
     elevation: 2,
-    height: 36,
+    height: 32,
     justifyContent: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
     shadowColor: '#1A2B4A',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 6,
-    width: 36,
+    width: 32,
   },
   featureCardTitle: {
     color: '#1A2B4A',
     fontFamily: 'Inter-Bold',
     fontSize: 12,
     lineHeight: 14.4,
-    marginBottom: 5,
+    marginBottom: 4,
   },
   featureCardBody: {
     color: '#64748B',
