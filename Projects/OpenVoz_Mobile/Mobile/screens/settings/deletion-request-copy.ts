@@ -10,27 +10,27 @@ export type DeletionRequestOutcome = {
 const deletionRequestCopy = {
   en: {
     confirmation:
-      'This starts permanent account deletion. It is not immediate. Once completed, your account will no longer be accessible.',
+      'This starts permanent account deletion. It is not immediate. Account deletion requests are completed within 7 days. Once completed, your account will no longer be accessible.',
     completed:
       'Your account deletion has completed and your account is no longer accessible.',
     processing:
-      'Your permanent account deletion is being processed. It is not immediate.',
+      'Your permanent account deletion is being processed. It is not immediate. Account deletion requests are completed within 7 days.',
     rejected:
       'Your deletion request was rejected and your account was not deleted.',
     requested:
-      'Your deletion request was received. Deletion is not immediate.',
+      'Your deletion request was received. Deletion is not immediate. Account deletion requests are completed within 7 days.',
   },
   es: {
     confirmation:
-      'Esto inicia la eliminación permanente de tu cuenta. No es inmediata. Una vez completada, tu cuenta ya no estará accesible.',
+      'Esto inicia la eliminación permanente de tu cuenta. No es inmediata. Las solicitudes de eliminación de cuenta se completan en un plazo de 7 días. Una vez completada, tu cuenta ya no estará accesible.',
     completed:
       'La eliminación de tu cuenta se completó y tu cuenta ya no está accesible.',
     processing:
-      'La eliminación permanente de tu cuenta se está procesando. No es inmediata.',
+      'La eliminación permanente de tu cuenta se está procesando. No es inmediata. Las solicitudes de eliminación de cuenta se completan en un plazo de 7 días.',
     rejected:
       'Tu solicitud de eliminación fue rechazada y tu cuenta no fue eliminada.',
     requested:
-      'Tu solicitud de eliminación fue recibida. La eliminación no es inmediata.',
+      'Tu solicitud de eliminación fue recibida. La eliminación no es inmediata. Las solicitudes de eliminación de cuenta se completan en un plazo de 7 días.',
   },
 } as const;
 

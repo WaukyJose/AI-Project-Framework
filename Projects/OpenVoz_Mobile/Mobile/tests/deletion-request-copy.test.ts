@@ -5,8 +5,8 @@ import {
 
 describe('deletion request copy', () => {
   it.each([
-    ['requested', 'Your deletion request was received. Deletion is not immediate.', 'success'],
-    ['processing', 'Your permanent account deletion is being processed. It is not immediate.', 'success'],
+    ['requested', 'Your deletion request was received. Deletion is not immediate. Account deletion requests are completed within 7 days.', 'success'],
+    ['processing', 'Your permanent account deletion is being processed. It is not immediate. Account deletion requests are completed within 7 days.', 'success'],
     ['completed', 'Your account deletion has completed and your account is no longer accessible.', 'success'],
     ['rejected', 'Your deletion request was rejected and your account was not deleted.', 'error'],
   ] as const)('maps %s to the correct message and outcome', (status, message, kind) => {
