@@ -25,6 +25,7 @@ export interface ApiClientRequestOptions extends Omit<RequestInit, 'body' | 'hea
   headers?: Record<string, string>;
   method?: HttpMethod;
   responseType?: ResponseType;
+  baseUrlType?: 'api' | 'site';
   timeoutMs?: number;
   skipAuthHeader?: boolean;
 }
@@ -360,7 +361,10 @@ export class ApiClient {
     const environment = getApiEnvironment(
       options.environmentName ?? getCurrentApiEnvironmentName()
     );
-    const baseUrl = options.responseType === 'text' ? environment.siteUrl : environment.apiBaseUrl;
+    const baseUrl =
+      options.baseUrlType === 'site' || options.responseType === 'text'
+        ? environment.siteUrl
+        : environment.apiBaseUrl;
     const fullUrl = buildRequestUrl(path, baseUrl);
     const responseType = options.responseType ?? 'json';
     let headers = buildHeaders(responseType, options.headers);

@@ -12,6 +12,7 @@ export const dataDeletionRequestApi = {
       body: reason ? { reason } : {},
       method: 'POST',
       responseType: 'response',
+      baseUrlType: 'site',
       timeoutMs: 8000,
     });
   },
