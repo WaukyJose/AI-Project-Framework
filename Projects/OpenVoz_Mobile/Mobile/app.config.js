@@ -3,10 +3,10 @@ const isReleaseProfile = ['preview', 'production'].includes(process.env.EAS_BUIL
 const developmentEnvironment = {
   label: 'Development',
   siteUrl:
-    process.env.EXPO_PUBLIC_OPENVOZ_DEVELOPMENT_SITE_URL ?? 'http://192.168.100.135:8000',
+    process.env.EXPO_PUBLIC_OPENVOZ_DEVELOPMENT_SITE_URL ?? 'http://127.0.0.1:8000',
   apiBaseUrl:
     process.env.EXPO_PUBLIC_OPENVOZ_DEVELOPMENT_API_BASE_URL ??
-    'http://192.168.100.135:8000/api/v1',
+    'http://127.0.0.1:8000/api/v1',
   connectivityPath: '/usersvoicechat/login/',
   versionPath: '/api/version/',
 };
