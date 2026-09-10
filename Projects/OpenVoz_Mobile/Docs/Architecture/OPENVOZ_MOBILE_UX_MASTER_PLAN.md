@@ -10,6 +10,70 @@ This is a UX architecture specification. It defines experience structure and beh
 
 This document is the authority for UX journeys, navigation, screens, and interaction behavior. It does not define API contracts. API ownership remains with the relevant authoritative architecture documents, especially `Projects/OpenVoz_Mobile/Docs/Architecture/MOBILE_CONVERSATION_API_SPECIFICATION.md` for speaking conversation transport and `Projects/OpenVoz_Mobile/Docs/Architecture/OPENVOZ_MOBILE_API_SPECIFICATION.md` for the general mobile API catalogue.
 
+## UX Principles For OpenVoz
+
+OpenVoz should be designed as a guided learning and diagnostic experience, not only as a state machine or collection of screens.
+
+The central UX rule is:
+
+`Do not design only the state machine; design the user's story through it.`
+
+### Core Flow Model
+
+For any learner workflow, design the experience as:
+
+`Guidance → Action → Acknowledgement → Transition → Progress → Feedback → Recovery`
+
+The learner should always be able to answer:
+
+- What should I do now?
+- Did the app receive what I just did?
+- What is happening now?
+- What happens next?
+- How am I progressing?
+- What did I learn?
+- What can I do if something fails?
+
+### UX Formula
+
+`UX = Guidance + Feedback + Progress + Status visibility + Trust + Recovery`
+
+### OpenVoz-Specific Interpretation
+
+- **Guidance.** The learner should always understand the next expected action.
+- **Acknowledgement.** Every meaningful learner action should receive immediate, proportionate confirmation. For example: `Speak → Answer recorded`.
+- **Status visibility.** Never leave the learner wondering whether OpenVoz registered what they did. Internal operations such as upload, polling, processing, API waiting, and state transitions should usually be translated into learner-facing states rather than exposed as technical implementation details.
+- **Conversational continuity.** For Speaking, design the perceived story as `I answer → the examiner receives it → there is a natural pause → the conversation continues`, not `record → upload → process → API response`. Preserve Cambridge exam authenticity and a professional tone.
+- **Progress.** The learner should understand `where I am + what remains` without unnecessary gamification.
+- **Feedback.** During test simulation, preserve flow. `During test = flow`. `After test = evaluation`.
+- **Trust.** Provide predictable behavior, clear microphone states, understandable assessment states, no fake certainty, and no mysterious transitions. This is especially important where voice data and AI assessment are involved.
+- **Recovery.** Every important workflow should have an understandable recovery path. Examples include retry after recording failure, clear connection recovery, and explained assessment pending states.
+
+### Problem Archetypes To Reuse
+
+OpenVoz can borrow reliable UX structure from a few transferable patterns:
+
+- **Guided screening and check-in flows.** Useful for multi-step speaking practice: question → response → acknowledgement → next step → completion.
+- **Diagnostic flows.** Useful for AI assessment: input → analysis → interpretation → actionable feedback.
+- **Learning and budgeting-style educational flows.** Useful for scaffolding, progress, and feedback.
+- **Status-tracking flows.** Useful for keeping the learner oriented to what is happening and what comes next.
+
+These are structure analogies only. They should not drag in irrelevant domain behavior.
+
+### Scope Control For UX Polishing
+
+During a UX polish pass, prefer:
+
+`one UX hypothesis → one small code change → test → use it ourselves → keep / adjust / revert`
+
+Avoid:
+
+- broad refactors
+- simultaneous UX changes
+- feature expansion during polish
+- gamification unless explicitly justified
+- new AI features when the goal is simply interaction quality
+
 ## UX Design Principles
 
 - **Simplicity.** Each workflow should present the minimum information and action set needed to move the learner forward.
