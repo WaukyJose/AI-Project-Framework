@@ -787,3 +787,27 @@ These future experiences should extend the existing information architecture rat
 - `Projects/OpenVoz_Mobile/Docs/Architecture/OPENVOZ_MOBILE_API_SPECIFICATION.md`
 - `Projects/OpenVoz/CAMBRIDGE_ASSESSMENT_ENGINE.md`
 - `Projects/OpenVoz/ASSESSMENT_ENGINE_DECISIONS.md`
+## Post-1.0 Resilience and Feedback Polish
+
+### Crash resilience
+Add a top-level React/React Native error boundary for unexpected JavaScript failures.
+
+Recovery UX should:
+- explain that something went wrong without exposing technical details
+- offer `Try again`
+- offer `Return to Home`
+- preserve or recover speaking-session state where safe
+- avoid forcing the learner to restart the entire app unless a native crash makes that unavoidable
+
+Native iOS crashes may still terminate the app, so relaunch behavior should also detect incomplete speaking sessions and offer safe recovery where possible.
+
+### Learner-facing assessment wording
+On the Home screen, replace the learner-facing label:
+
+`Insufficient evidence`
+
+with:
+
+`Assessment pending`
+
+Do not change the underlying backend assessment status or scoring logic. This is a presentation-only change intended to communicate the same state more neutrally.
