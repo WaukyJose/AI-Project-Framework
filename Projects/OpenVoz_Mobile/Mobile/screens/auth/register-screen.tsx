@@ -16,15 +16,32 @@ import { ScreenContainer } from '../../components/ui/screen-container';
 import { useAuthStore } from '../../store/auth-store';
 import { useUiPreferencesStore } from '../../store/ui-preferences-store';
 
-function validateForm(username: string, password: string) {
-  const errors: { password?: string; username?: string } = {};
+interface RegistrationFields {
+  confirmPassword: string;
+  email: string;
+  password: string;
+  username: string;
+}
 
-  if (!username.trim()) {
-    errors.username = 'Enter your username or email.';
+function validateForm(fields: RegistrationFields) {
+  const errors: Partial<Record<keyof RegistrationFields, string>> = {};
+
+  if (!fields.username.trim()) {
+    errors.username = 'Enter a username.';
   }
 
-  if (!password.trim()) {
-    errors.password = 'Enter your password.';
+  if (!fields.email.trim()) {
+    errors.email = 'Enter your email address.';
+  }
+
+  if (!fields.password.trim()) {
+    errors.password = 'Enter a password.';
+  }
+
+  if (!fields.confirmPassword.trim()) {
+    errors.confirmPassword = 'Confirm your password.';
+  } else if (fields.password !== fields.confirmPassword) {
+    errors.confirmPassword = 'The passwords do not match.';
   }
 
   return errors;
@@ -33,43 +50,61 @@ function validateForm(username: string, password: string) {
 const content = {
   en: {
     eyebrow: 'B2 Speaking Practice',
-    title: 'Sign in to OpenVoz',
-    body: 'Sign in to access your speaking practice, feedback, and progress.',
-    usernameLabel: 'Username or email',
-    usernamePlaceholder: 'yourname@example.com',
+    title: 'Create your OpenVoz account',
+    body: 'Start practicing with saved feedback, progress, and speaking history.',
+    usernameLabel: 'Username',
+    usernamePlaceholder: 'yourname',
+    emailLabel: 'Email',
+    emailPlaceholder: 'yourname@example.com',
     passwordLabel: 'Password',
-    passwordPlaceholder: 'Enter your password',
-    signIn: 'Sign In',
-    newAccount: 'New to OpenVoz?',
-    createAccount: 'Create an account',
+    passwordPlaceholder: 'Create a password',
+    confirmPasswordLabel: 'Confirm password',
+    confirmPasswordPlaceholder: 'Repeat your password',
+    createAccount: 'Create Account',
+    existingAccount: 'Already have an account?',
+    signIn: 'Sign in',
   },
   es: {
     eyebrow: 'Práctica de expresión oral B2',
-    title: 'Inicia sesión en OpenVoz',
-    body: 'Inicia sesión para acceder a tus prácticas de expresión oral, comentarios y progreso.',
-    usernameLabel: 'Usuario o correo electrónico',
-    usernamePlaceholder: 'tunombre@ejemplo.com',
+    title: 'Crea tu cuenta de OpenVoz',
+    body: 'Empieza a practicar con comentarios, progreso e historial guardados.',
+    usernameLabel: 'Usuario',
+    usernamePlaceholder: 'tuusuario',
+    emailLabel: 'Correo electrónico',
+    emailPlaceholder: 'tunombre@ejemplo.com',
     passwordLabel: 'Contraseña',
-    passwordPlaceholder: 'Introduce tu contraseña',
-    signIn: 'Iniciar sesión',
-    newAccount: '¿Nuevo en OpenVoz?',
-    createAccount: 'Crear una cuenta',
+    passwordPlaceholder: 'Crea una contraseña',
+    confirmPasswordLabel: 'Confirmar contraseña',
+    confirmPasswordPlaceholder: 'Repite tu contraseña',
+    createAccount: 'Crear cuenta',
+    existingAccount: '¿Ya tienes una cuenta?',
+    signIn: 'Inicia sesión',
   },
 } as const;
 
-export function LoginScreen() {
+export function RegisterScreen() {
   const router = useRouter();
-  const login = useAuthStore((state) => state.login);
+  const register = useAuthStore((state) => state.register);
   const isLoading = useAuthStore((state) => state.isLoading);
   const errorMessage = useAuthStore((state) => state.errorMessage);
   const uiLanguage = useUiPreferencesStore((state) => state.uiLanguage);
   const t = content[uiLanguage];
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [fieldErrors, setFieldErrors] = useState<{ password?: string; username?: string }>({});
+  const [fields, setFields] = useState<RegistrationFields>({
+    confirmPassword: '',
+    email: '',
+    password: '',
+    username: '',
+  });
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof RegistrationFields, string>>>(
+    {}
+  );
+
+  function updateField(field: keyof RegistrationFields, value: string) {
+    setFields((current) => ({ ...current, [field]: value }));
+  }
 
   async function handleSubmit() {
-    const errors = validateForm(username, password);
+    const errors = validateForm(fields);
     setFieldErrors(errors);
 
     if (Object.keys(errors).length > 0) {
@@ -77,10 +112,7 @@ export function LoginScreen() {
     }
 
     try {
-      await login({
-        password,
-        username,
-      });
+      await register(fields);
     } catch {
       return;
     }
@@ -102,59 +134,100 @@ export function LoginScreen() {
           <View style={styles.card}>
             <Text style={styles.label}>{t.usernameLabel}</Text>
             <TextInput
+              accessibilityLabel={t.usernameLabel}
               autoCapitalize="none"
+              autoComplete="username"
               autoCorrect={false}
               editable={!isLoading}
-              onChangeText={setUsername}
+              onChangeText={(value) => updateField('username', value)}
               placeholder={t.usernamePlaceholder}
               style={[styles.input, fieldErrors.username ? styles.inputError : null]}
-              value={username}
+              textContentType="username"
+              value={fields.username}
             />
             {fieldErrors.username ? (
               <Text style={styles.fieldError}>{fieldErrors.username}</Text>
             ) : null}
 
+            <Text style={styles.label}>{t.emailLabel}</Text>
+            <TextInput
+              accessibilityLabel={t.emailLabel}
+              autoCapitalize="none"
+              autoComplete="email"
+              autoCorrect={false}
+              editable={!isLoading}
+              inputMode="email"
+              keyboardType="email-address"
+              onChangeText={(value) => updateField('email', value)}
+              placeholder={t.emailPlaceholder}
+              style={[styles.input, fieldErrors.email ? styles.inputError : null]}
+              textContentType="emailAddress"
+              value={fields.email}
+            />
+            {fieldErrors.email ? <Text style={styles.fieldError}>{fieldErrors.email}</Text> : null}
+
             <Text style={styles.label}>{t.passwordLabel}</Text>
             <TextInput
+              accessibilityLabel={t.passwordLabel}
+              autoComplete="new-password"
               editable={!isLoading}
-              onChangeText={setPassword}
+              onChangeText={(value) => updateField('password', value)}
               placeholder={t.passwordPlaceholder}
               secureTextEntry
               style={[styles.input, fieldErrors.password ? styles.inputError : null]}
-              value={password}
+              textContentType="newPassword"
+              value={fields.password}
             />
             {fieldErrors.password ? (
               <Text style={styles.fieldError}>{fieldErrors.password}</Text>
             ) : null}
 
+            <Text style={styles.label}>{t.confirmPasswordLabel}</Text>
+            <TextInput
+              accessibilityLabel={t.confirmPasswordLabel}
+              autoComplete="new-password"
+              editable={!isLoading}
+              onChangeText={(value) => updateField('confirmPassword', value)}
+              placeholder={t.confirmPasswordPlaceholder}
+              secureTextEntry
+              style={[styles.input, fieldErrors.confirmPassword ? styles.inputError : null]}
+              textContentType="newPassword"
+              value={fields.confirmPassword}
+            />
+            {fieldErrors.confirmPassword ? (
+              <Text style={styles.fieldError}>{fieldErrors.confirmPassword}</Text>
+            ) : null}
+
             {errorMessage ? (
-              <View style={styles.errorBanner}>
+              <View accessibilityRole="alert" style={styles.errorBanner}>
                 <Text style={styles.errorText}>{errorMessage}</Text>
               </View>
             ) : null}
 
             <Pressable
+              accessibilityLabel={t.createAccount}
+              accessibilityRole="button"
               disabled={isLoading}
               onPress={() => void handleSubmit()}
-              style={styles.button}
+              style={[styles.button, isLoading ? styles.buttonDisabled : null]}
             >
               {isLoading ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
-                <Text style={styles.buttonText}>{t.signIn}</Text>
+                <Text style={styles.buttonText}>{t.createAccount}</Text>
               )}
             </Pressable>
 
-            <View style={styles.registerPrompt}>
-              <Text style={styles.supportText}>{t.newAccount}</Text>
+            <View style={styles.signInPrompt}>
+              <Text style={styles.supportText}>{t.existingAccount}</Text>
               <Pressable
-                accessibilityLabel={t.createAccount}
+                accessibilityLabel={t.signIn}
                 accessibilityRole="button"
                 disabled={isLoading}
-                onPress={() => router.push('/(auth)/register')}
+                onPress={() => router.replace('/(auth)/login')}
                 style={styles.linkButton}
               >
-                <Text style={styles.metaText}>{t.createAccount}</Text>
+                <Text style={styles.metaText}>{t.signIn}</Text>
               </Pressable>
             </View>
           </View>
@@ -177,6 +250,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 52,
     paddingHorizontal: 18,
+  },
+  buttonDisabled: {
+    opacity: 0.7,
   },
   buttonText: {
     color: '#FFFFFF',
@@ -242,24 +318,24 @@ const styles = StyleSheet.create({
   keyboardAvoidingView: {
     flex: 1,
   },
-  linkButton: {
-    alignSelf: 'flex-start',
-    minHeight: 44,
-    justifyContent: 'center',
-    paddingVertical: 4,
-  },
   label: {
     color: '#0F172A',
     fontSize: 14,
     fontWeight: '600',
     marginTop: 8,
   },
+  linkButton: {
+    alignSelf: 'flex-start',
+    justifyContent: 'center',
+    minHeight: 44,
+    paddingVertical: 4,
+  },
   metaText: {
     color: '#0F4C5C',
     fontSize: 13,
     fontWeight: '600',
   },
-  registerPrompt: {
+  signInPrompt: {
     gap: 2,
     paddingTop: 6,
   },

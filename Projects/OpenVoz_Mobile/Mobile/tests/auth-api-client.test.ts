@@ -106,6 +106,72 @@ describe('auth api/client behavior', () => {
     expect(headers.get('Authorization')).toBeNull();
   });
 
+  it('registers without Authorization and persists the authenticated session', async () => {
+    registerAuthTokenProvider(() => 'stale-token');
+    jest
+      .requireMock('../services/profile/profile-service')
+      .profileService.getAuthenticatedProfile.mockResolvedValue({
+        displayName: 'New User',
+        email: 'new@example.com',
+        firstName: '',
+        fullName: null,
+        id: 2,
+        identifier: 'new-user',
+        lastName: '',
+        username: 'new-user',
+      });
+
+    const fetchMock = jest.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          authenticated: true,
+          token: 'registration-token',
+          user: {
+            display_name: null,
+            email: 'new@example.com',
+            id: 2,
+            identifier: 'new-user',
+            is_staff: false,
+          },
+        }),
+        { status: 201, headers: { 'Content-Type': 'application/json' } }
+      )
+    );
+    global.fetch = fetchMock as typeof fetch;
+
+    const result = await authService.register({
+      confirmPassword: 'StrongMobilePass123!',
+      email: 'new@example.com',
+      password: 'StrongMobilePass123!',
+      username: 'new-user',
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://example.com/api/v1/auth/register/',
+      expect.objectContaining({
+        method: 'POST',
+      })
+    );
+    const [, requestInit] = fetchMock.mock.calls[0];
+    const headers = new Headers((requestInit as RequestInit).headers);
+    expect(headers.get('Authorization')).toBeNull();
+    expect(JSON.parse((requestInit as RequestInit).body as string)).toEqual({
+      confirm_password: 'StrongMobilePass123!',
+      email: 'new@example.com',
+      password: 'StrongMobilePass123!',
+      username: 'new-user',
+    });
+    expect(result.user.username).toBe('new-user');
+    expect(
+      jest.requireMock('../services/auth/auth-storage').authStorage.writeSession
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        token: 'registration-token',
+        user: expect.objectContaining({ username: 'new-user' }),
+      })
+    );
+  });
+
   it('preserves backend invalid_credentials for login failures', async () => {
     const fetchMock = jest.fn().mockResolvedValue(
       new Response(
@@ -213,9 +279,7 @@ describe('auth api/client behavior', () => {
       code: 'invalid_credentials',
     });
 
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining('"event":"api.request.failure"')
-    );
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('"event":"api.request.failure"'));
     expect(errorSpy).not.toHaveBeenCalled();
 
     warnSpy.mockClear();
@@ -239,9 +303,7 @@ describe('auth api/client behavior', () => {
       status: 500,
     });
 
-    expect(errorSpy).toHaveBeenCalledWith(
-      expect.stringContaining('"event":"api.request.failure"')
-    );
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('"event":"api.request.failure"'));
     (globalThis as { __DEV__?: boolean }).__DEV__ = false;
   });
 });

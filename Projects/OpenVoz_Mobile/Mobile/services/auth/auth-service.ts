@@ -1,4 +1,11 @@
-import { AuthSession, AuthUser, LoginCredentials, LoginResult } from '../../types/auth';
+import {
+  AuthSession,
+  AuthUser,
+  LoginCredentials,
+  LoginResult,
+  RegistrationCredentials,
+  RegistrationResult,
+} from '../../types/auth';
 import { getApiEnvironment, getCurrentApiEnvironmentName } from '../../utils/env';
 import { logger } from '../../utils/logger';
 import { ApiError, registerAuthTokenProvider } from '../api/api-client';
@@ -8,6 +15,7 @@ import { authStorage } from './auth-storage';
 import { isSessionExpired, sanitizeAuthSession } from './auth-session';
 
 const LOGIN_PATH = '/auth/login/';
+const REGISTER_PATH = '/auth/register/';
 const PASSWORD_RESET_PATH = '/members/accounts/password_reset/';
 
 interface MobileAuthResponse {
@@ -39,6 +47,51 @@ function buildSession(
     expiresAt: computeSessionExpiry(rememberMe),
     token,
     user,
+  };
+}
+
+function getBackendErrorMessage(details: unknown) {
+  if (!details || typeof details !== 'object') {
+    return null;
+  }
+
+  const error = (details as { error?: { message?: unknown } }).error;
+  const message = error?.message;
+  return typeof message === 'string' && message.trim() ? message.trim() : null;
+}
+
+async function persistAuthenticatedResponse({
+  environmentName,
+  rememberMe,
+  response,
+}: {
+  environmentName: AuthSession['environmentName'];
+  rememberMe: boolean;
+  response: Response;
+}): Promise<LoginResult> {
+  const payload = (await response.json()) as MobileAuthResponse;
+  const token = payload.token?.trim();
+
+  if (!payload.authenticated || !payload.user || !token) {
+    throw new ApiError('Authentication failed', {
+      code: 'server_unavailable',
+      details: payload,
+      status: response.status,
+      url: response.url,
+    });
+  }
+
+  const profile = await profileService.getAuthenticatedProfile({
+    environmentName,
+    token,
+  });
+  const session = buildSession(profile, token, environmentName, rememberMe);
+
+  await authStorage.writeSession(session);
+
+  return {
+    session,
+    user: session.user,
   };
 }
 
@@ -96,12 +149,10 @@ export const authService = {
     let response: Response;
 
     try {
-      response = await authApi.login(
-        {
-          password: credentials.password,
-          username: identifier,
-        }
-      );
+      response = await authApi.login({
+        password: credentials.password,
+        username: identifier,
+      });
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         if (error.details && typeof error.details === 'object') {
@@ -129,31 +180,94 @@ export const authService = {
       throw error;
     }
 
-    const payload = (await response.json()) as MobileAuthResponse;
-    const token = payload.token?.trim();
+    const result = await persistAuthenticatedResponse({
+      environmentName,
+      rememberMe,
+      response,
+    });
 
-    if (!payload.authenticated || !payload.user || !token) {
-      throw new ApiError('Authentication failed', {
+    logger.info('auth.login.success', sanitizeAuthSession(result.session));
+
+    return result;
+  },
+
+  async register(
+    credentials: RegistrationCredentials,
+    {
+      environmentName = getCurrentApiEnvironmentName(),
+      rememberMe = true,
+    }: {
+      environmentName?: AuthSession['environmentName'];
+      rememberMe?: boolean;
+    } = {}
+  ): Promise<RegistrationResult> {
+    const username = credentials.username.trim();
+    const email = credentials.email.trim();
+
+    if (
+      !username ||
+      !email ||
+      !credentials.password.trim() ||
+      !credentials.confirmPassword.trim()
+    ) {
+      throw new ApiError('All registration fields are required', {
         code: 'server_unavailable',
-        details: payload,
-        status: response.status,
-        url: response.url,
+        details: {
+          error: {
+            code: 'missing_registration_fields',
+            message: 'Complete all fields to create your account.',
+          },
+        },
+        status: 400,
+        url: REGISTER_PATH,
       });
     }
 
-    const profile = await profileService.getAuthenticatedProfile({
+    if (credentials.password !== credentials.confirmPassword) {
+      throw new ApiError('Password confirmation does not match', {
+        code: 'server_unavailable',
+        details: {
+          error: {
+            code: 'password_mismatch',
+            message: 'The passwords do not match.',
+          },
+        },
+        status: 400,
+        url: REGISTER_PATH,
+      });
+    }
+
+    let response: Response;
+
+    try {
+      response = await authApi.register({
+        confirm_password: credentials.confirmPassword,
+        email,
+        password: credentials.password,
+        username,
+      });
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 400) {
+        throw new ApiError(getBackendErrorMessage(error.details) ?? 'Registration failed', {
+          code: 'server_unavailable',
+          details: error.details,
+          status: error.status,
+          url: REGISTER_PATH,
+        });
+      }
+
+      throw error;
+    }
+
+    const result = await persistAuthenticatedResponse({
       environmentName,
-      token,
+      rememberMe,
+      response,
     });
-    const session = buildSession(profile, token, environmentName, rememberMe);
 
-    await authStorage.writeSession(session);
-    logger.info('auth.login.success', sanitizeAuthSession(session));
+    logger.info('auth.register.success', sanitizeAuthSession(result.session));
 
-    return {
-      session,
-      user: session.user,
-    };
+    return result;
   },
 
   async logout() {

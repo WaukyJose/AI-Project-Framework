@@ -27,3 +27,12 @@ export interface LoginResult {
   session: AuthSession;
   user: AuthUser;
 }
+
+export interface RegistrationCredentials {
+  confirmPassword: string;
+  email: string;
+  password: string;
+  username: string;
+}
+
+export type RegistrationResult = LoginResult;
