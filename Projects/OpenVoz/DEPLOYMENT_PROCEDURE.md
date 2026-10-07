@@ -296,12 +296,25 @@ curl -I http://127.0.0.1:8000
 
 `voicechat.service` must return `active`, remain active, and show no new startup traceback, missing setting, missing credential, import failure, migration incompatibility, or reCAPTCHA startup error. The local health verification must return `HTTP/1.1 200 OK` before continuing to browser-based HTTPS verification.
 
+### Production media requirement
+
+OpenVoz generates runtime media, including TTS audio, under `/home/voicechat/media/`. The production Nginx HTTPS server block must expose this directory:
+
+```nginx
+location /media/ {
+    alias /home/voicechat/media/;
+}
+```
+
+This mapping is required for voice/TTS operation. Without it, synthesis may succeed and create the audio file on the server while clients receive HTTP `404` when requesting the generated audio.
+
 ### 11. Validate Nginx
 
 Application-only releases do not require an Nginx restart.
 
 ```bash
 sudo nginx -t
+sudo nginx -T 2>/dev/null | grep -A2 'location /media/'
 sudo systemctl is-active nginx
 sudo systemctl status nginx --no-pager
 sudo tail -n 100 /var/log/nginx/error.log
